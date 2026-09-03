@@ -56,7 +56,14 @@ Desktop.ini
 
 # Logs
 log/
+logs/
 *.log
+
+# SSL 证书私钥（绝不能提交）
+nginx/ssl/
+
+# 临时文件
+temp/
 
 # Uploaded files
 uploads/
