@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>注册 - AI面试系统</title>
+  <link href="css/bootstrap.min.css" rel="stylesheet">
+  <script src="js/vue.global.prod.js"></script>
+  <script src="js/sweetalert2.js"></script>
+  <style>
+    body {
+      background: #0f172a;
+      background-image: 
+        linear-gradient(rgba(30, 41, 59, 0.1) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(30, 41, 59, 0.1) 1px, transparent 1px);
+      background-size: 20px 20px;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      color: #e2e8f0;
+    }
+    .register-container {
+      background: rgba(15, 23, 42, 0.8);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      padding: 40px;
+      border-radius: 12px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      width: 100%;
+      max-width: 450px;
+    }
+    .register-header {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    .register-header h2 {
+      color: #e2e8f0;
+      margin-bottom: 10px;
+      font-weight: 600;
+    }
+    .register-header p {
+      color: #94a3b8;
+    }
+    .form-control {
+      padding: 12px;
+      border-radius: 8px;
+      background: rgba(30, 41, 59, 0.6);
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      color: #e2e8f0;
+    }
+    .form-control:focus {
+      background: rgba(30, 41, 59, 0.8);
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+    .btn-register {
+      width: 100%;
+      padding: 12px;
+      background: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%);
+      border: none;
+      border-radius: 8px;
+      color: white;
+      font-size: 16px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    .btn-register:hover {
+      background: linear-gradient(135deg, #2563eb 0%, #4f46e5 100%);
+      transform: translateY(-1px);
+    }
+    .login-link {
+      text-align: center;
+      margin-top: 20px;
+    }
+    .login-link p {
+      color: #94a3b8;
+    }
+    .login-link a {
+      color: #3b82f6;
+      text-decoration: none;
+      font-weight: 500;
+    }
+    .login-link a:hover {
+      text-decoration: underline;
+    }
+    .benefits {
+      background: rgba(30, 41, 59, 0.6);
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      padding: 15px;
+      border-radius: 10px;
+      margin-bottom: 20px;
+    }
+    .benefits h6 {
+      color: #3b82f6;
+      margin-bottom: 10px;
+      font-weight: 600;
+    }
+    .benefits ul {
+      margin: 0;
+      padding-left: 20px;
+      font-size: 14px;
+      color: #cbd5e1;
+    }
+    .benefits li {
+      margin-bottom: 5px;
+    }
+    .form-label {
+      color: #cbd5e1;
+      font-weight: 500;
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <div class="register-container">
+      <div class="register-header">
+        <h2>📝 用户注册</h2>
+        <p class="text-muted">创建您的AI面试系统账号</p>
+      </div>
+
+      <div class="benefits">
+        <h6>🎁 注册即享免费权益</h6>
+        <ul>
+          <li>免费体验3次AI面试</li>
+          <li>10分钟语音合成时长</li>
+          <li>5次AI表情分析报告</li>
+          <li>多种面试官音色可选</li>
+        </ul>
+      </div>
+
+      <form @submit.prevent="handleRegister">
+        <div class="mb-3">
+          <label class="form-label">用户名</label>
+          <input 
+            type="text" 
+            class="form-control" 
+            v-model="form.username"
+            placeholder="请输入用户名（2-20个字符）"
+            required
+            minlength="2"
+            maxlength="20"
+          >
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">邮箱</label>
+          <input 
+            type="email" 
+            class="form-control" 
+            v-model="form.email"
+            placeholder="请输入邮箱地址"
+            required
+          >
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">密码</label>
+          <input 
+            type="password" 
+            class="form-control" 
+            v-model="form.password"
+            placeholder="请输入密码（至少6位）"
+            required
+            minlength="6"
+          >
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">确认密码</label>
+          <input 
+            type="password" 
+            class="form-control" 
+            v-model="form.confirmPassword"
+            placeholder="请再次输入密码"
+            required
+          >
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">手机号（可选）</label>
+          <input 
+            type="tel" 
+            class="form-control" 
+            v-model="form.phone"
+            placeholder="请输入手机号"
+          >
+        </div>
+
+        <button type="submit" class="btn btn-register" :disabled="loading">
+          <span v-if="loading">注册中...</span>
+          <span v-else>立即注册</span>
+        </button>
+      </form>
+
+      <div class="login-link">
+        <p>已有账号？ <a href="login.html">立即登录</a></p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const { createApp } = Vue;
+
+    createApp({
+      data() {
+        return {
+          baseURL: (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+            ? 'http://localhost:10008/'   // dev
+            : 'https://www.en9.cn/', // prd
+          form: {
+            username: '',
+            email: '',
+            password: '',
+            confirmPassword: '',
+            phone: ''
+          },
+          loading: false
+        };
+      },
+      methods: {
+        async handleRegister() {
+          // 表单验证
+          if (this.form.password !== this.form.confirmPassword) {
+            Swal.fire('错误', '两次输入的密码不一致', 'error');
+            return;
+          }
+
+          if (this.form.password.length < 6) {
+            Swal.fire('错误', '密码长度至少6位', 'error');
+            return;
+          }
+
+          this.loading = true;
+
+          try {
+            const response = await fetch(`${this.baseURL}/api/auth/register`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                username: this.form.username,
+                email: this.form.email,
+                password: this.form.password,
+                phone: this.form.phone || null
+              })
+            });
+
+            const data = await response.json();
+
+            if (data.status === 'success') {
+              Swal.fire({
+                title: '注册成功！',
+                text: '欢迎加入AI面试系统，您已获得免费试用额度',
+                icon: 'success',
+                timer: 2000,
+                showConfirmButton: false
+              }).then(() => {
+                // 跳转到登录页面
+                window.location.href = 'login.html';
+              });
+            } else {
+              Swal.fire('注册失败', data.error || '注册过程中发生错误', 'error');
+            }
+          } catch (error) {
+            console.error('注册错误:', error);
+            Swal.fire('错误', '注册过程中发生错误', 'error');
+          } finally {
+            this.loading = false;
+          }
+        }
+      }
+    }).mount('#app');
+  </script>
+</body>
+</html>

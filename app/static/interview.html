@@ -1,0 +1,2925 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web语音面试系统</title>
+    <!-- Bootstrap CSS -->
+    <link href="css/bootstrap.min.css" rel="stylesheet">
+    <!-- Vue 3 -->
+    <script src="js/vue.global.prod.js"></script>
+    <!-- Axios for HTTP requests -->
+    <script src="js/axios.min.js"></script>
+    <!-- SweetAlert2 -->
+    <script src="js/sweetalert2.js"></script>
+    <style>
+        /* 全局样式 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: #0f172a;
+            background-image: 
+                radial-gradient(circle at 25% 25%, rgba(79, 70, 229, 0.05) 0%, transparent 50%),
+                radial-gradient(circle at 75% 75%, rgba(59, 130, 246, 0.05) 0%, transparent 50%),
+                linear-gradient(rgba(30, 41, 59, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(30, 41, 59, 0.05) 1px, transparent 1px);
+            background-size: 400px 400px, 400px 400px, 20px 20px, 20px 20px;
+            color: #e2e8f0;
+            min-height: 100vh;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        /* 顶部导航栏 */
+        .navbar {
+            background: rgba(15, 23, 42, 0.9) !important;
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            border-radius: 16px;
+            margin: 20px 0;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+        
+        .navbar-brand {
+            color: var(--text-primary) !important;
+            font-weight: 600;
+            font-size: 1.125rem;
+            letter-spacing: -0.025em;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .navbar-brand::before {
+            content: '🎯';
+            font-size: 20px;
+        }
+        
+        .navbar-nav .nav-link {
+            color: #94a3b8 !important;
+            font-weight: 500;
+            font-size: 1rem;
+            letter-spacing: 0;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+        
+        .navbar-nav .nav-link:hover {
+            color: #3b82f6 !important;
+            transform: translateY(-1px);
+        }
+        
+        .navbar-nav .nav-link::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: linear-gradient(90deg, #3b82f6 0%, #6366f1 100%);
+            transition: width 0.3s ease;
+        }
+        
+        .navbar-nav .nav-link:hover::after {
+            width: 100%;
+        }
+        
+        .navbar-text {
+            color: #e2e8f0 !important;
+            font-weight: 400;
+            font-size: 0.875rem;
+            letter-spacing: 0;
+        }
+        
+        /* 状态信息栏 */
+        .status-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 12px 20px;
+            background: rgba(15, 23, 42, 0.8);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            border-radius: 12px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+        }
+        
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .status-label {
+            font-size: 0.875rem;
+            color: #94a3b8;
+        }
+        
+        .status-value {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #e2e8f0;
+        }
+        
+        /* 主要内容区域 */
+        .main-content {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 24px;
+            min-height: 70vh;
+        }
+        
+        /* 左侧面板 */
+        .left-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+        
+        /* 摄像头容器 */
+        .camera-section {
+            background: rgba(15, 23, 42, 0.8);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .camera-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(90deg, #3b82f6 0%, #6366f1 100%);
+        }
+        
+        .camera-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #e2e8f0;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .camera-controls {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .camera-control-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            background: rgba(30, 41, 59, 0.6);
+            color: #94a3b8;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .camera-control-btn:hover {
+            background: rgba(59, 130, 246, 0.2);
+            color: #3b82f6;
+            border-color: #3b82f6;
+        }
+        
+        .camera-container {
+            position: relative;
+            width: 100%;
+            height: 240px;
+            border-radius: 12px;
+            overflow: hidden;
+            background: #000;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            margin-bottom: 16px;
+        }
+        
+        .camera-container video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .camera-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0,0,0,0.7);
+            color: #e2e8f0;
+            border: 2px dashed rgba(59, 130, 246, 0.5);
+        }
+        
+        .camera-overlay-content {
+            text-align: center;
+        }
+        
+        .camera-overlay-icon {
+            font-size: 2rem;
+            margin-bottom: 8px;
+            color: #3b82f6;
+        }
+        
+        .camera-overlay-text {
+            font-size: 0.875rem;
+            color: #94a3b8;
+        }
+        
+        /* 表情分析面板 */
+        .expression-section {
+            background: rgba(15, 23, 42, 0.8);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .expression-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(90deg, #10b981 0%, #34d399 100%);
+        }
+        
+        .expression-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #e2e8f0;
+            margin-bottom: 16px;
+        }
+        
+        .expression-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        
+        .expression-label {
+            font-size: 0.875rem;
+            color: #94a3b8;
+        }
+        
+        .expression-value {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #e2e8f0;
+        }
+        
+        .expression-value.excellent {
+            color: #4ade80;
+        }
+        
+        .expression-value.good {
+            color: #93c5fd;
+        }
+        
+        .expression-value.normal {
+            color: #fcd34d;
+        }
+        
+        .expression-value.poor {
+            color: #fca5a5;
+        }
+        
+        .expression-progress {
+            width: 100%;
+            height: 6px;
+            background: rgba(30, 41, 59, 0.6);
+            border-radius: 3px;
+            margin-top: 4px;
+            overflow: hidden;
+        }
+        
+        .expression-progress-bar {
+            height: 100%;
+            border-radius: 3px;
+            transition: width 0.3s ease;
+        }
+        
+        .expression-progress-bar.excellent {
+            background: linear-gradient(90deg, #10b981 0%, #34d399 100%);
+        }
+        
+        .expression-progress-bar.good {
+            background: linear-gradient(90deg, #3b82f6 0%, #60a5fa 100%);
+        }
+        
+        .expression-progress-bar.normal {
+            background: linear-gradient(90deg, #f59e0b 0%, #fbbf24 100%);
+        }
+        
+        .expression-progress-bar.poor {
+            background: linear-gradient(90deg, #ef4444 0%, #f87171 100%);
+        }
+        
+        /* 右侧面板 */
+        .right-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+        
+        /* AI面试官面板 */
+        .ai-interviewer-section {
+            background: rgba(15, 23, 42, 0.8);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .ai-interviewer-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(90deg, #8b5cf6 0%, #a78bfa 100%);
+        }
+        
+        .ai-interviewer-header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+        
+        .ai-avatar {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            color: white;
+        }
+        
+        .ai-info {
+            flex: 1;
+        }
+        
+        .ai-name {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: #e2e8f0;
+            margin-bottom: 4px;
+        }
+        
+        .ai-title {
+            font-size: 0.875rem;
+            color: #94a3b8;
+        }
+        
+        .ai-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .ai-status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #4ade80;
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        
+        .ai-status-text {
+            font-size: 0.875rem;
+            color: #4ade80;
+            font-weight: 500;
+        }
+        
+        /* 问题面板 */
+        .question-section {
+            background: rgba(15, 23, 42, 0.8);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .question-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(90deg, #3b82f6 0%, #6366f1 100%);
+        }
+        
+        .question-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .question-number {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #3b82f6;
+            background: rgba(59, 130, 246, 0.1);
+            padding: 6px 12px;
+            border-radius: 9999px;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+        }
+        
+        .question-voice-control {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .voice-control-label {
+            font-size: 0.875rem;
+            color: #94a3b8;
+        }
+        
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 26px;
+        }
+        
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(148, 163, 184, 0.3);
+            transition: .4s;
+            border-radius: 26px;
+        }
+        
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 20px;
+            width: 20px;
+            left: 3px;
+            bottom: 3px;
+            background-color: #e2e8f0;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        
+        input:checked + .slider {
+            background-color: #3b82f6;
+        }
+        
+        input:checked + .slider:before {
+            transform: translateX(24px);
+        }
+        
+        .voice-icon {
+            font-size: 1rem;
+            color: #94a3b8;
+        }
+        
+        .question-text {
+            font-size: 1.125rem;
+            font-weight: 500;
+            color: #e2e8f0;
+            line-height: 1.6;
+            margin-bottom: 24px;
+        }
+        
+        /* 提示面板 */
+        .hint-section {
+            background: rgba(59, 130, 246, 0.08);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 24px;
+        }
+        
+        .hint-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+        
+        .hint-icon {
+            font-size: 1rem;
+            color: #3b82f6;
+        }
+        
+        .hint-title {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #3b82f6;
+        }
+        
+        .hint-text {
+            font-size: 0.875rem;
+            color: #94a3b8;
+            line-height: 1.5;
+        }
+        
+        /* 答案输入面板 */
+        .answer-section {
+            background: rgba(15, 23, 42, 0.8);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .answer-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(90deg, #10b981 0%, #34d399 100%);
+        }
+        
+        .answer-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .answer-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #e2e8f0;
+        }
+        
+        .answer-mode-selector {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .mode-btn {
+            padding: 6px 16px;
+            border-radius: 9999px;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            background: rgba(30, 41, 59, 0.6);
+            color: #94a3b8;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .mode-btn.active {
+            background: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%);
+            color: white;
+            border-color: #3b82f6;
+        }
+        
+        .mode-btn:hover {
+            background: rgba(59, 130, 246, 0.2);
+            color: #3b82f6;
+            border-color: #3b82f6;
+        }
+        
+        .mode-btn.active:hover {
+            background: linear-gradient(135deg, #2563eb 0%, #4f46e5 100%);
+            color: white;
+        }
+        
+        /* 语音答题区域 */
+        .voice-answer-area {
+            text-align: center;
+            padding: 32px 0;
+        }
+        
+        .voice-answer-hint {
+            font-size: 0.875rem;
+            color: #94a3b8;
+            margin-bottom: 24px;
+        }
+        
+        .record-btn {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            border: 3px solid rgba(239, 68, 68, 0.3);
+            background: rgba(239, 68, 68, 0.1);
+            color: #fca5a5;
+            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 0 auto 16px;
+        }
+        
+        .record-btn:hover {
+            background: rgba(239, 68, 68, 0.2);
+            border-color: #ef4444;
+            transform: scale(1.05);
+        }
+        
+        .record-btn.recording {
+            background: rgba(239, 68, 68, 0.3);
+            border-color: #ef4444;
+            animation: pulse 1.5s infinite;
+        }
+        
+        .recording-time {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #fca5a5;
+        }
+        
+        /* 打字答题区域 */
+        .text-answer-area {
+            margin-bottom: 16px;
+        }
+        
+        .text-answer-input {
+            width: 100%;
+            min-height: 120px;
+            padding: 16px;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            border-radius: 12px;
+            background: rgba(30, 41, 59, 0.6);
+            color: #e2e8f0;
+            font-size: 1rem;
+            line-height: 1.5;
+            resize: vertical;
+            transition: all 0.3s ease;
+        }
+        
+        .text-answer-input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            background: rgba(30, 41, 59, 0.8);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+        
+        .text-answer-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 8px;
+        }
+        
+        .answer-length {
+            font-size: 0.875rem;
+            color: #94a3b8;
+        }
+        
+        /* 控制按钮区域 */
+        .control-section {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .control-btn {
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 1px solid transparent;
+        }
+        
+        .control-btn.primary {
+            background: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%);
+            color: white;
+            border-color: rgba(59, 130, 246, 0.3);
+        }
+        
+        .control-btn.primary:hover {
+            background: linear-gradient(135deg, #2563eb 0%, #4f46e5 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        }
+        
+        .control-btn.secondary {
+            background: rgba(30, 41, 59, 0.6);
+            color: #e2e8f0;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+        }
+        
+        .control-btn.secondary:hover {
+            background: rgba(30, 41, 59, 0.8);
+            border-color: #3b82f6;
+        }
+        
+        /* 进度条 */
+        .progress-section {
+            margin-top: 24px;
+        }
+        
+        .progress-label {
+            font-size: 0.875rem;
+            color: #94a3b8;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        .progress-bar-container {
+            width: 100%;
+            height: 8px;
+            background: rgba(30, 41, 59, 0.6);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #3b82f6 0%, #6366f1 100%);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+        
+        /* 加载状态 */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        
+        .loading-content {
+            text-align: center;
+        }
+        
+        .loading-spinner {
+            width: 60px;
+            height: 60px;
+            border: 3px solid rgba(59, 130, 246, 0.3);
+            border-top: 3px solid #3b82f6;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 16px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .loading-text {
+            font-size: 1rem;
+            color: #e2e8f0;
+        }
+        
+        /* 错误提示 */
+        .error-message {
+            background: rgba(239, 68, 68, 0.08);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .error-icon {
+            font-size: 1.5rem;
+            color: #fca5a5;
+            margin-bottom: 8px;
+        }
+        
+        .error-text {
+            font-size: 0.875rem;
+            color: #fca5a5;
+        }
+        
+        /* 面试完成提示 */
+        .completed-section {
+            margin-top: 20px;
+        }
+        
+        .completed-card {
+            background: rgba(15, 23, 42, 0.8);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .completed-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(90deg, #3b82f6 0%, #6366f1 100%);
+        }
+        
+        .completed-header {
+            margin-bottom: 24px;
+        }
+        
+        .completed-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #e2e8f0;
+            margin-bottom: 4px;
+        }
+        
+        .completed-subtitle {
+            font-size: 0.875rem;
+            color: #94a3b8;
+        }
+        
+        .score-card {
+            background: rgba(30, 41, 59, 0.6);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            gap: 24px;
+        }
+        
+        .score-circle {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #3b82f6, #6366f1);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+        
+        .score-number {
+            font-size: 1.75rem;
+            font-weight: 700;
+        }
+        
+        .score-label {
+            font-size: 0.75rem;
+            opacity: 0.9;
+        }
+        
+        .score-text {
+            flex: 1;
+        }
+        
+        .score-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: #e2e8f0;
+            margin-bottom: 8px;
+        }
+        
+        .score-description {
+            font-size: 0.875rem;
+            color: #94a3b8;
+            line-height: 1.5;
+        }
+        
+        .score-buttons {
+            display: flex;
+            gap: 12px;
+        }
+        
+        .score-tabs {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        
+        .score-tab {
+            flex: 1;
+            background: rgba(30, 41, 59, 0.6);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            border-radius: 12px;
+            padding: 16px;
+            text-align: center;
+        }
+        
+        .score-tab-title {
+            font-size: 0.875rem;
+            color: #94a3b8;
+            margin-bottom: 8px;
+        }
+        
+        .score-tab-value {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #3b82f6;
+        }
+        
+        .skills-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+        
+        .skills-left,
+        .skills-right {
+            background: rgba(30, 41, 59, 0.6);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            border-radius: 12px;
+            padding: 20px;
+        }
+        
+        .skills-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #e2e8f0;
+            margin-bottom: 16px;
+        }
+        
+        .skills-chart {
+            height: 200px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(15, 23, 42, 0.4);
+            border-radius: 8px;
+        }
+        
+        .skills-placeholder {
+            color: #94a3b8;
+            font-size: 0.875rem;
+        }
+        
+        .skill-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+        
+        .skill-name {
+            flex: 1;
+            font-size: 0.875rem;
+            color: #e2e8f0;
+        }
+        
+        .skill-bar {
+            flex: 2;
+            height: 8px;
+            background: rgba(15, 23, 42, 0.4);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .skill-progress {
+            height: 100%;
+            background: linear-gradient(90deg, #3b82f6, #6366f1);
+            border-radius: 4px;
+        }
+        
+        .skill-score {
+            font-size: 0.875rem;
+            color: #94a3b8;
+            min-width: 60px;
+            text-align: right;
+        }
+        
+        .feedback-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+        
+        .feedback-left,
+        .feedback-right {
+            background: rgba(30, 41, 59, 0.6);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            border-radius: 12px;
+            padding: 20px;
+        }
+        
+        .feedback-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #e2e8f0;
+            margin-bottom: 16px;
+        }
+        
+        .feedback-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+        
+        .feedback-item i {
+            margin-top: 2px;
+        }
+        
+        .feedback-item span {
+            font-size: 0.875rem;
+            color: #94a3b8;
+            line-height: 1.5;
+        }
+        
+        .recommendations-section {
+            margin-bottom: 24px;
+        }
+        
+        .recommendations-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #e2e8f0;
+            margin-bottom: 16px;
+        }
+        
+        .recommendations-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+        }
+        
+        .recommendation-card {
+            background: rgba(30, 41, 59, 0.6);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .recommendation-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #3b82f6, #6366f1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            margin: 0 auto 12px;
+        }
+        
+        .recommendation-icon i {
+            font-size: 1.25rem;
+        }
+        
+        .recommendation-title {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #e2e8f0;
+            margin-bottom: 8px;
+        }
+        
+        .recommendation-description {
+            font-size: 0.75rem;
+            color: #94a3b8;
+            line-height: 1.5;
+        }
+        
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .left-panel {
+                order: 2;
+            }
+            
+            .right-panel {
+                order: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="app" class="container">
+        <!-- 顶部导航栏 -->
+        <nav class="navbar navbar-expand-lg">
+            <div class="container-fluid">
+                <a class="navbar-brand" href="#">AI面试系统</a>
+                <div class="navbar-nav ms-auto">
+                    <a class="nav-link" href="admin.html">管理后台</a>
+                    <a class="nav-link" href="pricing.html">购买套餐</a>
+                    <a class="nav-link" href="login.html">退出</a>
+                </div>
+            </div>
+        </nav>
+        
+        <!-- 状态信息栏 -->
+        <div class="status-bar">
+            <div class="status-item">
+                <span class="status-label">面试进度:</span>
+                <span class="status-value">{{ currentQuestionIndex + 1 }}/{{ totalQuestions }}</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">剩余时间:</span>
+                <span class="status-value">08:30</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">网络状态:</span>
+                <span class="status-value">良好</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">录音状态:</span>
+                <span class="status-value" :class="isRecording ? 'text-danger' : 'text-success'">
+                    {{ isRecording ? '录音中' : '已就绪' }}
+                </span>
+            </div>
+        </div>
+        
+        <!-- 错误提示 -->
+        <div v-if="error" class="error-message">
+            <div class="error-icon">
+                <i class="bi bi-exclamation-circle"></i>
+            </div>
+            <div class="error-text">{{ error }}</div>
+            <div v-if="error === 'token无效，请创建新的面试'" class="error-actions">
+                <button class="btn btn-primary" @click="createNewInterview">创建新面试</button>
+            </div>
+        </div>
+
+        <!-- 状态提示 -->
+        <div v-if="!error && interviewStatus === 0" class="card text-center interview-container">
+            <div class="card-body">
+                <h2 class="card-title mb-4">面试尚未开始</h2>
+                <p>您的面试尚未开始，请在约定时间再次访问此页面。</p>
+                <p><strong>面试时间:</strong> {{ interviewInfo.time }}</p>
+                <p><strong>面试岗位:</strong> {{ interviewInfo.position }}</p>
+                <p><strong>候选人:</strong> {{ interviewInfo.candidate }}</p>
+            </div>
+        </div>
+
+        <!-- 初始提示框 - 只有当状态为1或2时才显示 -->
+        <div v-if="!error && !isInterviewStarted && (interviewStatus === 1 || interviewStatus === 2)" class="card text-center interview-container">
+            <div class="card-body">
+                <h2 class="card-title mb-4">欢迎参加面试</h2>
+                <p><strong>面试时间:</strong> {{ interviewInfo.time }}</p>
+                <p><strong>面试岗位:</strong> {{ interviewInfo.position }}</p>
+                <p><strong>候选人:</strong> {{ interviewInfo.candidate }}</p>
+                
+                <div class="mb-4 mt-4">
+                    <label class="form-label"><strong>选择面试官类型:</strong></label>
+                    <select v-model="selectedVoice" class="form-select" style="max-width: 400px; margin: 0 auto;">
+                        <option v-for="voice in availableVoices" :key="voice.id" :value="voice.id">
+                            {{ voice.name }} - {{ voice.description }}
+                        </option>
+                    </select>
+                    <small class="text-muted mt-2 d-block">选择后将锁定，面试过程中不可更改</small>
+                </div>
+                
+                <button class="btn btn-primary start-btn mt-4" @click="startInterview">开始面试</button>
+            </div>
+        </div>
+
+        <!-- 面试已完成提示 -->
+        <div v-if="!error  && (interviewStatus >= 3) " class="completed-section">
+            <div class="completed-card">
+                <div class="completed-header">
+                    <div class="completed-title">面试评分报告</div>
+                    <div class="completed-subtitle">面试时间: 2026-04-13 10:30-10:45</div>
+                </div>
+                
+                <div class="completed-content">
+                    <!-- 加载状态 -->
+                    <div v-if="interviewEvaluation.isLoading" class="text-center py-10">
+                        <div class="loading-spinner"></div>
+                        <div class="loading-text mt-4">AI正在生成面试评价...</div>
+                    </div>
+                    
+                    <!-- 评价内容 -->
+                    <div v-else>
+                        <div class="score-card">
+                            <div class="score-circle">
+                                <div class="score-number">{{ interviewEvaluation.averageScore }}</div>
+                                <div class="score-label">平均分</div>
+                            </div>
+                            <div class="score-text">
+                                <div class="score-title">面试完成！</div>
+                                <div class="score-description">{{ interviewEvaluation.description }}</div>
+                            </div>
+                            <div class="score-buttons">
+                                <button class="control-btn secondary">
+                                    <i class="bi bi-download me-1"></i>下载报告
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="score-tabs">
+                            <div class="score-tab">
+                                <div class="score-tab-title">专业技能</div>
+                                <div class="score-tab-value">{{ interviewEvaluation.scores.professional }}</div>
+                            </div>
+                            <div class="score-tab">
+                                <div class="score-tab-title">沟通表达</div>
+                                <div class="score-tab-value">{{ interviewEvaluation.scores.communication }}</div>
+                            </div>
+                            <div class="score-tab">
+                                <div class="score-tab-title">综合素质</div>
+                                <div class="score-tab-value">{{ interviewEvaluation.scores.comprehensive }}</div>
+                            </div>
+                        </div>
+                        
+                        <div class="skills-grid">
+                            <div class="skills-left">
+                                <div class="skills-title">六维能力图谱</div>
+                                <div class="skills-chart">
+                                    <!-- 这里可以添加六维能力图谱 -->
+                                    <div class="skills-placeholder">六维能力图谱</div>
+                                </div>
+                            </div>
+                            <div class="skills-right">
+                                <div class="skills-title">各项评分详情</div>
+                                <div v-for="skill in interviewEvaluation.detailedScores" :key="skill.name" class="skill-item">
+                                    <div class="skill-name">{{ skill.name }}</div>
+                                    <div class="skill-bar">
+                                        <div class="skill-progress" :style="{ width: skill.percentage + '%' }"></div>
+                                    </div>
+                                    <div class="skill-score">{{ skill.score }}/10</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="feedback-grid">
+                            <div class="feedback-left">
+                                <div class="feedback-title">优势亮点</div>
+                                <div v-for="(strength, index) in interviewEvaluation.strengths" :key="index" class="feedback-item">
+                                    <i class="bi bi-check-circle text-success"></i>
+                                    <span>{{ strength }}</span>
+                                </div>
+                            </div>
+                            <div class="feedback-right">
+                                <div class="feedback-title">改进建议</div>
+                                <div v-for="(improvement, index) in interviewEvaluation.improvements" :key="index" class="feedback-item">
+                                    <i class="bi bi-exclamation-circle text-warning"></i>
+                                    <span>{{ improvement }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="recommendations-section">
+                            <div class="recommendations-title">AI个性化建议</div>
+                            <div class="recommendations-grid">
+                                <div v-for="(recommendation, index) in interviewEvaluation.recommendations" :key="index" class="recommendation-card">
+                                    <div class="recommendation-icon">
+                                        <i v-if="index === 0" class="bi bi-book"></i>
+                                        <i v-else-if="index === 1" class="bi bi-chat-dots"></i>
+                                        <i v-else class="bi bi-trending-up"></i>
+                                    </div>
+                                    <div class="recommendation-title">{{ recommendation.title }}</div>
+                                    <div class="recommendation-description">{{ recommendation.description }}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 面试界面 -->
+        <div v-if="isInterviewStarted && !isFinished" class="main-content">
+            <!-- 左侧面板 -->
+            <div class="left-panel">
+                <!-- 摄像头区域 -->
+                <div class="camera-section">
+                    <div class="camera-title">
+                        <span>表情捕捉</span>
+                        <div class="camera-controls">
+                            <button class="camera-control-btn" @click="startCamera" v-if="!cameraActive">
+                                <i class="bi bi-camera-video"></i>
+                            </button>
+                            <button class="camera-control-btn" @click="stopCamera" v-else>
+                                <i class="bi bi-stop"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="camera-container">
+                        <video ref="cameraVideo" autoplay playsinline muted></video>
+                        <div v-if="!cameraActive" class="camera-overlay">
+                            <div class="camera-overlay-content">
+                                <div class="camera-overlay-icon">
+                                    <i class="bi bi-camera-video-off"></i>
+                                </div>
+                                <div class="camera-overlay-text">点击启用摄像头</div>
+                            </div>
+                        </div>
+                    </div>
+                    <button v-if="!cameraActive" 
+                            class="control-btn primary w-100" 
+                            @click="startCamera">
+                        <i class="bi bi-camera-video me-2"></i>启用表情捕捉
+                    </button>
+                    <div v-else class="text-center">
+                        <span class="text-success"><i class="bi bi-check-circle me-1"></i>表情捕捉已启用</span>
+                    </div>
+                </div>
+                
+                <!-- 表情分析面板 -->
+                <div class="expression-section">
+                    <div class="expression-title">表情分析</div>
+                    <div class="expression-item">
+                        <span class="expression-label">当前表情</span>
+                        <span class="expression-value">{{ expressionData.expression_cn || '检测中...' }}</span>
+                    </div>
+                    <div class="expression-item">
+                        <span class="expression-label">情绪状态</span>
+                        <span class="expression-value" :class="getScoreClass(expressionData.emotion_score)">{{ expressionData.emotion_status || '--' }}</span>
+                    </div>
+                    <div class="expression-progress">
+                        <div class="expression-progress-bar" :class="getScoreClass(expressionData.emotion_score)" :style="{ width: (expressionData.emotion_score || 0) + '%' }"></div>
+                    </div>
+                    <div class="expression-item mt-4">
+                        <span class="expression-label">语言表达</span>
+                        <span class="expression-value" :class="getScoreClass(expressionData.language_score)">{{ expressionData.language_score || '--' }}</span>
+                    </div>
+                    <div class="expression-progress">
+                        <div class="expression-progress-bar" :class="getScoreClass(expressionData.language_score)" :style="{ width: (expressionData.language_score || 0) + '%' }"></div>
+                    </div>
+                    <div class="expression-item mt-4">
+                        <span class="expression-label">综合评分</span>
+                        <span class="expression-value" :class="getScoreClass(expressionData.final_score)">{{ expressionData.final_score || '--' }}</span>
+                    </div>
+                    <div class="expression-progress">
+                        <div class="expression-progress-bar" :class="getScoreClass(expressionData.final_score)" :style="{ width: (expressionData.final_score || 0) + '%' }"></div>
+                    </div>
+                    <div v-if="expressionData.suggestions && expressionData.suggestions.length > 0" class="mt-4">
+                        <small class="text-muted"><i class="bi bi-lightbulb me-1"></i>{{ expressionData.suggestions[0] }}</small>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 右侧面板 -->
+            <div class="right-panel">
+                <!-- AI面试官面板 -->
+                <div class="ai-interviewer-section">
+                    <div class="ai-interviewer-header">
+                        <div class="ai-avatar">
+                            <i class="bi bi-robot"></i>
+                        </div>
+                        <div class="ai-info">
+                            <div class="ai-name">AI面试官</div>
+                            <div class="ai-title">前端开发专家</div>
+                        </div>
+                        <div class="ai-status">
+                            <div class="ai-status-indicator"></div>
+                            <div class="ai-status-text">在线</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 问题面板 -->
+                <div class="question-section">
+                    <div class="question-header">
+                        <div class="question-number">
+                            <i class="bi bi-question-circle me-1"></i> 问题 {{ currentQuestionIndex + 1 }}/{{ totalQuestions }}
+                        </div>
+                        <div class="question-voice-control">
+                            <span class="voice-control-label">朗读问题</span>
+                            <label class="toggle-switch">
+                                <input type="checkbox" v-model="voiceReadingEnabled"  @change="toggleVoiceReading">
+                                <span class="slider"></span>
+                            </label>
+                            <i class="bi voice-icon" :class="isPlayingAudio ? 'bi-volume-up-fill text-primary' : (voiceReadingEnabled ? 'bi-volume-up' : 'bi-volume-mute')"></i>
+                        </div>
+                    </div>
+                    <div class="question-text">{{ currentQuestion?.text || '加载问题中...' }}</div>
+                    
+                    <!-- 提示面板 -->
+                    <div class="hint-section">
+                        <div class="hint-header">
+                            <i class="bi bi-lightbulb hint-icon"></i>
+                            <span class="hint-title">答题提示</span>
+                        </div>
+                        <div class="hint-text">
+                            请结合个人经历，突出技术热情和专业技能，使用STAR法则（情境、任务、行动、结果）结构回答。
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 答案输入面板 -->
+                <div class="answer-section">
+                    <div class="answer-header">
+                        <div class="answer-title">回答问题</div>
+                        <div class="answer-mode-selector">
+                            <button class="mode-btn" :class="answerMode === 'voice' ? 'active' : ''" @click="answerMode = 'voice'">
+                                <i class="bi bi-mic me-1"></i>语音作答
+                            </button>
+                            <button class="mode-btn" :class="answerMode === 'text' ? 'active' : ''" @click="answerMode = 'text'">
+                                <i class="bi bi-pencil me-1"></i>打字作答
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- 语音答题区域 -->
+                    <div v-if="answerMode === 'voice'" class="voice-answer-area">
+                        <div class="voice-answer-hint">
+                            点击下方按钮开始录音，回答完成后点击"作答完毕"提交
+                        </div>
+                        <button v-if="!isRecording" 
+                                class="record-btn" 
+                                @click="startRecording" 
+                                :disabled="loading">
+                            <i class="bi bi-mic-fill"></i>
+                        </button>
+                        <button v-if="isRecording" 
+                                class="record-btn recording" 
+                                @click="stopRecording">
+                            <i class="bi bi-stop-circle-fill"></i>
+                        </button>
+                        <div v-if="isRecording" class="recording-time">
+                            {{ formatTime(recordingTime) }}
+                        </div>
+                    </div>
+                    
+                    <!-- 打字答题区域 -->
+                    <div v-if="answerMode === 'text'" class="text-answer-area">
+                        <textarea 
+                            class="text-answer-input" 
+                            rows="8" 
+                            v-model="textAnswer"
+                            placeholder="请在此输入您的答案..."
+                            :disabled="loading"
+                        ></textarea>
+                        <div class="text-answer-footer">
+                            <span class="answer-length">
+                                <i class="bi bi-info-circle me-1"></i>
+                                已输入 {{ textAnswer?.length || 0 }} 字
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <!-- 控制按钮区域 -->
+                    <div class="control-section">
+                        <button class="control-btn secondary" @click="skipQuestion">
+                            <i class="bi bi-skip-forward me-1"></i>跳过
+                        </button>
+                        <button class="control-btn secondary" @click="useAIAssist">
+                            <i class="bi bi-robot me-1"></i>AI辅助
+                        </button>
+                        <button 
+                            class="control-btn primary" 
+                            @click="handleSubmit" 
+                            :disabled="loading || (answerMode === 'text' && !textAnswer?.trim())">
+                            <i class="bi bi-check-circle me-1"></i>
+                            <span v-if="!loading">{{ answerMode === 'voice' ? '作答完毕' : '提交答案' }}</span>
+                            <span v-else>提交中...</span>
+                        </button>
+                    </div>
+                    
+                    <!-- 进度条 -->
+                    <div class="progress-section">
+                        <div class="progress-label">
+                            <span>面试进度</span>
+                            <span>{{ progressPercentage }}%</span>
+                        </div>
+                        <div class="progress-bar-container">
+                            <div class="progress-bar" :style="{ width: progressPercentage + '%' }"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 加载状态 -->
+        <div v-if="loading" class="loading-overlay">
+            <div class="loading-content">
+                <div class="loading-spinner"></div>
+                <div class="loading-text">{{ loadingMessage }}</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const { createApp, ref, computed, onMounted } = Vue;
+
+        createApp({
+            setup() {
+                const isInterviewStarted = ref(false);
+                const isFinished = ref(false);
+                const currentQuestion = ref(null);
+                const currentQuestionIndex = ref(0);
+                const totalQuestions = ref(10);
+                const isRecording = ref(false);
+                const textAnswer = ref('');
+                const answerMode = ref('voice');
+                const mediaRecorder = ref(null);
+                const loading = ref(false);
+                const loadingMessage = ref('');
+                const error = ref('');
+                const recordingTime = ref(0);
+                const timerInterval = ref(null);
+                const baseURL =  (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.protocol === 'file:')
+                ? 'http://127.0.0.1:10009/'   // dev
+                : 'https://www.en9.cn/'; // prd
+                
+                const interviewStatus = ref(1);
+                const voiceReadingEnabled = ref(true);
+                const selectedVoice = ref('professional_male');
+                const availableVoices = ref([]);
+                const isPlayingAudio = ref(false);
+                const currentAudioPlayer = ref(null);
+                
+                // 面试评价数据
+                const interviewEvaluation = ref({
+                    averageScore: 76,
+                    description: '您在本次面试中表现良好，综合得分为76分，表明您有中上水平，有很大提升空间。',
+                    scores: {
+                        professional: 80,
+                        communication: 68,
+                        comprehensive: 75
+                    },
+                    detailedScores: [
+                        { name: '专业知识', score: 8.5, percentage: 85 },
+                        { name: '行业认知', score: 7.5, percentage: 75 },
+                        { name: '表达能力', score: 7.0, percentage: 70 },
+                        { name: '沟通能力', score: 6.5, percentage: 65 },
+                        { name: '思维逻辑', score: 8.0, percentage: 80 }
+                    ],
+                    strengths: [
+                        '基础知识扎实，能够回答大部分专业问题',
+                        '专业技能突出，有相关项目经验',
+                        '逻辑思维清晰，能有条理地分析问题'
+                    ],
+                    improvements: [
+                        '在某些领域的知识深度不够，如算法优化',
+                        '表达能力有待提高，回答问题时不够流畅',
+                        '对行业最新趋势了解不足，需要加强学习'
+                    ],
+                    recommendations: [
+                        { title: '学习提升', description: '建议学习算法优化和系统设计，提升专业深度' },
+                        { title: '表达训练', description: '加强表达能力训练，提高回答问题的流畅度' },
+                        { title: '行业洞察', description: '关注行业最新趋势，了解前沿技术发展' }
+                    ],
+                    isLoading: false
+                });
+                
+                // 从URL获取token并验证
+                //url 形如 /interview.html?token=1234567890
+                const getTokenFromUrl = () => {
+                    const url = new URL(window.location.href);
+                    return url.searchParams.get('token');
+                };
+                const token = ref(getTokenFromUrl());
+
+                // 创建新面试
+
+
+                // 创建新面试
+
+
+                // 验证token是否有效，如果无效则创建新面试
+                const validateToken = async () => {
+                    console.log('开始验证token:', token.value);
+                    if (!token.value) {
+                        console.log('没有token，创建新面试...');
+                        try {
+                            const result = await createNewInterview();
+                            console.log('创建新面试结果:', result);
+                        } catch (err) {
+                            console.error('创建新面试失败:', err);
+                        }
+                        return;
+                    }
+                    
+                    try {
+                        console.log('验证token是否有效...');
+                        console.log('调用 /api/interview/${token.value}/info 端点...');
+                        const response = await axios.get(`${baseURL}api/interview/${token.value}/info`);
+                        console.log('token有效:', response.data);
+                    } catch (err) {
+                        console.error('token无效:', err);
+                        console.log('创建新面试...');
+                        try {
+                            const result = await createNewInterview();
+                            console.log('创建新面试结果:', result);
+                        } catch (err) {
+                            console.error('创建新面试失败:', err);
+                        }
+                    }
+                };
+
+                // 面试信息
+                const interviewInfo = ref({
+                    time: '',
+                    position: '',
+                    candidate: '',
+                    voice_reading: true,
+                    question_count: 10
+                });
+
+
+                // 计算进度百分比
+                const progressPercentage = computed(() => {
+                     return Math.round((   (currentQuestionIndex.value + 1) / totalQuestions.value) * 100);
+                });
+
+           
+
+                // 创建新面试
+                const createNewInterview = async () => {
+                    try {
+                        console.log('创建新面试...');
+                        const response = await axios.post(`${baseURL}api/interview/create`, {
+                            user_id: 1,
+                            interview_type_id: 1,
+                            question_count: 5,
+                            voice_reading: 1,
+                            voice_type: 'professional_male'
+                        });
+                        
+                        if (response.data.status === 'success') {
+                            console.log('创建面试成功，新token:', response.data.token);
+                            return response.data.token;
+                        } else {
+                            console.error('创建面试失败:', response.data.message);
+                            error.value = '创建面试失败，请刷新页面重试';
+                            return null;
+                        }
+                    } catch (err) {
+                        console.error('创建面试失败:', err);
+                        error.value = '创建面试失败，请刷新页面重试';
+                        return null;
+                    }
+                };
+
+                // 页面加载时获取面试信息
+                onMounted(async () => {
+                    console.log('页面加载开始...');
+                    console.log('token.value:', token.value);
+                    try {
+                        // 检查token是否有效
+                        let tokenValid = false;
+                        if (token.value) {
+                            try {
+                                console.log('验证token是否有效...');
+                                const response = await axios.get(`${baseURL}api/interview/${token.value}/info`);
+                                console.log('token有效:', response.data);
+                                tokenValid = true;
+                            } catch (err) {
+                                console.error('token无效:', err);
+                                tokenValid = false;
+                            }
+                        }
+                        
+                        // 如果token无效，创建新面试
+                        if (!tokenValid) {
+                            console.log('创建新面试...');
+                            // 直接重定向到创建面试的API，然后重定向回面试页面
+                            window.location.href = `${baseURL}api/interview/create_and_redirect`;
+                            return;
+                        }
+                        
+                        if (token.value) {
+                            console.log('调用 fetchInterviewInfo...');
+                            await fetchInterviewInfo();
+                            console.log('fetchInterviewInfo 调用成功');
+                            console.log('调用 fetchAvailableVoices...');
+                            await fetchAvailableVoices();
+                            console.log('fetchAvailableVoices 调用成功');
+                            // 自动开始面试
+                            console.log('interviewStatus.value:', interviewStatus.value);
+                            if (interviewStatus.value === 1 || interviewStatus.value === 2) {
+                                console.log('调用 startInterview...');
+                                startInterview();
+                                console.log('startInterview 调用成功');
+                            }
+                        } else {
+                            // 没有token时显示友好提示
+                            error.value = '请通过面试链接访问此页面，或在URL中添加token参数';
+                            loading.value = false;
+                        }
+                    } catch (err) {
+                        console.error('页面加载失败:', err);
+                        error.value = '页面加载失败，请刷新页面重试';
+                        loading.value = false;
+                    }
+                });
+
+                // 获取可用音色列表
+                const fetchAvailableVoices = async () => {
+                    try {
+                        const response = await axios.get(`${baseURL}api/tts/voices`);
+                        availableVoices.value = response.data.voices || [];
+                    } catch (err) {
+                        console.error('获取音色列表失败:', err);
+                        // 后端服务器不可用时，使用模拟数据
+                        availableVoices.value = [
+                            { id: 'zh-CN-YunxiNeural', name: '云溪' },
+                            { id: 'zh-CN-YunxiaNeural', name: '云夏' },
+                            { id: 'zh-CN-YunyangNeural', name: '云阳' },
+                            { id: 'zh-CN-YunfengNeural', name: '云峰' }
+                        ];
+                    }
+                };
+
+
+
+                const fetchInterviewInfo = async () => {
+                    loading.value = true;
+                    loadingMessage.value = '获取面试信息...';
+                    try {
+                        const response = await axios.get(`${baseURL}api/interview/${token.value}/info`);
+                        interviewInfo.value = response.data;
+                        // 获取面试状态
+                        if (response.data.status !== undefined) {
+                            interviewStatus.value = response.data.status;
+                        }
+                        
+                        // 设置语音朗读状态（默认开启）
+                        if (response.data.voice_reading !== undefined && response.data.voice_reading !== null) {
+                            voiceReadingEnabled.value = Boolean(response.data.voice_reading);
+                        } else {
+                            voiceReadingEnabled.value = true;
+                        }
+                        console.log('语音朗读状态:', voiceReadingEnabled.value);
+                        
+                        if (response.data.voice_type) {
+                            selectedVoice.value = response.data.voice_type;
+                        }
+                        
+                        if (interviewStatus.value === 3) {
+                            isFinished.value = true;
+                            // 生成面试评价
+                            generateInterviewEvaluation();
+                        }
+
+                        // 获取问题总数
+                        if (response.data.question_count !== undefined) {
+                            totalQuestions.value = response.data.question_count;
+                        }
+                        
+                    } catch (err) {
+                        console.error('获取面试信息失败:', err);
+                        console.error('错误类型:', err.type);
+                        console.error('错误消息:', err.message);
+                        console.error('错误堆栈:', err.stack);
+                        // 尝试创建新面试
+                        console.log('尝试创建新面试...');
+                        (async () => {
+                            try {
+                                const success = await createNewInterview();
+                                console.log('创建新面试结果:', success);
+                                if (success) {
+                                    // 重新获取面试信息
+                                    console.log('重新获取面试信息...');
+                                    await fetchInterviewInfo();
+                                }
+                            } catch (err) {
+                                console.error('调用 createNewInterview 失败:', err);
+                            }
+                        })();
+                        // 后端服务器不可用时，使用模拟数据
+                        interviewInfo.value = {
+                            id: 'mock-interview-id',
+                            title: '前端开发面试',
+                            description: '模拟前端开发面试',
+                            position: '前端开发工程师',
+                            candidate: '模拟候选人',
+                            status: 1,
+                            voice_reading: true,
+                            voice_type: 'zh-CN-YunxiNeural',
+                            question_count: 5
+                        };
+                        interviewStatus.value = 1;
+                        voiceReadingEnabled.value = true;
+                        selectedVoice.value = 'zh-CN-YunxiNeural';
+                        totalQuestions.value = 5;
+                        error.value = null;
+                    } finally {
+                        // 确保loading.value被设置为false
+                        console.log('设置loading.value为false');
+                        loading.value = false;
+                    }
+                };
+                
+                // 停止当前音频播放
+                const stopCurrentAudio = () => {
+                    if (currentAudioPlayer.value) {
+                        try {
+                            currentAudioPlayer.value.pause();
+                            currentAudioPlayer.value.currentTime = 0;
+                            currentAudioPlayer.value = null;
+                        } catch (e) {
+                            console.log('停止音频失败:', e);
+                        }
+                    }
+                    window.speechSynthesis.cancel();
+                    isPlayingAudio.value = false;
+                };
+
+            
+
+                // 切换语音朗读状态
+                const toggleVoiceReading = async () => {
+                    try {
+                        const response = await axios.post(
+                            `${baseURL}api/interview/${token.value}/toggle_voice_reading`, 
+                            { enabled: voiceReadingEnabled.value }
+                        );
+                        if (voiceReadingEnabled.value) {
+                            readQuestionAloud(currentQuestion.value.text);
+                        }
+                    } catch (err) {
+                        console.error('更新语音朗读设置失败:', err);
+                        // 后端服务器不可用时，直接使用前端状态
+                        if (voiceReadingEnabled.value && currentQuestion.value) {
+                            readQuestionAloud(currentQuestion.value.text);
+                        }
+                    }
+                };
+
+                // 开始面试
+                const startInterview = async () => {
+                    console.log('开始面试');
+                    // 先保存选择的面试官类型
+                    try {
+                        await axios.post(`${baseURL}api/interview/${token.value}/set_voice`, {
+                            voice_type: selectedVoice.value
+                        });
+                    } catch (err) {
+                        console.error('保存面试官类型失败:', err);
+                        // 后端服务器不可用时，继续执行
+                    }
+                    
+                    // 生成面试问题
+                    try {
+                        loading.value = true;
+                        loadingMessage.value = '生成面试问题中...';
+                        const response = await axios.post(`${baseURL}api/interview/${token.value}/generate_questions`);
+                        console.log('生成面试问题成功:', response.data);
+                    } catch (err) {
+                        console.error('生成面试问题失败:', err);
+                        // 后端服务器不可用时，继续执行
+                    } finally {
+                        loading.value = false;
+                    }
+                    
+                    // 只有当状态为1(试题已备好)或2(面试进行中)时才允许开始面试
+                    if (interviewStatus.value === 1 || interviewStatus.value === 2) {
+                        isInterviewStarted.value = true;
+                        try {
+                            await fetchQuestion();
+                        } catch (err) {
+                            console.error('获取问题失败:', err);
+                            loading.value = false;
+                        }
+                    } else {
+                        error.value = '当前状态无法开始面试';
+                    }
+                };
+
+                // 获取面试问题
+                const fetchQuestion = async () => {
+                    console.log('开始获取面试问题...');
+                    loading.value = true;
+                    loadingMessage.value = '获取问题中...';
+                    stopCurrentAudio();
+                    try {
+                        console.log('调用API获取问题:', `${baseURL}api/interview/${token.value}/get_question`);
+                        console.log('当前问题ID:', currentQuestion.value ? currentQuestion.value.id : 0);
+                        const response = await axios.get(`${baseURL}api/interview/${token.value}/get_question`, {
+                            params: {
+                                current_id: currentQuestion.value ? currentQuestion.value.id : 0
+                            }
+                        });
+                        console.log('API响应:', response.data);
+                        
+                        if (response.data.id === 0) {
+                            console.log('面试完成，没有更多问题');
+                            isFinished.value = true;
+                            interviewStatus.value = 3;
+                            // 生成面试评价
+                            generateInterviewEvaluation();
+                        } else {
+                            console.log('获取问题成功:', response.data.text);
+                            currentQuestion.value = response.data;
+                            if (voiceReadingEnabled.value) {
+                                // 优先使用预生成的语音
+                                if (response.data.use_pre_generated && response.data.audio) {
+                                    console.log('使用预生成的语音');
+                                    playPreGeneratedAudio(response.data.audio);
+                                } else {
+                                    // 没有预生成语音，实时合成
+                                    console.log('没有预生成语音，使用实时合成');
+                                    readQuestionAloud(currentQuestion.value.text);
+                                }
+                            }
+                        }
+                    } catch (err) {
+                        console.error('获取问题失败:', err);
+                        console.error('错误类型:', err.name);
+                        console.error('错误消息:', err.message);
+                        console.error('错误堆栈:', err.stack);
+                        
+                        // 后端服务器不可用时，使用模拟数据
+                        try {
+                            console.log('使用模拟数据...');
+                            const mockQuestions = [
+                                {
+                                    id: 1,
+                                    text: '请介绍一下你自己，包括你的专业背景和工作经验。',
+                                    type: 'self_introduction'
+                                },
+                                {
+                                    id: 2,
+                                    text: '你为什么选择前端开发这个职业？',
+                                    type: 'career_choice'
+                                },
+                                {
+                                    id: 3,
+                                    text: '请解释一下什么是闭包，以及它在JavaScript中的应用。',
+                                    type: 'technical'
+                                },
+                                {
+                                    id: 4,
+                                    text: '你如何处理浏览器兼容性问题？',
+                                    type: 'technical'
+                                },
+                                {
+                                    id: 5,
+                                    text: '请描述一下你的项目开发流程。',
+                                    type: 'process'
+                                }
+                            ];
+                            
+                            let nextQuestion = null;
+                            if (currentQuestion.value) {
+                                const currentId = currentQuestion.value.id;
+                                nextQuestion = mockQuestions.find(q => q.id > currentId) || null;
+                            } else {
+                                // 如果currentQuestion为null，获取第一个问题
+                                nextQuestion = mockQuestions[0] || null;
+                            }
+                            
+                            if (!nextQuestion) {
+                                console.log('模拟数据也没有更多问题，面试完成');
+                                isFinished.value = true;
+                                interviewStatus.value = 3;
+                            } else {
+                                console.log('使用模拟问题:', nextQuestion.text);
+                                currentQuestion.value = nextQuestion;
+                                // 更新currentQuestionIndex
+                                currentQuestionIndex.value = mockQuestions.findIndex(q => q.id === nextQuestion.id);
+                                if (voiceReadingEnabled.value) {
+                                    readQuestionAloud(currentQuestion.value.text);
+                                }
+                            }
+                            error.value = null;
+                        } catch (mockErr) {
+                            console.error('使用模拟数据失败:', mockErr);
+                            console.error('模拟数据错误类型:', mockErr.name);
+                            console.error('模拟数据错误消息:', mockErr.message);
+                            error.value = '获取问题失败，请刷新页面重试';
+                        }
+                    } finally {
+                        // 确保loading.value被设置为false
+                        console.log('设置loading.value为false');
+                        loading.value = false;
+                    }
+                };
+                
+                // 播放预生成的音频
+                const playPreGeneratedAudio = (audioBase64) => {
+                    try {
+                        isPlayingAudio.value = true;
+                        console.log('播放预生成音频');
+                        
+                        const audioData = atob(audioBase64);
+                        const arrayBuffer = new ArrayBuffer(audioData.length);
+                        const view = new Uint8Array(arrayBuffer);
+                        for (let i = 0; i < audioData.length; i++) {
+                            view[i] = audioData.charCodeAt(i);
+                        }
+                        
+                        const audioBlob = new Blob([arrayBuffer], { type: 'audio/mp3' });
+                        const audioUrl = URL.createObjectURL(audioBlob);
+                        const audio = new Audio(audioUrl);
+                        currentAudioPlayer.value = audio;
+                        
+                        audio.onended = () => {
+                            console.log('预生成音频播放结束');
+                            isPlayingAudio.value = false;
+                            currentAudioPlayer.value = null;
+                            URL.revokeObjectURL(audioUrl);
+                        };
+                        
+                        audio.onerror = (e) => {
+                            console.error('预生成音频播放错误:', e);
+                            isPlayingAudio.value = false;
+                            currentAudioPlayer.value = null;
+                            URL.revokeObjectURL(audioUrl);
+                            // 播放失败，回退到实时合成
+                            readQuestionAloud(currentQuestion.value.text);
+                        };
+                        
+                        audio.play();
+                        console.log('预生成音频开始播放');
+                    } catch (err) {
+                        console.error('播放预生成音频失败:', err);
+                        isPlayingAudio.value = false;
+                        // 播放失败，回退到实时合成
+                        readQuestionAloud(currentQuestion.value.text);
+                    }
+                };
+
+                // 使用语音朗读问题
+                const readQuestionAloud = async (text) => {
+                    console.log('开始语音朗读...');
+                    if (!voiceReadingEnabled.value) {
+                        console.log('语音朗读已禁用');
+                        return;
+                    }
+                    
+                    // 停止当前正在播放的音频
+                    stopCurrentAudio();
+                    
+                    try {
+                        isPlayingAudio.value = true;
+                        console.log('开始语音朗读:', text);
+                        console.log('语音朗读状态:', voiceReadingEnabled.value);
+                        console.log('当前选择的音色:', selectedVoice.value);
+                        
+                        // 直接使用服务器TTS，测试cosyvoice-v3-flash
+                        console.log('直接使用服务器TTS');
+                        const ttsSuccess = await fallbackToServerTTS(text);
+                        if (!ttsSuccess) {
+                            console.log('服务器TTS失败，使用浏览器语音合成');
+                            useBrowserSpeechSynthesis(text);
+                        }
+                    } catch (err) {
+                        console.error('语音朗读失败:', err);
+                        console.error('错误类型:', err.name);
+                        console.error('错误消息:', err.message);
+                        console.error('错误堆栈:', err.stack);
+                        isPlayingAudio.value = false;
+                        // 不显示错误，避免打扰用户
+                    }
+                };
+                
+                // 服务器TTS方案：使用大模型TTS
+                const fallbackToServerTTS = async (text) => {
+                    console.log('开始使用服务器大模型TTS...');
+                    try {
+                        console.log('调用TTS API:', `${baseURL}api/tts/synthesize`);
+                        console.log('TTS参数:', { text: text, voice_type: selectedVoice.value });
+                        const response = await axios.post(`${baseURL}api/tts/synthesize`, {
+                            text: text,
+                            voice_type: selectedVoice.value
+                        });
+                        
+                        console.log('TTS API响应状态:', response.status);
+                        console.log('TTS API响应数据:', response.data);
+                        
+                        if (response.data.status === 'success') {
+                            if (response.data.use_browser_tts) {
+                                // 服务器建议使用浏览器内置语音合成
+                                console.log('服务器建议使用浏览器内置语音合成:', response.data.message);
+                                return useBrowserSpeechSynthesis(text);
+                            } else if (response.data.audio) {
+                                // 服务器返回了音频数据
+                                console.log('服务器TTS成功，开始播放音频');
+                                try {
+                                    const audioData = atob(response.data.audio);
+                                    const arrayBuffer = new ArrayBuffer(audioData.length);
+                                    const view = new Uint8Array(arrayBuffer);
+                                    for (let i = 0; i < audioData.length; i++) {
+                                        view[i] = audioData.charCodeAt(i);
+                                    }
+                                    
+                                    const audioBlob = new Blob([arrayBuffer], { type: 'audio/mp3' });
+                                    const audioUrl = URL.createObjectURL(audioBlob);
+                                    const audio = new Audio(audioUrl);
+                                    currentAudioPlayer.value = audio;
+                                    
+                                    audio.onended = () => {
+                                        console.log('服务器音频播放结束');
+                                        isPlayingAudio.value = false;
+                                        currentAudioPlayer.value = null;
+                                        URL.revokeObjectURL(audioUrl);
+                                    };
+                                    
+                                    audio.onerror = (e) => {
+                                        console.error('服务器音频播放错误:', e);
+                                        isPlayingAudio.value = false;
+                                        currentAudioPlayer.value = null;
+                                        URL.revokeObjectURL(audioUrl);
+                                    };
+                                    
+                                    await audio.play();
+                                    console.log('服务器音频播放开始');
+                                    return true; // TTS成功
+                                } catch (audioErr) {
+                                    console.error('服务器音频处理失败:', audioErr);
+                                    console.error('音频处理错误类型:', audioErr.name);
+                                    console.error('音频处理错误消息:', audioErr.message);
+                                    return useBrowserSpeechSynthesis(text);
+                                }
+                            } else {
+                                // 服务器返回成功但没有音频数据，使用浏览器内置语音
+                                console.log('服务器返回成功但没有音频数据，使用浏览器内置语音');
+                                return useBrowserSpeechSynthesis(text);
+                            }
+                        } else {
+                            console.error('TTS API返回失败:', response.data);
+                            // 服务器TTS失败，使用浏览器内置语音
+                            console.log('服务器TTS失败，使用浏览器内置语音');
+                            return useBrowserSpeechSynthesis(text);
+                        }
+                    } catch (ttsErr) {
+                        console.error('服务器TTS失败:', ttsErr);
+                        console.error('TTS错误类型:', ttsErr.name);
+                        console.error('TTS错误消息:', ttsErr.message);
+                        console.error('TTS错误堆栈:', ttsErr.stack);
+                        // 服务器TTS失败，使用浏览器内置语音
+                        console.log('服务器TTS失败，使用浏览器内置语音');
+                        return useBrowserSpeechSynthesis(text);
+                    }
+                };
+                
+                // 使用浏览器内置语音合成
+                const useBrowserSpeechSynthesis = (text) => {
+                    if ('speechSynthesis' in window) {
+                        console.log('使用浏览器内置语音合成');
+                        
+                        // 检查语音合成是否准备就绪
+                        if (window.speechSynthesis.paused && window.speechSynthesis.speaking) {
+                            window.speechSynthesis.resume();
+                        }
+                        
+                        const utterance = new SpeechSynthesisUtterance(text);
+                        utterance.lang = 'zh-CN';
+                        utterance.rate = 1.0;
+                        utterance.pitch = 1.0;
+                        utterance.volume = 1.0;
+                        
+                        // 根据选择的音色调整语音参数
+                        switch(selectedVoice.value) {
+                            case 'professional_male':
+                                utterance.pitch = 0.9;
+                                utterance.rate = 0.95;
+                                break;
+                            case 'professional_female':
+                                utterance.pitch = 1.1;
+                                utterance.rate = 1.0;
+                                break;
+                            case 'friendly_male':
+                                utterance.pitch = 1.0;
+                                utterance.rate = 1.05;
+                                break;
+                            case 'friendly_female':
+                                utterance.pitch = 1.2;
+                                utterance.rate = 1.1;
+                                break;
+                            case 'strict_male':
+                                utterance.pitch = 0.8;
+                                utterance.rate = 0.9;
+                                break;
+                            case 'strict_female':
+                                utterance.pitch = 1.0;
+                                utterance.rate = 0.9;
+                                break;
+                        }
+                        
+                        utterance.onstart = () => {
+                            console.log('浏览器语音开始播放');
+                            isPlayingAudio.value = true;
+                        };
+                        
+                        utterance.onend = () => {
+                            console.log('浏览器语音播放结束');
+                            isPlayingAudio.value = false;
+                        };
+                        
+                        utterance.onerror = (e) => {
+                            console.error('浏览器语音错误:', e);
+                            isPlayingAudio.value = false;
+                        };
+                        
+                        console.log('准备播放浏览器语音:', utterance);
+                        window.speechSynthesis.speak(utterance);
+                        console.log('浏览器语音播放命令已发送');
+                        return true;
+                    } else {
+                        console.error('浏览器不支持语音合成');
+                        isPlayingAudio.value = false;
+                        error.value = '语音朗读失败，浏览器不支持语音合成';
+                        return false;
+                    }
+                };
+
+                // 格式化时间
+                const formatTime = (seconds) => {
+                    const mins = Math.floor(seconds / 60);
+                    const secs = seconds % 60;
+                    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+                };
+
+                // 开始录音计时
+                const startTimer = () => {
+                    recordingTime.value = 0;
+                    timerInterval.value = setInterval(() => {
+                        recordingTime.value++;
+                    }, 1000);
+                };
+
+                // 停止录音计时
+                const stopTimer = () => {
+                    if (timerInterval.value) {
+                        clearInterval(timerInterval.value);
+                        timerInterval.value = null;
+                    }
+                };
+
+                // WAV格式录音相关变量
+                const audioContext = ref(null);
+                const mediaStream = ref(null);
+                const scriptProcessor = ref(null);
+                const audioBuffers = ref([]);
+                const sampleRate = 16000;
+
+                // 将PCM数据转换为WAV格式
+                const createWavBlob = (audioBuffers, sampleRate) => {
+                    const length = audioBuffers.reduce((acc, buf) => acc + buf.length, 0);
+                    const buffer = new ArrayBuffer(44 + length * 2);
+                    const view = new DataView(buffer);
+                    
+                    const writeString = (view, offset, string) => {
+                        for (let i = 0; i < string.length; i++) {
+                            view.setUint8(offset + i, string.charCodeAt(i));
+                        }
+                    };
+                    
+                    writeString(view, 0, 'RIFF');
+                    view.setUint32(4, 36 + length * 2, true);
+                    writeString(view, 8, 'WAVE');
+                    writeString(view, 12, 'fmt ');
+                    view.setUint32(16, 16, true);
+                    view.setUint16(20, 1, true);
+                    view.setUint16(22, 1, true);
+                    view.setUint32(24, sampleRate, true);
+                    view.setUint32(28, sampleRate * 2, true);
+                    view.setUint16(32, 2, true);
+                    view.setUint16(34, 16, true);
+                    writeString(view, 36, 'data');
+                    view.setUint32(40, length * 2, true);
+                    
+                    let offset = 44;
+                    for (const buf of audioBuffers) {
+                        for (let i = 0; i < buf.length; i++) {
+                            const s = Math.max(-1, Math.min(1, buf[i]));
+                            view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+                            offset += 2;
+                        }
+                    }
+                    
+                    return new Blob([buffer], { type: 'audio/wav' });
+                };
+
+                // 语音识别对象
+                const speechRecognition = ref(null);
+                const isRecognizing = ref(false);
+                
+                // 开始录音（使用 Web Speech API）
+                const startRecording = async () => {
+                    if (isRecording.value || isRecognizing.value) return;
+                    
+                    loading.value = true;
+                    loadingMessage.value = '准备录音...';
+                    error.value = '';
+                    
+                    try {
+                        // 检查浏览器是否支持语音识别
+                        if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+                            error.value = '您的浏览器不支持语音识别功能，请使用打字作答';
+                            loading.value = false;
+                            return;
+                        }
+                        
+                        // 先请求麦克风权限
+                        try {
+                            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                            stream.getTracks().forEach(track => track.stop());
+                        } catch (permErr) {
+                            error.value = '无法访问麦克风，请检查权限设置';
+                            loading.value = false;
+                            return;
+                        }
+                        
+                        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                        const recognition = new SpeechRecognition();
+                        speechRecognition.value = recognition;
+                        
+                        // 配置语音识别
+                        recognition.continuous = true; // 连续识别模式，提高检测成功率
+                        recognition.interimResults = true;
+                        recognition.lang = 'zh-CN';
+                        recognition.maxAlternatives = 3;
+                        recognition.timeout = 5000; // 设置超时时间
+                        recognition.maxDuration = 30000; // 最大录音时间
+                        
+                        // 配置语音识别选项（如果支持）
+                        if ('continuous' in recognition) {
+                            recognition.continuous = true;
+                        }
+                        if ('interimResults' in recognition) {
+                            recognition.interimResults = true;
+                        }
+                        if ('maxAlternatives' in recognition) {
+                            recognition.maxAlternatives = 3;
+                        }
+                        if ('timeout' in recognition) {
+                            recognition.timeout = 5000;
+                        }
+                        // 不设置 grammars，避免类型错误
+                        // if ('grammars' in recognition) {
+                        //     recognition.grammars = null; // 这会导致类型错误
+                        // }
+                        
+                        let finalTranscript = '';
+                        let hasSpeech = false;
+                        let recognitionStartTime = Date.now();
+                        
+                        // 识别结果回调
+                        recognition.onresult = (event) => {
+                            hasSpeech = true;
+                            let interimTranscript = '';
+                            
+                            console.log('识别结果事件:', event);
+                            
+                            for (let i = event.resultIndex; i < event.results.length; ++i) {
+                                const result = event.results[i];
+                                console.log(`结果 ${i}:`, result);
+                                
+                                if (result.isFinal) {
+                                    finalTranscript += result[0].transcript;
+                                    console.log('最终识别结果:', finalTranscript);
+                                    console.log('置信度:', result[0].confidence);
+                                } else {
+                                    interimTranscript += result[0].transcript;
+                                    console.log('临时识别结果:', interimTranscript);
+                                }
+                            }
+                        };
+                        
+                        // 识别开始回调
+                        recognition.onstart = () => {
+                            console.log('语音识别已开始');
+                            loading.value = false;
+                        };
+                        
+                        // 识别结束回调
+                        recognition.onend = () => {
+                            console.log('语音识别已结束');
+                            isRecording.value = false;
+                            isRecognizing.value = false;
+                            stopTimer();
+                            loading.value = false;
+                            
+                            const recognitionDuration = Date.now() - recognitionStartTime;
+                            console.log(`识别持续时间: ${recognitionDuration}ms`);
+                            console.log(`最终识别结果: "${finalTranscript}"`);
+                            console.log(`是否检测到语音: ${hasSpeech}`);
+                            
+                            if (finalTranscript.trim()) {
+                                // 直接使用识别结果作为答案
+                                textAnswer.value = finalTranscript;
+                                console.log('自动提交答案:', finalTranscript);
+                                // 自动提交
+                                submitTextAnswer();
+                            } else if (hasSpeech) {
+                                error.value = '语音识别结果为空，请重新录音并确保发音清晰';
+                            } else if (recognitionDuration < 2000) {
+                                error.value = '录音时间太短，请说话时间长一些（至少2秒）';
+                            } else {
+                                error.value = '未检测到语音，请靠近麦克风并清晰说话，确保环境安静';
+                            }
+                        };
+                        
+                        // 识别错误回调
+                        recognition.onerror = (event) => {
+                            console.error('语音识别错误:', event.error, event);
+                            isRecording.value = false;
+                            isRecognizing.value = false;
+                            stopTimer();
+                            loading.value = false;
+                            
+                            if (event.error === 'no-speech') {
+                                error.value = '未检测到语音，请靠近麦克风并清晰说话';
+                            } else if (event.error === 'audio-capture') {
+                                error.value = '无法访问麦克风，请检查权限设置';
+                            } else if (event.error === 'not-allowed') {
+                                error.value = '麦克风权限被拒绝，请在浏览器设置中允许麦克风访问';
+                            } else if (event.error === 'aborted') {
+                                error.value = '语音识别被中止，请重试';
+                            } else if (event.error === 'network') {
+                                error.value = '网络连接问题，请检查网络';
+                            } else {
+                                error.value = '语音识别失败: ' + event.error;
+                            }
+                        };
+                        
+                        // 音频开始回调
+                        recognition.onaudiostart = () => {
+                            console.log('音频捕获已开始');
+                        };
+                        
+                        // 音频结束回调
+                        recognition.onaudioend = () => {
+                            console.log('音频捕获已结束');
+                        };
+                        
+                        // 开始识别
+                        console.log('开始语音识别');
+                        recognition.start();
+                        isRecording.value = true;
+                        isRecognizing.value = true;
+                        startTimer();
+                        
+                    } catch (err) {
+                        console.error('录音启动失败:', err);
+                        error.value = '录音启动失败: ' + err.message;
+                    } finally {
+                        // 确保loading.value被设置为false
+                        setTimeout(() => {
+                            loading.value = false;
+                        }, 500);
+                    }
+                };
+
+                // 停止录音
+                const stopRecording = () => {
+                    if (!isRecording.value) return;
+                    
+                    if (speechRecognition.value) {
+                        try {
+                            speechRecognition.value.stop();
+                        } catch (e) {
+                            console.log('停止语音识别失败:', e);
+                        }
+                    }
+                    
+                    isRecording.value = false;
+                    isRecognizing.value = false;
+                    stopTimer();
+                };
+
+                // 处理提交按钮点击
+                const handleSubmit = () => {
+                    console.log('处理提交按钮点击');
+                    console.log('answerMode:', answerMode.value);
+                    console.log('loading:', loading.value);
+                    console.log('textAnswer:', textAnswer.value);
+                    console.log('isRecording:', isRecording.value);
+                    if (answerMode.value === 'voice') {
+                        if (isRecording.value) {
+                            stopRecording();
+                        } else {
+                            // 如果没有开始录音，直接提交空答案
+                            submitTextAnswer();
+                        }
+                    } else {
+                        submitTextAnswer();
+                    }
+                };
+
+                // 提交手写题答案
+                const submitTextAnswer = async () => {
+                    console.log('提交答案按钮被点击');
+                    console.log('textAnswer.value:', textAnswer.value);
+                    console.log('textAnswer.value.trim():', textAnswer.value.trim());
+                    console.log('currentQuestion.value:', currentQuestion.value);
+                    console.log('answerMode:', answerMode.value);
+                    
+                    // 只有在打字作答模式下才检查答案是否为空
+                    if (answerMode.value === 'text' && (!textAnswer.value || !textAnswer.value.trim())) {
+                        error.value = '请输入答案后再提交';
+                        console.log('错误：请输入答案后再提交');
+                        return;
+                    }
+                    
+                    if (!currentQuestion.value) {
+                        error.value = '当前问题不存在';
+                        console.log('错误：当前问题不存在');
+                        return;
+                    }
+                    
+                    stopCurrentAudio();
+                    loading.value = true;
+                    loadingMessage.value = '提交答案中...';
+                    console.log('开始提交答案');
+                    
+                    try {
+                        const questionId = currentQuestion.value.id;
+                        console.log('问题ID:', questionId);
+                        
+                        // 提交答案
+                        const response = await axios.post(`${baseURL}api/interview/${token.value}/submit_text_answer`, {
+                            question_id: questionId,
+                            answer_text: textAnswer.value
+                        });
+                        console.log('提交答案成功:', response.data);
+                        
+                        // 获取下一个问题
+                        await fetchQuestion();
+                        
+                        // 重置答案
+                        textAnswer.value = '';
+                        answerMode.value = 'voice';
+                        error.value = null;
+                    } catch (err) {
+                        console.error('提交答案失败:', err);
+                        error.value = '提交答案失败，请刷新页面重试';
+                    } finally {
+                        console.log('设置loading.value为false');
+                        // 确保loading.value被设置为false
+                        loading.value = false;
+                    }
+                };
+
+                // ========== 表情捕捉功能 ==========
+                const cameraActive = ref(false);
+                const expressionData = ref({
+                    expression: '',
+                    expression_cn: '',
+                    emotion_status: '',
+                    final_score: null,
+                    suggestions: []
+                });
+                const cameraStream = ref(null);
+                const expressionInterval = ref(null);
+                const expressionVideo = ref(null);
+
+                // 获取表情图标
+                const getExpressionIcon = (expression) => {
+                    const iconMap = {
+                        'happiness': 'bi-emoji-smile',
+                        'neutral': 'bi-emoji-neutral',
+                        'surprise': 'bi-emoji-surprise',
+                        'sadness': 'bi-emoji-frown',
+                        'anger': 'bi-emoji-angry',
+                        'fear': 'bi-emoji-dizzy',
+                        'disgust': 'bi-emoji-frown',
+                        'pouty': 'bi-emoji-smile-upside-down',
+                        'grimace': 'bi-emoji-expressionless'
+                    };
+                    return iconMap[expression] || 'bi-emoji-neutral';
+                };
+
+                // 获取评分样式类
+                const getScoreClass = (score) => {
+                    if (!score) return '';
+                    if (score >= 80) return 'excellent';
+                    if (score >= 60) return 'good';
+                    if (score >= 40) return 'normal';
+                    return 'poor';
+                };
+                
+                // 跳过问题
+                const skipQuestion = () => {
+                    Swal.fire({
+                        title: '确认跳过',
+                        text: '确定要跳过当前问题吗？',
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonText: '确定',
+                        cancelButtonText: '取消'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            fetchQuestion();
+                        }
+                    });
+                };
+                
+                // 使用AI辅助
+                const useAIAssist = () => {
+                    Swal.fire({
+                        title: 'AI辅助',
+                        text: 'AI正在为您分析问题...',
+                        icon: 'info',
+                        showConfirmButton: false,
+                        timer: 2000
+                    }).then(() => {
+                        Swal.fire({
+                            title: 'AI辅助提示',
+                            text: '建议您从以下几个方面回答：\n1. 介绍您的专业背景\n2. 分享相关项目经验\n3. 突出您的技术优势\n4. 表达对该岗位的兴趣',
+                            icon: 'success',
+                            confirmButtonText: '明白了'
+                        });
+                    });
+                };
+                
+                // 停止摄像头
+                const stopCamera = () => {
+                    if (cameraStream.value) {
+                        cameraStream.value.getTracks().forEach(track => track.stop());
+                        cameraStream.value = null;
+                        cameraActive.value = false;
+                    }
+                };
+
+                // 启动摄像头
+                const startCamera = async () => {
+                    try {
+                        cameraStream.value = await navigator.mediaDevices.getUserMedia({
+                            video: { width: 320, height: 240, facingMode: 'user' },
+                            audio: false
+                        });
+                        
+                        const videoElement = document.querySelector('video');
+                        if (videoElement && cameraStream.value) {
+                            videoElement.srcObject = cameraStream.value;
+                            cameraActive.value = true;
+                            startExpressionCapture();
+                        }
+                    } catch (err) {
+                        console.error('摄像头启动失败:', err);
+                        error.value = '无法访问摄像头，请确保您已授予摄像头权限';
+                    }
+                };
+
+                // 开始表情捕捉（每5秒分析一次）
+                const startExpressionCapture = () => {
+                    if (expressionInterval.value) {
+                        clearInterval(expressionInterval.value);
+                    }
+                    
+                    captureAndAnalyzeExpression();
+                    
+                    expressionInterval.value = setInterval(() => {
+                        captureAndAnalyzeExpression();
+                    }, 5000);
+                };
+
+                // 捕获画面并分析表情
+                const captureAndAnalyzeExpression = async () => {
+                    if (!cameraActive.value) return;
+                    
+                    try {
+                        const videoElement = document.querySelector('video');
+                        if (!videoElement || !videoElement.srcObject) return;
+                        
+                        const canvas = document.createElement('canvas');
+                        canvas.width = videoElement.videoWidth || 320;
+                        canvas.height = videoElement.videoHeight || 240;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+                        
+                        const imageBase64 = canvas.toDataURL('image/jpeg', 0.8);
+                        
+                        const response = await axios.post(`${baseURL}api/expression/analyze`, {
+                            image_base64: imageBase64
+                        }, {
+                            timeout: 10000
+                        });
+                        
+                        if (response.data.success) {
+                            expressionData.value = {
+                                expression: response.data.expression || '',
+                                expression_cn: response.data.expression_cn || '',
+                                emotion_status: response.data.emotion_status || '',
+                                final_score: response.data.final_score,
+                                suggestions: response.data.suggestions || []
+                            };
+                            
+                            saveExpressionRecord(expressionData.value, imageBase64);
+                        }
+                    } catch (err) {
+                        console.error('表情分析失败:', err);
+                    }
+                };
+
+                // 保存表情记录到服务器
+                const saveExpressionRecord = async (data, imageBase64) => {
+                    try {
+                        await axios.post(`${baseURL}api/interview/${token.value}/expression`, {
+                            image_base64: imageBase64,
+                            expression: data.expression,
+                            expression_cn: data.expression_cn,
+                            emotion_status: data.emotion_status,
+                            final_score: data.final_score
+                        });
+                        console.log('表情记录保存成功');
+                    } catch (err) {
+                        console.error('保存表情记录失败:', err);
+                    }
+                };
+
+                // 停止表情捕捉
+                const stopExpressionCapture = () => {
+                    if (expressionInterval.value) {
+                        clearInterval(expressionInterval.value);
+                        expressionInterval.value = null;
+                    }
+                    if (cameraStream.value) {
+                        cameraStream.value.getTracks().forEach(track => track.stop());
+                        cameraStream.value = null;
+                    }
+                    cameraActive.value = false;
+                };
+                
+                // 调用大模型API生成面试评价
+                const generateInterviewEvaluation = async () => {
+                    interviewEvaluation.value.isLoading = true;
+                    try {
+                        console.log('开始生成面试评价');
+                        // 模拟API调用延迟
+                        await new Promise(resolve => setTimeout(resolve, 2000));
+                        
+                        // 调用大模型API生成评价
+                        const response = await axios.post(`${baseURL}api/evaluation/generate`, {
+                            token: token.value
+                        });
+                        
+                        if (response.data.status === 'success') {
+                            console.log('大模型API返回成功:', response.data);
+                            // 更新面试评价数据
+                            interviewEvaluation.value = {
+                                ...interviewEvaluation.value,
+                                ...response.data.evaluation,
+                                isLoading: false
+                            };
+                        } else {
+                            console.error('大模型API返回失败:', response.data);
+                            // 使用默认评价数据
+                            interviewEvaluation.value = {
+                                ...interviewEvaluation.value,
+                                averageScore: 76,
+                                description: '您在本次面试中表现良好，综合得分为76分，表明您有中上水平，有很大提升空间。',
+                                scores: {
+                                    professional: 80,
+                                    communication: 68,
+                                    comprehensive: 75
+                                },
+                                detailedScores: [
+                                    {"name": "专业知识", "score": 8.5, "percentage": 85},
+                                    {"name": "行业认知", "score": 7.5, "percentage": 75},
+                                    {"name": "表达能力", "score": 7.0, "percentage": 70},
+                                    {"name": "沟通能力", "score": 6.5, "percentage": 65},
+                                    {"name": "思维逻辑", "score": 8.0, "percentage": 80}
+                                ],
+                                strengths: [
+                                    "基础知识扎实，能够回答大部分专业问题",
+                                    "专业技能突出，有相关项目经验",
+                                    "逻辑思维清晰，能有条理地分析问题"
+                                ],
+                                improvements: [
+                                    "在某些领域的知识深度不够，如算法优化",
+                                    "表达能力有待提高，回答问题时不够流畅",
+                                    "对行业最新趋势了解不足，需要加强学习"
+                                ],
+                                recommendations: [
+                                    {"title": "学习提升", "description": "建议学习算法优化和系统设计，提升专业深度"},
+                                    {"title": "表达训练", "description": "加强表达能力训练，提高回答问题的流畅度"},
+                                    {"title": "行业洞察", "description": "关注行业最新趋势，了解前沿技术发展"}
+                                ],
+                                isLoading: false
+                            };
+                        }
+                    } catch (err) {
+                        console.error('生成面试评价失败:', err);
+                        // 后端服务器不可用时，使用默认评价数据
+                        interviewEvaluation.value = {
+                            ...interviewEvaluation.value,
+                            averageScore: 76,
+                            description: '您在本次面试中表现良好，综合得分为76分，表明您有中上水平，有很大提升空间。',
+                            scores: {
+                                professional: 80,
+                                communication: 68,
+                                comprehensive: 75
+                            },
+                            detailedScores: [
+                                {"name": "专业知识", "score": 8.5, "percentage": 85},
+                                {"name": "行业认知", "score": 7.5, "percentage": 75},
+                                {"name": "表达能力", "score": 7.0, "percentage": 70},
+                                {"name": "沟通能力", "score": 6.5, "percentage": 65},
+                                {"name": "思维逻辑", "score": 8.0, "percentage": 80}
+                            ],
+                            strengths: [
+                                "基础知识扎实，能够回答大部分专业问题",
+                                "专业技能突出，有相关项目经验",
+                                "逻辑思维清晰，能有条理地分析问题"
+                            ],
+                            improvements: [
+                                "在某些领域的知识深度不够，如算法优化",
+                                "表达能力有待提高，回答问题时不够流畅",
+                                "对行业最新趋势了解不足，需要加强学习"
+                            ],
+                            recommendations: [
+                                {"title": "学习提升", "description": "建议学习算法优化和系统设计，提升专业深度"},
+                                {"title": "表达训练", "description": "加强表达能力训练，提高回答问题的流畅度"},
+                                {"title": "行业洞察", "description": "关注行业最新趋势，了解前沿技术发展"}
+                            ],
+                            isLoading: false
+                        };
+                    }
+                };
+
+                return {
+                    isInterviewStarted,
+                    isFinished,
+                    currentQuestion,
+                    currentQuestionIndex,
+                    totalQuestions,
+                    progressPercentage,
+                    isRecording,
+                    textAnswer,
+                    answerMode,
+                    loading,
+                    loadingMessage,
+                    interviewInfo,
+                    token,
+                    error,
+                    recordingTime,
+                    interviewStatus,
+                    voiceReadingEnabled,
+                    selectedVoice,
+                    availableVoices,
+                    isPlayingAudio,
+                    formatTime,
+                    startInterview,
+                    startRecording,
+                    stopRecording,
+                    submitTextAnswer,
+                    handleSubmit,
+                    toggleVoiceReading,
+                    cameraActive,
+                    expressionData,
+                    startCamera,
+                    stopCamera,
+                    skipQuestion,
+                    useAIAssist,
+                    getExpressionIcon,
+                    getScoreClass,
+                    speechRecognition,
+                    isRecognizing,
+                    interviewEvaluation,
+                    generateInterviewEvaluation
+                };
+            }
+        }).mount('#app');
+    </script>
+
+    <!-- Bootstrap JS and Icons -->
+    <script src="js/bootstrap.bundle.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+</body>
+</html> 

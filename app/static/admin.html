@@ -1,0 +1,1262 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>面试系统管理</title>
+  <!-- Bootstrap CSS -->
+  <link href="css/bootstrap.min.css" rel="stylesheet">
+  <!-- Vue.js -->
+  <script src="js/vue.global.prod.js"></script>
+  <!-- SweetAlert2 -->
+  <script src="js/sweetalert2.js"></script>
+  <style>
+    /* 字体设计 */
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    
+    :root {
+      /* 字体设置 */
+      --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      
+      /* 字号层级 */
+      --font-size-xs: 0.75rem;   /* 12px */
+      --font-size-sm: 0.875rem;  /* 14px */
+      --font-size-base: 1rem;    /* 16px */
+      --font-size-lg: 1.125rem;   /* 18px */
+      --font-size-xl: 1.25rem;    /* 20px */
+      --font-size-2xl: 1.5rem;    /* 24px */
+      --font-size-3xl: 1.875rem;  /* 30px */
+      --font-size-4xl: 2.25rem;   /* 36px */
+      
+      /* 字重 */
+      --font-weight-light: 300;
+      --font-weight-normal: 400;
+      --font-weight-medium: 500;
+      --font-weight-semibold: 600;
+      --font-weight-bold: 700;
+      
+      /* 行高 */
+      --line-height-tight: 1.25;
+      --line-height-normal: 1.5;
+      --line-height-relaxed: 1.75;
+      
+      /* 字间距 */
+      --letter-spacing-tight: -0.025em;
+      --letter-spacing-normal: 0;
+      --letter-spacing-wide: 0.025em;
+      
+      /* 颜色系统 */
+      --primary-color: #4f46e5;
+      --primary-light: #6366f1;
+      --primary-dark: #4338ca;
+      --secondary-color: #3b82f6;
+      --success-color: #10b981;
+      --warning-color: #f59e0b;
+      --danger-color: #ef4444;
+      --info-color: #3b82f6;
+      --background-color: #0f172a;
+      --card-background: rgba(15, 23, 42, 0.8);
+      --card-border: rgba(59, 130, 246, 0.2);
+      --text-primary: #e2e8f0;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --gradient-primary: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-light) 100%);
+      --gradient-secondary: linear-gradient(135deg, var(--secondary-color) 0%, #60a5fa 100%);
+    }
+    
+    /* 全局样式 */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: var(--font-family);
+      font-size: var(--font-size-base);
+      font-weight: var(--font-weight-normal);
+      line-height: var(--line-height-normal);
+      letter-spacing: var(--letter-spacing-normal);
+      background: var(--background-color);
+      background-image: 
+        radial-gradient(circle at 25% 25%, rgba(79, 70, 229, 0.05) 0%, transparent 50%),
+        radial-gradient(circle at 75% 75%, rgba(59, 130, 246, 0.05) 0%, transparent 50%),
+        linear-gradient(rgba(30, 41, 59, 0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(30, 41, 59, 0.05) 1px, transparent 1px);
+      background-size: 400px 400px, 400px 400px, 20px 20px, 20px 20px;
+      padding: 20px;
+      color: var(--text-primary);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+    
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+    
+    /* 导航栏 */
+    .navbar {
+      background: rgba(15, 23, 42, 0.9) !important;
+      backdrop-filter: blur(15px);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      margin-bottom: 30px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    }
+    
+    .navbar-brand {
+      color: var(--text-primary) !important;
+      font-weight: var(--font-weight-semibold);
+      font-size: var(--font-size-lg);
+      letter-spacing: var(--letter-spacing-tight);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .navbar-brand::before {
+      content: '🎯';
+      font-size: 20px;
+    }
+    
+    .navbar-nav .nav-link {
+      color: var(--text-secondary) !important;
+      font-weight: var(--font-weight-medium);
+      font-size: var(--font-size-base);
+      letter-spacing: var(--letter-spacing-normal);
+      position: relative;
+      transition: all 0.3s ease;
+    }
+    
+    .navbar-nav .nav-link:hover {
+      color: var(--primary-light) !important;
+      transform: translateY(-1px);
+    }
+    
+    .navbar-nav .nav-link::after {
+      content: '';
+      position: absolute;
+      bottom: -2px;
+      left: 0;
+      width: 0;
+      height: 2px;
+      background: var(--gradient-primary);
+      transition: width 0.3s ease;
+    }
+    
+    .navbar-nav .nav-link:hover::after {
+      width: 100%;
+    }
+    
+    .navbar-text {
+      color: var(--text-primary) !important;
+      font-weight: var(--font-weight-normal);
+      font-size: var(--font-size-sm);
+      letter-spacing: var(--letter-spacing-normal);
+    }
+    
+    /* 徽章 */
+    .badge {
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      font-weight: var(--font-weight-medium);
+      font-size: var(--font-size-xs);
+      letter-spacing: var(--letter-spacing-wide);
+      padding: 4px 10px;
+      border-radius: 9999px;
+    }
+    
+    .badge.bg-success {
+      background: rgba(16, 185, 129, 0.15) !important;
+      color: #34d399 !important;
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+    
+    /* 警告框 */
+    .alert {
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      color: var(--text-primary);
+      font-weight: var(--font-weight-normal);
+      font-size: var(--font-size-base);
+      line-height: var(--line-height-relaxed);
+      letter-spacing: var(--letter-spacing-normal);
+      padding: 16px 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+    }
+    
+    .alert-info {
+      background: rgba(59, 130, 246, 0.08) !important;
+      border: 1px solid rgba(59, 130, 246, 0.2) !important;
+      color: #93c5fd !important;
+    }
+    
+    .alert-warning {
+      background: rgba(245, 158, 11, 0.08) !important;
+      border: 1px solid rgba(245, 158, 11, 0.2) !important;
+      color: #fcd34d !important;
+    }
+    
+    .alert-secondary {
+      background: rgba(148, 163, 184, 0.08) !important;
+      border: 1px solid rgba(148, 163, 184, 0.2) !important;
+      color: #cbd5e1 !important;
+    }
+    
+    /* 标题 */
+    h1 {
+      color: var(--text-primary);
+      font-weight: var(--font-weight-bold);
+      font-size: var(--font-size-3xl);
+      line-height: var(--line-height-tight);
+      letter-spacing: var(--letter-spacing-tight);
+      margin-bottom: 2rem;
+      position: relative;
+      display: inline-block;
+    }
+    
+    h1::after {
+      content: '';
+      position: absolute;
+      bottom: -8px;
+      left: 0;
+      width: 60px;
+      height: 4px;
+      background: var(--gradient-primary);
+      border-radius: 2px;
+    }
+    
+    h2 {
+      color: var(--text-primary);
+      font-weight: var(--font-weight-semibold);
+      font-size: var(--font-size-2xl);
+      line-height: var(--line-height-tight);
+      letter-spacing: var(--letter-spacing-tight);
+      margin-bottom: 1.5rem;
+    }
+    
+    h3 {
+      color: var(--text-primary);
+      font-weight: var(--font-weight-semibold);
+      font-size: var(--font-size-xl);
+      line-height: var(--line-height-normal);
+      letter-spacing: var(--letter-spacing-normal);
+      margin-bottom: 1.25rem;
+    }
+    
+    h4 {
+      color: var(--text-primary);
+      font-weight: var(--font-weight-medium);
+      font-size: var(--font-size-lg);
+      line-height: var(--line-height-normal);
+      letter-spacing: var(--letter-spacing-normal);
+      margin-bottom: 1rem;
+    }
+    
+    /* 表格 */
+    .table {
+      background: var(--card-background);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+    }
+    
+    .table th {
+      background: rgba(30, 41, 59, 0.8);
+      color: var(--text-secondary);
+      border-bottom: 1px solid var(--card-border);
+      font-weight: var(--font-weight-medium);
+      font-size: var(--font-size-sm);
+      letter-spacing: var(--letter-spacing-wide);
+      text-transform: uppercase;
+      padding: 12px 16px;
+    }
+    
+    .table td {
+      color: var(--text-primary);
+      border-bottom: 1px solid rgba(59, 130, 246, 0.1);
+      vertical-align: middle;
+      font-weight: var(--font-weight-normal);
+      font-size: var(--font-size-base);
+      letter-spacing: var(--letter-spacing-normal);
+      padding: 12px 16px;
+      transition: background-color 0.3s ease;
+    }
+    
+    .table tr:hover {
+      background: rgba(30, 41, 59, 0.3);
+    }
+    
+    /* 按钮 */
+    .btn {
+      border-radius: 10px;
+      font-weight: var(--font-weight-medium);
+      font-size: var(--font-size-base);
+      letter-spacing: var(--letter-spacing-normal);
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+      z-index: 1;
+    }
+    
+    .btn::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+      transition: left 0.6s ease;
+      z-index: -1;
+    }
+    
+    .btn:hover::before {
+      left: 100%;
+    }
+    
+    .btn-primary {
+      background: var(--gradient-primary);
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      color: #ffffff;
+      font-weight: var(--font-weight-semibold);
+      box-shadow: 0 4px 16px rgba(79, 70, 229, 0.2);
+    }
+    
+    .btn-primary:hover {
+      background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary-color) 100%);
+      border-color: rgba(99, 102, 241, 0.5);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(79, 70, 229, 0.3);
+    }
+    
+    .btn-secondary {
+      background: rgba(30, 41, 59, 0.7);
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      color: var(--text-primary);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+    
+    .btn-secondary:hover {
+      background: rgba(30, 41, 59, 0.9);
+      border-color: rgba(99, 102, 241, 0.5);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+    
+    .btn-tag {
+      background: rgba(99, 102, 241, 0.15);
+      border: 1px solid rgba(99, 102, 241, 0.25);
+      color: #a5b4fc;
+      border-radius: 9999px;
+      padding: 6px 16px;
+      font-size: var(--font-size-sm);
+      font-weight: var(--font-weight-medium);
+      letter-spacing: var(--letter-spacing-normal);
+      transition: all 0.3s ease;
+    }
+    
+    .btn-tag:hover {
+      background: rgba(99, 102, 241, 0.25);
+      border-color: rgba(99, 102, 241, 0.4);
+      color: #c7d2fe;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+    }
+    
+    .btn-sm {
+      padding: 6px 16px;
+      font-size: var(--font-size-sm);
+    }
+    
+    .btn-danger {
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid rgba(239, 68, 68, 0.25);
+      color: #fca5a5;
+    }
+    
+    .btn-danger:hover {
+      background: rgba(239, 68, 68, 0.25);
+      border-color: rgba(239, 68, 68, 0.4);
+      transform: translateY(-1px);
+    }
+    
+    .btn-warning {
+      background: rgba(245, 158, 11, 0.15);
+      border: 1px solid rgba(245, 158, 11, 0.25);
+      color: #fcd34d;
+    }
+    
+    .btn-warning:hover {
+      background: rgba(245, 158, 11, 0.25);
+      border-color: rgba(245, 158, 11, 0.4);
+      transform: translateY(-1px);
+    }
+    
+    .btn-info {
+      background: rgba(59, 130, 246, 0.15);
+      border: 1px solid rgba(59, 130, 246, 0.25);
+      color: #93c5fd;
+    }
+    
+    .btn-info:hover {
+      background: rgba(59, 130, 246, 0.25);
+      border-color: rgba(59, 130, 246, 0.4);
+      transform: translateY(-1px);
+    }
+    
+    .btn-success {
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(16, 185, 129, 0.25);
+      color: #34d399;
+    }
+    
+    .btn-success:hover {
+      background: rgba(16, 185, 129, 0.25);
+      border-color: rgba(16, 185, 129, 0.4);
+      transform: translateY(-1px);
+    }
+    
+    /* 表单 */
+    .form-control {
+      background: rgba(30, 41, 59, 0.7);
+      border: 1px solid rgba(59, 130, 246, 0.2);
+      border-radius: 10px;
+      color: var(--text-primary);
+      font-weight: var(--font-weight-normal);
+      font-size: var(--font-size-base);
+      letter-spacing: var(--letter-spacing-normal);
+      padding: 12px 16px;
+      transition: all 0.3s ease;
+    }
+    
+    .form-control:focus {
+      background: rgba(30, 41, 59, 0.9);
+      border-color: var(--primary-light);
+      box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+      color: var(--text-primary);
+      outline: none;
+    }
+    
+    .form-label {
+      color: var(--text-secondary);
+      font-weight: var(--font-weight-medium);
+      font-size: var(--font-size-sm);
+      letter-spacing: var(--letter-spacing-normal);
+      margin-bottom: 6px;
+      display: block;
+    }
+    
+    /* 模态框 */
+    .modal {
+      backdrop-filter: blur(15px);
+    }
+    
+    .modal-content {
+      background: rgba(15, 23, 42, 0.95);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      color: var(--text-primary);
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    }
+    
+    .modal-header {
+      border-bottom: 1px solid var(--card-border);
+      padding: 20px 24px;
+    }
+    
+    .modal-title {
+      color: var(--text-primary);
+      font-weight: var(--font-weight-semibold);
+      font-size: var(--font-size-lg);
+      letter-spacing: var(--letter-spacing-normal);
+    }
+    
+    .modal-body {
+      color: var(--text-primary);
+      font-weight: var(--font-weight-normal);
+      font-size: var(--font-size-base);
+      line-height: var(--line-height-relaxed);
+      letter-spacing: var(--letter-spacing-normal);
+      padding: 24px;
+    }
+    
+    .modal-footer {
+      border-top: 1px solid var(--card-border);
+      padding: 20px 24px;
+    }
+    
+    .btn-close {
+      background: rgba(148, 163, 184, 0.15);
+      border-radius: 50%;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.3s ease;
+    }
+    
+    .btn-close:hover {
+      background: rgba(148, 163, 184, 0.25);
+      transform: rotate(90deg);
+    }
+    
+    /* 卡片 */
+    .card {
+      background: var(--card-background);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 24px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 4px;
+      background: var(--gradient-primary);
+    }
+    
+    .card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+      border-color: rgba(99, 102, 241, 0.3);
+    }
+    
+    /* 文本样式 */
+    p {
+      font-weight: var(--font-weight-normal);
+      font-size: var(--font-size-base);
+      line-height: var(--line-height-normal);
+      letter-spacing: var(--letter-spacing-normal);
+      color: var(--text-primary);
+      margin-bottom: 1rem;
+    }
+    
+    .text-muted {
+      color: var(--text-muted) !important;
+      font-weight: var(--font-weight-light);
+      font-size: var(--font-size-sm);
+      letter-spacing: var(--letter-spacing-normal);
+    }
+    
+    .text-sm {
+      font-size: var(--font-size-sm);
+    }
+    
+    .text-xs {
+      font-size: var(--font-size-xs);
+    }
+    
+    .text-lg {
+      font-size: var(--font-size-lg);
+    }
+    
+    .font-medium {
+      font-weight: var(--font-weight-medium);
+    }
+    
+    .font-semibold {
+      font-weight: var(--font-weight-semibold);
+    }
+    
+    .font-bold {
+      font-weight: var(--font-weight-bold);
+    }
+    
+    /* 工具类 */
+    .flex {
+      display: flex;
+    }
+    
+    .flex-wrap {
+      flex-wrap: wrap;
+    }
+    
+    .gap-2 {
+      gap: 8px;
+    }
+    
+    .gap-3 {
+      gap: 12px;
+    }
+    
+    .gap-4 {
+      gap: 16px;
+    }
+    
+    .grid {
+      display: grid;
+    }
+    
+    .grid-cols-1 {
+      grid-template-columns: repeat(1, minmax(0, 1fr));
+    }
+    
+    @media (min-width: 768px) {
+      .md\:grid-cols-2 {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+    
+    .justify-between {
+      justify-content: space-between;
+    }
+    
+    .items-center {
+      align-items: center;
+    }
+    
+    .items-end {
+      align-items: flex-end;
+    }
+    
+    .mb-2 {
+      margin-bottom: 8px;
+    }
+    
+    .mb-3 {
+      margin-bottom: 12px;
+    }
+    
+    .mb-4 {
+      margin-bottom: 16px;
+    }
+    
+    .mb-6 {
+      margin-bottom: 24px;
+    }
+    
+    .mt-2 {
+      margin-top: 8px;
+    }
+    
+    .mt-3 {
+      margin-top: 12px;
+    }
+    
+    .p-3 {
+      padding: 12px;
+    }
+    
+    .p-4 {
+      padding: 16px;
+    }
+    
+    .p-5 {
+      padding: 20px;
+    }
+    
+    .py-3 {
+      padding-top: 12px;
+      padding-bottom: 12px;
+    }
+    
+    .w-full {
+      width: 100%;
+    }
+    
+    .bg-slate-800 {
+      background: rgba(30, 41, 59, 0.8);
+    }
+    
+    .bg-slate-700\/50 {
+      background: rgba(51, 65, 85, 0.5);
+    }
+    
+    .bg-slate-700\/80 {
+      background: rgba(51, 65, 85, 0.8);
+    }
+    
+    .bg-slate-700 {
+      background: rgba(51, 65, 85, 0.8);
+    }
+    
+    .bg-blue-500 {
+      background: var(--secondary-color);
+    }
+    
+    .border {
+      border: 1px solid;
+    }
+    
+    .border-blue-500\/30 {
+      border-color: rgba(59, 130, 246, 0.3);
+    }
+    
+    .rounded-xl {
+      border-radius: 12px;
+    }
+    
+    .rounded-lg {
+      border-radius: 8px;
+    }
+    
+    .rounded-full {
+      border-radius: 9999px;
+    }
+    
+    .shadow-lg {
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+    }
+    
+    .text-blue-400 {
+      color: #93c5fd;
+    }
+    
+    .text-gray-400 {
+      color: var(--text-secondary);
+    }
+    
+    .text-gray-500 {
+      color: var(--text-muted);
+    }
+    
+    .text-green-400 {
+      color: #34d399;
+    }
+    
+    .text-green-500 {
+      color: var(--success-color);
+    }
+    
+    .block {
+      display: block;
+    }
+    
+    .text-sm {
+      font-size: var(--font-size-sm);
+    }
+    
+    .text-xs {
+      font-size: var(--font-size-xs);
+    }
+    
+    .font-medium {
+      font-weight: var(--font-weight-medium);
+    }
+    
+    .font-semibold {
+      font-weight: var(--font-weight-semibold);
+    }
+    
+    .hover\:bg-blue-500\/30:hover {
+      background: rgba(59, 130, 246, 0.3);
+    }
+    
+    .hover\:bg-slate-700\/80:hover {
+      background: rgba(51, 65, 85, 0.8);
+    }
+    
+    .hover\:text-blue-300:hover {
+      color: #bfdbfe;
+    }
+    
+    .transition {
+      transition: all 0.3s ease;
+    }
+    
+    .transform {
+      transform: transform;
+    }
+    
+    .hover\:-translate-y-0\.5:hover {
+      transform: translateY(-0.5px);
+    }
+    
+    .h-2 {
+      height: 8px;
+    }
+    
+    .w-2 {
+      width: 8px;
+    }
+    
+    .h-2 {
+      height: 8px;
+    }
+    
+    .mr-2 {
+      margin-right: 8px;
+    }
+    
+    .ml-1 {
+      margin-left: 4px;
+    }
+    
+    .mt-1 {
+      margin-top: 4px;
+    }
+    
+    .mb-1 {
+      margin-bottom: 4px;
+    }
+    
+    .space-y-3 > * + * {
+      margin-top: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div id="app" class="container">
+    <!-- 顶部导航栏 -->
+    <nav class="navbar navbar-expand-lg navbar-dark mb-4 rounded">
+      <div class="container-fluid">
+        <a class="navbar-brand" href="#">🎯 AI面试系统</a>
+        <div class="navbar-nav ms-auto align-items-center">
+          <template v-if="currentUser">
+            <span class="navbar-text me-3">
+              👤 {{ currentUser.username }}
+              <span class="badge bg-success ms-2">{{ currentUser.user_type === 'premium' ? 'VIP' : '免费版' }}</span>
+            </span>
+            <a class="nav-link" href="pricing.html">💎 购买套餐</a>
+            <a class="nav-link" href="#" @click.prevent="logout">退出</a>
+          </template>
+          <template v-else>
+            <a class="nav-link" href="login.html">登录</a>
+            <a class="nav-link" href="register.html">注册</a>
+          </template>
+        </div>
+      </div>
+    </nav>
+
+    <!-- 用户配额信息（仅登录用户显示） -->
+    <div v-if="currentUser && userQuota.total_available" class="alert alert-info mb-3">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <strong>📊 我的配额：</strong>
+          <span class="badge bg-primary me-2">面试 {{ userQuota.total_available.interviews }} 次</span>
+          <span class="badge bg-success me-2">语音 {{ userQuota.total_available.tts_minutes }} 分钟</span>
+          <span class="badge bg-warning text-dark">AI分析 {{ userQuota.total_available.ai_analysis }} 次</span>
+        </div>
+        <a href="pricing.html" class="btn btn-sm btn-primary">购买更多</a>
+      </div>
+    </div>
+
+    <!-- 未登录提示 -->
+    <div v-if="!currentUser" class="alert alert-warning mb-3">
+      <div class="d-flex justify-content-between align-items-center">
+        <span>⚠️ 您尚未登录，部分功能可能受限。<a href="register.html">注册新账号</a> 可免费获得3次面试体验！</span>
+        <div>
+          <a href="login.html" class="btn btn-sm btn-primary me-2">登录</a>
+          <a href="register.html" class="btn btn-sm btn-success">注册</a>
+        </div>
+      </div>
+    </div>
+
+    <h1 class="mb-4">面试系统管理</h1>
+
+    <!-- BaseURL配置 -->
+    <div class="mb-3 alert alert-secondary">
+      <div class="row align-items-center">
+        <div class="col-auto">
+          <label class="mb-0">API 基础URL:</label>
+        </div>
+        <div class="col">
+          <input type="text" class="form-control" v-model="baseURL" placeholder="例如: https://api.example.com/">
+        </div>
+        <div class="col-auto">
+          <button class="btn btn-primary" @click="applyBaseURL">应用</button>
+        </div>
+      </div>
+      <div class="mt-2 small">
+        <span>当前API基础路径: {{ baseURL || '(使用相对路径)' }}</span>
+      </div>
+    </div>
+
+    <!-- 工作台 -->
+    <div class="tab-content">
+      <h3 class="mt-3">工作台</h3>
+      <p class="text-muted mb-4">欢迎回来，今天准备好开始面试训练了吗？</p>
+      
+      <!-- 新建面试训练卡片 -->
+      <div class="card">
+        <h4 class="text-lg font-semibold mb-4 text-blue-400">新建面试训练</h4>
+        
+        <div class="mb-4">
+          <p class="text-sm text-gray-400 mb-2">创建入口：简历、职位描述、AI生成简历面试</p>
+          <div class="flex flex-wrap gap-2 mb-4">
+            <button class="btn btn-tag" @click="handleTagClick('frontend')">
+              前端开发
+            </button>
+            <button class="btn btn-tag" @click="handleTagClick('product')">
+              产品经理
+            </button>
+            <button class="btn btn-tag" @click="handleTagClick('data')">
+              数据分析
+            </button>
+          </div>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-400 mb-1">工作经验</label>
+            <input type="text" class="form-control" placeholder="1-3年经验" v-model="workExperience">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-400 mb-1">目标岗位</label>
+            <input type="text" class="form-control" placeholder="例如：前端开发、产品经理等" v-model="targetPosition">
+          </div>
+        </div>
+        
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-400 mb-1">上传简历</label>
+          <input type="file" class="form-control" @change="handleResumeUpload" accept=".pdf,.doc,.docx">
+          <p v-if="resumeFile" class="text-xs text-green-400 mt-1">{{ resumeFile.name }} 已上传</p>
+        </div>
+        
+        <button class="btn btn-primary w-full py-3" @click="handleStartTraining">
+          立即训练
+        </button>
+      </div>
+      
+      <!-- 统计信息 -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        <div class="card">
+          <div class="flex justify-between items-center mb-2">
+            <h5 class="text-sm font-medium text-gray-400">平均得分</h5>
+            <span class="text-xs text-gray-500">近10次训练</span>
+          </div>
+          <div class="flex items-end">
+            <span class="text-2xl font-bold text-blue-400">78</span>
+            <span class="text-sm text-gray-400 ml-1 mb-1">分</span>
+          </div>
+          <div class="mt-2 w-full bg-slate-700 rounded-full h-2">
+            <div class="bg-blue-500 h-2 rounded-full" style="width: 78%"></div>
+          </div>
+        </div>
+        
+        <div class="card">
+          <div class="flex justify-between items-center mb-2">
+            <h5 class="text-sm font-medium text-gray-400">剩余次数</h5>
+            <span class="text-xs text-gray-500">本月</span>
+          </div>
+          <div class="flex items-end">
+            <span class="text-2xl font-bold text-blue-400">12</span>
+            <span class="text-sm text-gray-400 ml-1 mb-1">次</span>
+          </div>
+          <div class="mt-2 flex justify-between items-center">
+            <span class="text-xs text-gray-500">总计训练: 32次</span>
+            <button class="text-xs text-blue-400 hover:text-blue-300" @click="handleBuyCredits">购买次数</button>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 最近训练记录 -->
+      <div class="card">
+        <div class="flex justify-between items-center mb-4">
+          <h4 class="text-lg font-semibold text-blue-400">最近训练记录</h4>
+          <button class="text-sm text-blue-400 hover:text-blue-300" @click="handleViewAll">查看全部</button>
+        </div>
+        
+        <div class="space-y-3">
+          <div v-for="record in trainingRecords" :key="record.id" class="flex justify-between items-center p-3 bg-slate-700/50 rounded-lg hover:bg-slate-700/80 transition">
+            <div>
+              <div class="flex items-center">
+                <span class="w-2 h-2 rounded-full bg-green-500 mr-2"></span>
+                <span class="font-medium">{{ record.title }}</span>
+              </div>
+              <div class="text-xs text-gray-400 mt-1">{{ record.date }}</div>
+            </div>
+            <div class="flex items-center gap-3">
+              <span class="text-sm font-medium text-green-400">{{ record.score }}分</span>
+              <button class="text-xs text-blue-400 hover:text-blue-300" @click="handleViewDetails(record.id)">查看详情</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const { createApp } = Vue;
+
+    createApp({
+      data() {
+        return {
+          baseURL: (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+            ? 'http://localhost:10009/'   // dev
+            : 'https://www.en9.cn/', // prd
+          // 工作台数据
+          workExperience: '',
+          targetPosition: 'frontend',
+          resumeFile: null,
+          trainingRecords: [
+            {
+              id: 1,
+              title: '前端开发面试测试',
+              date: '2026-04-11 15:30',
+              score: 85
+            },
+            {
+              id: 2,
+              title: '产品经理面试测试',
+              date: '2026-04-10 10:15',
+              score: 78
+            },
+            {
+              id: 3,
+              title: '数据分析面试测试',
+              date: '2026-04-09 14:45',
+              score: 92
+            }
+          ],
+          // 用户相关数据
+          currentUser: null,
+          userQuota: {}
+        };
+      },
+      mounted() {
+        // 从URL参数中获取baseURL（如果有）
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.has('baseURL')) {
+          this.baseURL = urlParams.get('baseURL');
+          // 确保baseURL以/结尾
+          if (this.baseURL && !this.baseURL.endsWith('/')) {
+            this.baseURL += '/';
+          }
+        }
+        
+        // 加载当前用户
+        this.loadCurrentUser();
+        
+        // 自动设置测试简历（用于测试）
+        this.setTestResume();
+      },
+      methods: {
+        // 加载当前用户
+        loadCurrentUser() {
+          const user = localStorage.getItem('currentUser');
+          if (user) {
+            this.currentUser = JSON.parse(user);
+            this.loadUserQuota();
+          }
+        },
+        
+        // 加载用户配额
+        async loadUserQuota() {
+          if (!this.currentUser) return;
+          
+          try {
+            const response = await fetch(this.getApiUrl(`api/user/quota?user_id=${this.currentUser.id}`));
+            const data = await response.json();
+            if (data.status === 'success') {
+              this.userQuota = data.quota;
+            }
+          } catch (error) {
+            console.error('加载配额失败:', error);
+            // 后端服务器不可用时，使用模拟数据
+            this.userQuota = {
+              total_available: {
+                interviews: 3,
+                tts_minutes: 10,
+                ai_analysis: 5
+              }
+            };
+          }
+        },
+        
+        // 退出登录
+        logout() {
+          localStorage.removeItem('currentUser');
+          this.currentUser = null;
+          this.userQuota = {};
+          Swal.fire({
+            title: '已退出',
+            text: '您已成功退出登录',
+            icon: 'success',
+            timer: 1500,
+            showConfirmButton: false
+          });
+        },
+        
+        // 获取API完整URL
+        getApiUrl(path) {
+          // 如果path已经以/开头，去掉开头的/
+          if (path.startsWith('/')) {
+            path = path.substring(1);
+          }
+          // 确保baseURL末尾有斜杠
+          const baseUrl = this.baseURL.endsWith('/') ? this.baseURL : this.baseURL + '/';
+          const url = `${baseUrl}${path}`;
+          console.log('API URL:', url);
+          return url;
+        },
+        
+        // 处理简历上传
+        handleResumeUpload(event) {
+          const file = event.target.files[0];
+          if (file) {
+            // 检查文件类型
+            const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/markdown'];
+            if (!allowedTypes.includes(file.type)) {
+              Swal.fire({
+                title: '文件类型错误',
+                text: '请上传PDF、Word或Markdown格式的简历',
+                icon: 'error'
+              });
+              event.target.value = ''; // 清空输入
+              return;
+            }
+            
+            // 检查文件大小（限制10MB）
+            if (file.size > 10 * 1024 * 1024) {
+              Swal.fire({
+                title: '文件过大',
+                text: '请上传小于10MB的简历',
+                icon: 'error'
+              });
+              event.target.value = ''; // 清空输入
+              return;
+            }
+            
+            this.resumeFile = file;
+          }
+        },
+        
+        // 自动设置简历文件（用于测试）
+        setTestResume() {
+          // 创建一个模拟的File对象
+          const blob = new Blob(['# 个人简历\n\n## 基本信息\n- **姓名**：张三\n- **性别**：男\n- **年龄**：28岁\n- **电话**：13800138000\n- **邮箱**：zhangsan@example.com\n- **地址**：北京市朝阳区\n\n## 教育背景\n- **2014.09 - 2018.06**：北京大学，计算机科学与技术专业，本科\n- **2018.09 - 2021.06**：清华大学，计算机科学与技术专业，硕士\n\n## 工作经历\n- **2021.07 - 至今**：字节跳动，前端开发工程师\n  - 负责公司核心产品的前端开发，使用 React、Vue 等框架\n  - 参与设计和实现了公司的前端组件库，提高了开发效率\n  - 优化了前端性能，减少了页面加载时间，提升了用户体验\n  - 与后端团队协作，完成了多个重要项目的开发和上线\n\n## 技能特长\n- **前端技术**：HTML5、CSS3、JavaScript、TypeScript、React、Vue、Angular\n- **后端技术**：Node.js、Express、MongoDB\n- **工具**：Git、Webpack、Vite、Docker\n- **其他**：英语（CET-6）、沟通能力强、团队协作能力强\n\n## 项目经验\n- **项目名称**：字节跳动官网重构\n  - **时间**：2022.03 - 2022.06\n  - **职责**：负责前端架构设计和核心模块开发\n  - **成果**：提高了网站的加载速度和用户体验，获得了公司的表彰\n\n- **项目名称**：字节跳动内部管理系统\n  - **时间**：2021.09 - 2022.02\n  - **职责**：负责前端开发和维护\n  - **成果**：提高了内部管理效率，获得了用户的好评\n\n## 获奖情况\n- **2020**：清华大学优秀研究生\n- **2019**：国家奖学金\n- **2018**：北京大学优秀毕业生\n\n## 自我评价\n- 具有扎实的计算机基础知识和丰富的前端开发经验\n- 熟悉前端开发的各种技术和工具，能够快速适应新技术\n- 具有良好的沟通能力和团队协作能力，能够与不同背景的人合作\n- 具有较强的学习能力和解决问题的能力，能够快速学习新技术和解决复杂问题'], { type: 'text/markdown' });
+          this.resumeFile = new File([blob], 'resume.md', { type: 'text/markdown' });
+        },
+        
+        // 应用BaseURL
+        applyBaseURL() {
+          // 更新URL参数
+          const url = new URL(window.location.href);
+          if (this.baseURL) {
+            url.searchParams.set('baseURL', this.baseURL);
+          } else {
+            url.searchParams.delete('baseURL');
+          }
+          window.history.pushState({}, '', url);
+        },
+        
+        // 处理标签点击
+        handleTagClick(tag) {
+          console.log('标签点击:', tag);
+          // 这里可以添加标签点击的逻辑
+        },
+        
+        // 处理立即训练点击
+        async handleStartTraining() {
+          if (!this.resumeFile) {
+            Swal.fire({
+              title: '提示',
+              text: '请先上传简历',
+              icon: 'warning'
+            });
+            return;
+          }
+          
+          // 禁用按钮，防止重复点击
+          const startButton = document.querySelector('.btn-primary.w-full');
+          if (startButton) {
+            startButton.disabled = true;
+            startButton.innerHTML = '处理中...';
+          }
+          
+          Swal.fire({
+            title: '训练开始',
+            text: '正在上传简历并分析，请稍候...',
+            icon: 'info',
+            showConfirmButton: false,
+            allowOutsideClick: false
+          });
+          
+          try {
+            // 创建FormData对象
+            const formData = new FormData();
+            formData.append('resume', this.resumeFile);
+            formData.append('work_experience', this.workExperience);
+            formData.append('target_position', this.targetPosition);
+            
+            // 上传简历并分析，设置超时时间为60秒
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 60000);
+            
+            const response = await fetch(this.getApiUrl('api/resume/upload'), {
+              method: 'POST',
+              body: formData,
+              signal: controller.signal
+            });
+            
+            clearTimeout(timeoutId);
+            
+            const data = await response.json();
+            
+            if (data.status === 'success') {
+              Swal.fire({
+                title: '训练开始',
+                text: '正在为您生成面试问题，请稍候...',
+                icon: 'info',
+                showConfirmButton: false,
+                timer: 2000
+              }).then(() => {
+                // 跳转到面试页面
+                window.location.href = `interview.html?token=${data.token}`;
+              });
+            } else {
+              Swal.fire({
+                title: '错误',
+                text: data.message || '上传简历失败',
+                icon: 'error'
+              });
+              // 重新启用按钮
+              if (startButton) {
+                startButton.disabled = false;
+                startButton.innerHTML = '立即训练';
+              }
+            }
+          } catch (error) {
+            console.error('上传简历失败:', error);
+            Swal.fire({
+              title: '错误',
+              text: '上传简历失败，请重试',
+              icon: 'error'
+            });
+            // 重新启用按钮
+            if (startButton) {
+              startButton.disabled = false;
+              startButton.innerHTML = '立即训练';
+            }
+          }
+        },
+        
+        // 处理购买次数点击
+        handleBuyCredits() {
+          console.log('购买次数');
+          // 跳转到购买页面
+          window.location.href = 'pricing.html';
+        },
+        
+        // 处理查看全部点击
+        handleViewAll() {
+          console.log('查看全部训练记录');
+          // 这里可以添加查看全部训练记录的逻辑
+        },
+        
+        // 处理查看详情点击
+        handleViewDetails(id) {
+          console.log('查看详情:', id);
+          // 这里可以添加查看详情的逻辑
+        }
+      }
+    }).mount('#app');
+  </script>
+  <!-- Bootstrap JS -->
+  <script src="js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

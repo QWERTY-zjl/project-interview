@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>登录 - AI面试系统</title>
+  <link href="css/bootstrap.min.css" rel="stylesheet">
+  <script src="js/vue.global.prod.js"></script>
+  <script src="js/sweetalert2.js"></script>
+  <style>
+    body {
+      background: #0f172a;
+      background-image: 
+        linear-gradient(rgba(30, 41, 59, 0.1) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(30, 41, 59, 0.1) 1px, transparent 1px);
+      background-size: 20px 20px;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #e2e8f0;
+    }
+    .login-container {
+      background: rgba(15, 23, 42, 0.8);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      padding: 40px;
+      border-radius: 12px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      width: 100%;
+      max-width: 400px;
+    }
+    .login-header {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    .login-header h2 {
+      color: #e2e8f0;
+      margin-bottom: 10px;
+      font-weight: 600;
+    }
+    .login-header p {
+      color: #94a3b8;
+    }
+    .form-control {
+      padding: 12px;
+      border-radius: 8px;
+      background: rgba(30, 41, 59, 0.6);
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      color: #e2e8f0;
+    }
+    .form-control:focus {
+      background: rgba(30, 41, 59, 0.8);
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+    .btn-login {
+      width: 100%;
+      padding: 12px;
+      background: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%);
+      border: none;
+      border-radius: 8px;
+      color: white;
+      font-size: 16px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    .btn-login:hover {
+      background: linear-gradient(135deg, #2563eb 0%, #4f46e5 100%);
+      transform: translateY(-1px);
+    }
+    .register-link {
+      text-align: center;
+      margin-top: 20px;
+    }
+    .register-link p {
+      color: #94a3b8;
+    }
+    .register-link a {
+      color: #3b82f6;
+      text-decoration: none;
+      font-weight: 500;
+    }
+    .register-link a:hover {
+      text-decoration: underline;
+    }
+    .free-badge {
+      background: rgba(34, 197, 94, 0.2);
+      border: 1px solid rgba(34, 197, 94, 0.3);
+      color: #4ade80;
+      padding: 5px 15px;
+      border-radius: 20px;
+      font-size: 14px;
+      display: inline-block;
+      margin-top: 10px;
+    }
+    .form-label {
+      color: #cbd5e1;
+      font-weight: 500;
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <div class="login-container">
+      <div class="login-header">
+        <h2>🔐 用户登录</h2>
+        <p class="text-muted">登录您的AI面试系统账号</p>
+        <span class="free-badge">🎁 新用户免费体验3次面试</span>
+      </div>
+
+      <form @submit.prevent="handleLogin">
+        <div class="mb-3">
+          <label class="form-label">用户名或邮箱</label>
+          <input 
+            type="text" 
+            class="form-control" 
+            v-model="form.username"
+            placeholder="请输入用户名或邮箱"
+            required
+          >
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">密码</label>
+          <input 
+            type="password" 
+            class="form-control" 
+            v-model="form.password"
+            placeholder="请输入密码"
+            required
+          >
+        </div>
+
+        <button type="submit" class="btn btn-login" :disabled="loading">
+          <span v-if="loading">登录中...</span>
+          <span v-else>登录</span>
+        </button>
+      </form>
+
+      <div class="register-link">
+        <p>还没有账号？ <a href="register.html">立即注册</a></p>
+        <p><a href="pricing.html">查看套餐价格</a></p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const { createApp } = Vue;
+
+    createApp({
+      data() {
+        return {
+          baseURL: (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+            ? 'http://localhost:10008/'   // dev
+            : 'https://www.en9.cn/', // prd
+          form: {
+            username: '',
+            password: ''
+          },
+          loading: false
+        };
+      },
+      methods: {
+        async handleLogin() {
+          this.loading = true;
+
+          try {
+            const response = await fetch(`${this.baseURL}/api/auth/login`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(this.form)
+            });
+
+            const data = await response.json();
+
+            if (data.status === 'success') {
+              // 保存用户信息到localStorage
+              localStorage.setItem('currentUser', JSON.stringify(data.user));
+              
+              Swal.fire({
+                title: '登录成功！',
+                text: '欢迎回来，' + data.user.username,
+                icon: 'success',
+                timer: 1500,
+                showConfirmButton: false
+              }).then(() => {
+                // 跳转到管理页面或套餐页面
+                window.location.href = 'admin.html';
+              });
+            } else {
+              Swal.fire('登录失败', data.error || '用户名或密码错误', 'error');
+            }
+          } catch (error) {
+            console.error('登录错误:', error);
+            Swal.fire('错误', '登录过程中发生错误', 'error');
+          } finally {
+            this.loading = false;
+          }
+        }
+      }
+    }).mount('#app');
+  </script>
+</body>
+</html>
