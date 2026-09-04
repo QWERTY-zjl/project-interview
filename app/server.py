@@ -19,6 +19,7 @@ import logging
 import time
 import threading
 import json
+import base64
 import sqlite3
 
 # 配置控制台日志
@@ -218,7 +219,7 @@ def generate_personal_interview_questions(token):
             print("[Interview] 面试类型: " + interview_type_name + " - " + interview_type_description)
             
             # 生成面试问题
-            from app.services.question_service import generate_questions
+            from app.ai_services.question_service import generate_questions
             
             # 模拟候选人信息
             candidate = {
@@ -746,7 +747,7 @@ def set_interview_voice(token):
 @app.route('/api/expression/recognize', methods=['POST'])
 def recognize_expression_api():
     try:
-        from app.services.expression_service import analyze_face_expression
+        from app.ai_services.expression_service import analyze_face_expression
         
         if 'image' in request.files:
             image_file = request.files['image']
@@ -810,7 +811,7 @@ def recognize_expression_api():
 @app.route('/api/expression/analyze', methods=['POST'])
 def analyze_expression_api():
     try:
-        from app.services.expression_service import analyze_face_expression
+        from app.ai_services.expression_service import analyze_face_expression
         
         if 'image' in request.files:
             image_file = request.files['image']
@@ -874,7 +875,7 @@ def analyze_expression_api():
 @app.route('/api/interview/<token>/expression', methods=['POST'])
 def save_interview_expression(token):
     try:
-        from app.services.expression_service import analyze_face_expression
+        from app.ai_services.expression_service import analyze_face_expression
         
         conn = get_db()
         interview = conn.execute('SELECT id FROM interviews WHERE token = ?', (token,)).fetchone()
@@ -1816,9 +1817,6 @@ def upload_resume():
     # 重新实现上传简历功能
     try:
         import json
-        import base64
-        from PIL import Image
-        from io import BytesIO
         print("[Resume] 收到简历上传请求")
         logger.info("[Resume] 收到简历上传请求")
         
@@ -1892,120 +1890,32 @@ def upload_resume():
             traceback.print_exc()
             return jsonify({"status": "error", "message": f"读取简历文件失败: {str(e)}", "error_code": "RESUME_FILE_READ_ERROR"}), 500
         
-        # 检查文件类型并处理PDF
+        # 解析简历内容（PDF 走 MinerU 转 Markdown，失败自动降级 PyPDF2；其他文件按文本解码）
+        resume_md = ""
         try:
-            import PyPDF2
-            logger.info("[Resume] 导入 PyPDF2 库成功")
-            
-            # 检查是否为PDF文件
             if resume_file.filename.lower().endswith('.pdf'):
-                logger.info("[Resume] 检测到PDF文件，开始解析")
-                try:
-                    # 使用PyPDF2解析PDF
-                    from io import BytesIO
-                    pdf_file = BytesIO(resume_content)
-                    reader = PyPDF2.PdfReader(pdf_file)
-                    
-                    # 检查PDF页数
-                    num_pages = len(reader.pages)
-                    logger.info(f"[Resume] PDF页数: {num_pages}")
-                    
-                    if num_pages == 0:
-                        logger.error("[Resume] 错误: PDF文件无内容")
-                        return jsonify({"status": "error", "message": "PDF文件无内容", "error_code": "PDF_NO_CONTENT_ERROR"}), 400
-                    
-                    # 提取文本
-                    text_content = []
-                    for page_num in range(num_pages):
-                        page = reader.pages[page_num]
-                        text = page.extract_text()
-                        if text:
-                            text_content.append(text)
-                    
-                    pdf_text = '\n'.join(text_content)
-                    logger.info(f"[Resume] PDF解析成功，提取文本长度: {len(pdf_text)} 字符")
-                    
-                    if not pdf_text.strip():
-                        logger.error("[Resume] 错误: PDF文件解析后无内容")
-                        return jsonify({"status": "error", "message": "PDF文件解析后无内容", "error_code": "PDF_EMPTY_CONTENT_ERROR"}), 400
-                    
-                    # 将解析后的文本转换为字节
-                    resume_content = pdf_text.encode('utf-8')
-                except Exception as e:
-                    logger.error(f"[Resume] 错误: PDF解析失败: {e}")
-                    import traceback
-                    traceback.print_exc()
-                    return jsonify({"status": "error", "message": f"PDF解析失败: {str(e)}", "error_code": "PDF_PARSE_ERROR"}), 500
-        except ImportError:
-            logger.warning("[Resume] 警告: PyPDF2 库未安装，无法解析PDF文件")
+                logger.info("[Resume] 检测到PDF文件，开始使用 MinerU 解析")
+                from app.ai_services.resume_parser import parse_resume_to_markdown
+                resume_md = parse_resume_to_markdown(resume_content, resume_file.filename)
+                logger.info(f"[Resume] 简历解析完成，Markdown 长度: {len(resume_md)} 字符")
+
+                if not resume_md.strip():
+                    logger.error("[Resume] 错误: PDF文件解析后无内容")
+                    return jsonify({"status": "error", "message": "PDF文件解析后无内容", "error_code": "PDF_EMPTY_CONTENT_ERROR"}), 400
+            else:
+                resume_md = resume_content.decode('utf-8', errors='ignore')
+                logger.info(f"[Resume] 非PDF文件，按文本读取，长度: {len(resume_md)} 字符")
         except Exception as e:
-            logger.error(f"[Resume] 错误: PDF处理失败: {e}")
+            logger.error(f"[Resume] 错误: 简历解析失败: {e}")
             import traceback
             traceback.print_exc()
-            return jsonify({"status": "error", "message": f"PDF处理失败: {str(e)}", "error_code": "PDF_PROCESS_ERROR"}), 500
-        
+            return jsonify({"status": "error", "message": f"简历解析失败: {str(e)}", "error_code": "RESUME_PARSE_ERROR"}), 500
+
         # 检查简历内容是否为空
-        if not resume_content:
+        if not resume_md:
             logger.error("[Resume] 错误: 简历内容为空")
             return jsonify({"status": "error", "message": "简历内容为空", "error_code": "EMPTY_RESUME_ERROR"}), 400
-        
-        # 生成简历截图
-        logger.info("[Resume] 开始生成简历截图")
-        resume_image = None
-        try:
-            # 将简历内容转换为文本
-            if isinstance(resume_content, bytes):
-                resume_text = resume_content.decode('utf-8', errors='ignore')
-            else:
-                resume_text = str(resume_content)
-            
-            # 创建一个图像，用于绘制简历内容
-            # 设置图像大小为A4纸张大小（像素）
-            width, height = 2480, 3508
-            image = Image.new('RGB', (width, height), color=(255, 255, 255))
-            
-            # 尝试导入PIL的ImageDraw和ImageFont模块
-            try:
-                from PIL import ImageDraw, ImageFont
-                draw = ImageDraw.Draw(image)
-                
-                # 尝试使用系统字体，如果失败则使用默认字体
-                try:
-                    # 尝试使用Windows系统字体
-                    font = ImageFont.truetype('Arial.ttf', 36)
-                except Exception:
-                    # 如果找不到字体，使用默认字体
-                    font = ImageFont.load_default()
-                
-                # 绘制简历内容
-                # 设置边距
-                margin = 100
-                x, y = margin, margin
-                line_height = 50
-                
-                # 分割文本为多行
-                lines = resume_text.split('\n')
-                for line in lines:
-                    # 如果超出图像高度，停止绘制
-                    if y > height - margin:
-                        break
-                    
-                    # 绘制文本
-                    draw.text((x, y), line, fill=(0, 0, 0), font=font)
-                    y += line_height
-                
-                # 将图像转换为base64编码
-                buffer = BytesIO()
-                image.save(buffer, format='PNG')
-                resume_image = base64.b64encode(buffer.getvalue()).decode('utf-8')
-                logger.info("[Resume] 简历截图生成成功")
-            except Exception as e:
-                logger.warning(f"[Resume] 警告: 生成简历截图失败: {e}")
-                # 截图失败不影响后续流程，继续执行
-        except Exception as e:
-            logger.warning(f"[Resume] 警告: 生成简历截图失败: {e}")
-            # 截图失败不影响后续流程，继续执行
-        
+
         # 分析简历内容
         logger.info("[Resume] 开始分析简历内容")
         try:
@@ -2075,7 +1985,7 @@ def upload_resume():
         
         # 生成面试问题
         try:
-            from app.services.question_service import generate_questions
+            from app.ai_services.question_service import generate_questions
             logger.info("[Resume] 导入 generate_questions 函数成功")
         except Exception as e:
             logger.error(f"[Resume] 错误: 导入 generate_questions 函数失败: {e}")
@@ -2122,7 +2032,7 @@ def upload_resume():
             logger.debug(f"[Resume] 简历分析信息: {resume_analysis_info[:200]}...")  # 只记录前200个字符
             
             # 注意：generate_questions 函数会处理数据库连接的关闭
-            result = generate_questions(interview_id, candidate, position, interview_dict, resume_analysis_info, cursor, conn, resume_image)
+            result = generate_questions(interview_id, candidate, position, interview_dict, resume_analysis_info, cursor, conn, resume_md)
             logger.info("[Resume] 生成面试问题成功")
             logger.debug(f"[Resume] 生成问题结果: {result}")
             

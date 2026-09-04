@@ -1,7 +1,5 @@
 @echo off
 
-REM 设置环境变量
-set DASHSCOPE_API_KEY=sk-cde6f62f2d4b41eaa98943b4f69fb19f
-
-REM 启动服务器
-python -m app.server
+REM 启动服务器（使用项目内置 venv；API key 从项目根目录 .env 读取，勿在此硬编码）
+cd /d "%~dp0"
+app\venv\Scripts\python.exe -m app.server

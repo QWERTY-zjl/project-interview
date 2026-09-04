@@ -9,8 +9,8 @@ from fastapi import UploadFile, File, Form, HTTPException, Request
 from fastapi.responses import JSONResponse
 
 from app.utils.utils import generate_token
-from app.services.resume_service import analyze_resume
-from app.services.question_service import generate_questions
+from app.ai_services.resume_service import analyze_resume
+from app.ai_services.question_service import generate_questions
 from app.db.db import get_db, return_db
 
 logger = logging.getLogger(__name__)

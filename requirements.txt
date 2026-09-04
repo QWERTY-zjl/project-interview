@@ -1,3 +1,4 @@
+# 基础依赖
 schedule==1.2.2
 openai==1.75.0
 PyPDF2==3.0.1

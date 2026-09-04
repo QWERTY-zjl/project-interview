@@ -85,7 +85,7 @@
 - **后端**：基于Python和Flask的RESTful API服务
 - **前端**：使用Vue.js 3和Bootstrap 5构建的响应式Web界面
 - **数据库**：使用SQLite进行数据存储
-- **AI模型**：集成阿里云百炼(qwen-plus)大语言模型用于问题生成和面试评估
+- **AI模型**：集成阿里云百炼大语言模型（OpenAI 兼容接口），出题使用 qwen-flash 文本模型，面试报告使用 qwen-plus
 - **语音处理**：支持Web录音，语音转写功能可选配置Whisper模型
 - **语音合成**：集成阿里云cosyvoice-v3-flash大模型，支持语音预生成
 - **支付系统**：支持支付宝支付，提供套餐购买、免费试用和增值服务
@@ -95,20 +95,30 @@
 ```
 project-interview/
 ├── app/                                  # 主应用目录
+│   ├── ai_services/                      # 智能体服务层
+│   │   ├── expression_service.py         # 表情分析服务
+│   │   ├── prompt.py                     # 面试提示词模板
+│   │   ├── question_service.py           # 面试问题生成服务（qwen-flash）
+│   │   ├── report_service.py             # 面试报告生成服务（qwen-plus）
+│   │   ├── resume_parser.py              # 简历解析服务（MinerU 主路径，PyPDF2 降级）
+│   │   ├── resume_service.py             # 简历分析服务
+│   │   └── speech_service.py             # 语音处理服务
 │   ├── api/                              # API层
+│   │   ├── auth_api.py                   # 用户认证API
 │   │   ├── candidate_api.py              # 候选人管理API
+│   │   ├── expression_api.py             # 表情分析API
 │   │   ├── interview_api.py              # 面试管理API
-│   │   └── position_api.py               # 岗位管理API
+│   │   ├── order_api.py                  # 订单管理API
+│   │   ├── payment_api.py                # 支付回调API
+│   │   ├── position_api.py               # 岗位管理API
+│   │   ├── pricing_api.py                # 套餐定价API
+│   │   ├── resume_api.py                 # 简历上传API
+│   │   └── tts_api.py                    # 语音合成API
 │   ├── config/                           # 配置管理
 │   │   └── config.py                     # 配置文件
 │   ├── db/                               # 数据库模块
 │   │   ├── db.py                         # 数据库连接管理
 │   │   └── db_pool.py                    # 数据库连接池
-│   ├── ai-services/                      # 智能体服务层
-│   │   ├── expression_service.py         # 表情分析服务
-│   │   ├── question_service.py           # 面试问题生成服务
-│   │   ├── report_service.py             # 面试报告生成服务
-│   │   └── speech_service.py             # 语音处理服务
 │   ├── static/                           # 静态前端文件
 │   │   ├── admin.html                    # 管理后台界面
 │   │   ├── interview.html                # 候选人面试界面
@@ -119,17 +129,22 @@ project-interview/
 │   │   └── js/                           # JavaScript库
 │   ├── utils/                            # 工具函数
 │   │   └── utils.py                      # 通用工具函数
-│   ├── server.py                         # Flask Web服务器（核心API）
+│   ├── temp/                             # 临时文件目录（简历解析中间产物，用后自动清理）
+│   ├── server.py                         # Flask Web服务器（核心API，主入口）
+│   ├── main.py                           # FastAPI版入口
 │   ├── payment_module.py                 # 支付功能模块
 │   ├── alipay_module.py                  # 支付宝集成模块
 │   ├── create_payment_tables.py          # 支付系统数据库初始化
 │   ├── create_interview_system_db.py     # 数据库初始化脚本
 │   ├── create_personal_interview_system_db.py # 个人版数据库初始化脚本
-│   ├── .env                              # 环境变量配置（API密钥）
-│   ├── interview_system.db               # SQLite数据库文件
-│   └── lib/                              # 本地Python依赖包目录
-├── docs/                                 # 文档目录
+│   ├── Dockerfile                        # Docker镜像构建文件
+│   └── interview_system.db               # SQLite数据库文件
+├── docs/                                 # 文档目录（含示例简历）
+├── dailylogs/                            # 开发日志
 ├── nginx/                                # Nginx配置（生产环境）
+├── .env                                  # 环境变量配置（API密钥）
+├── docker-compose.yml                    # Docker Compose编排
+├── start_server.bat / start_server.ps1   # Windows启动脚本
 ├── requirements.txt                      # Python依赖包列表
 ├── .gitignore                           # Git忽略文件
 └── README.md                             # 项目说明文档
@@ -171,31 +186,25 @@ cd project-interview
 
 ### 第二步：安装依赖
 
-**方式一：使用虚拟环境（推荐）**
+**使用虚拟环境（项目已内置 `app\venv`，Python 3.13）**
 
 ```bash
-# 创建虚拟环境
-python -m venv venv
+# 创建虚拟环境（如 app\venv 已存在可跳过）
+python -m venv app/venv
 
 # 激活虚拟环境
 # Windows:
-venv\Scripts\activate
+app\venv\Scripts\activate
 # Linux/Mac:
-source venv/bin/activate
+source app/venv/bin/activate
 
 # 安装依赖
 pip install -r requirements.txt
 ```
 
-**方式二：安装到本地lib目录（无需管理员权限）**
-
-```bash
-pip install -r requirements.txt --target=./app/lib
-```
-
 ### 第三步：配置API密钥
 
-在 `app` 目录下创建 `.env` 文件（已存在可跳过）：
+在项目根目录下创建 `.env` 文件（已存在可跳过）：
 
 ```env
 OPENAI_API_KEY=你的API密钥
@@ -264,15 +273,9 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-或安装到本地lib目录（无管理员权限时）：
-
-```bash
-pip install -r requirements.txt --target=./app/lib
-```
-
 4. **配置环境变量**
 
-在`app`目录下创建`.env`文件：
+在项目根目录下创建`.env`文件：
 
 ```env
 OPENAI_API_KEY=your_api_key_here
@@ -368,10 +371,13 @@ python server.py
 | 面试管理API | 管理面试流程 | app/api/interview_api.py |
 | 数据库连接管理 | 管理数据库连接 | app/db/db.py |
 | 数据库连接池 | 提高数据库操作性能 | app/db/db_pool.py |
-| 表情分析服务 | 分析面试者表情 | app/services/expression_service.py |
-| 面试问题生成服务 | 生成面试问题 | app/services/question_service.py |
-| 面试报告生成服务 | 生成面试报告 | app/services/report_service.py |
-| 语音处理服务 | 处理语音数据 | app/services/speech_service.py |
+| 表情分析服务 | 分析面试者表情 | app/ai_services/expression_service.py |
+| 面试问题生成服务 | 生成面试问题（qwen-flash） | app/ai_services/question_service.py |
+| 面试提示词模板 | 按岗位生成出题提示词 | app/ai_services/prompt.py |
+| 面试报告生成服务 | 生成面试报告 | app/ai_services/report_service.py |
+| 简历解析服务 | PDF 转 Markdown（MinerU，失败降级 PyPDF2） | app/ai_services/resume_parser.py |
+| 简历分析服务 | 分析简历内容 | app/ai_services/resume_service.py |
+| 语音处理服务 | 处理语音数据 | app/ai_services/speech_service.py |
 | 工具函数 | 通用工具函数 | app/utils/utils.py |
 
 ## 语音合成功能
@@ -416,7 +422,7 @@ python server.py
 
 ## 注意事项
 
-1. **API密钥配置**：需要在`app/.env`文件中配置正确的API密钥，支持OpenAI兼容接口（如阿里云百炼、智谱AI等）
+1. **API密钥配置**：需要在项目根目录的`.env`文件中配置正确的API密钥，支持OpenAI兼容接口（如阿里云百炼、智谱AI等）
 
 2. **语音识别**：系统默认使用Web录音API收集答案，语音转文字功能需要配置Whisper模型（当前版本暂时禁用）
 
@@ -424,7 +430,7 @@ python server.py
 
 4. **语音预生成**：生成问题时自动预生成语音，提升面试时的用户体验
 
-5. **PDF处理**：系统使用PyPDF2解析候选人PDF简历，部分格式可能解析不完整
+5. **PDF处理**：系统使用本地 MinerU（GPU 加速）将 PDF 简历解析为 Markdown，保留排版/表格信息；MinerU 不可用或解析失败时自动降级为 PyPDF2 纯文本提取。MinerU 首次运行需下载 1-2GB 模型权重
 
 6. **浏览器兼容性**：面试界面使用MediaRecorder API，推荐使用Chrome、Firefox、Edge等现代浏览器
 
@@ -437,12 +443,12 @@ python server.py
 | Web框架 | Flask |
 | 前端框架 | Vue.js 3 |
 | UI组件 | Bootstrap 5 |
-| AI模型 | 阿里云百炼 qwen-plus (OpenAI兼容接口) |
+| AI模型 | 阿里云百炼 qwen-flash（出题）/ qwen-plus（报告） |
 | 语音合成 | 阿里云百炼 cosyvoice-v3-flash |
 | 支付系统 | 支付宝SDK |
 | 数据库 | SQLite |
 | PDF生成 | WeasyPrint |
-| PDF解析 | PyPDF2 |
+| PDF解析 | MinerU 2.7.6（本地 GPU，主路径）+ PyPDF2（降级） |
 | 定时任务 | Schedule |
 | HTTP客户端 | OpenAI SDK / httpx / requests |
 
@@ -457,6 +463,10 @@ python server.py
 - 集成企业微信/钉钉通知
 - 添加更多支付方式
 
-## License
+## 版权声明
 
-MIT License
+© 2026 [作者姓名/申请主体名称] 保留所有权利（All Rights Reserved）。
+
+本项目为商业项目，代码仅以学习交流为目的对外展示，供他人参考。未经作者书面授权，不得以任何形式将本项目全部或部分代码用于商业用途、二次分发或申请其他软件著作权。
+
+> 说明：本项目在运行时通过命令行方式调用开源工具 MinerU 进行 PDF 解析，不包含、也未修改其源代码；除此之外全部代码均为原创开发。

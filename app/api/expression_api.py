@@ -9,7 +9,7 @@ import time
 from fastapi import Path, UploadFile, File, Body, HTTPException
 from fastapi.responses import JSONResponse
 
-from app.services.expression_service import analyze_face_expression
+from app.ai_services.expression_service import analyze_face_expression
 from app.db.db import get_db, return_db
 
 logger = logging.getLogger(__name__)

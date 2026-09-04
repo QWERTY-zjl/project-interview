@@ -6,7 +6,7 @@ import logging
 from fastapi import Body, HTTPException
 from fastapi.responses import JSONResponse
 
-from app.services.speech_service import synthesize_speech
+from app.ai_services.speech_service import synthesize_speech
 
 logger = logging.getLogger(__name__)
 

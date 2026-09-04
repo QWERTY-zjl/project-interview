@@ -19,6 +19,12 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 # OpenAI API 地址（默认使用国内代理）
 OPENAI_BASE_URL = os.getenv("OPENAI_BASE_URL", "https://api.chatanywhere.tech/v1")
 
+# DashScope OpenAI 兼容接口地址（出题走这里）
+DASHSCOPE_BASE_URL = os.getenv("DASHSCOPE_BASE_URL", "https://dashscope.aliyuncs.com/compatible-mode/v1")
+
+# 出题用的文本模型（qwen-flash 为 DashScope 上最便宜的文本模型）
+LLM_MODEL = os.getenv("LLM_MODEL", "qwen-flash")
+
 # SQLite 数据库文件名
 DATABASE_NAME = "interview_system.db"
 
