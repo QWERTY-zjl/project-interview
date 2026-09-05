@@ -1469,104 +1469,120 @@ def api_use_quota():
         return jsonify({"error": message}), 400
 
 # ==================== 面试评价API ====================
+# 答完全部问题后由前端调用；大模型评分与报告存档逻辑在 app/ai_services/report_service.py
 
 @app.route('/api/evaluation/generate', methods=['POST'])
 def generate_evaluation():
     """
-    生成面试评价
-    
+    生成面试评价（面试收尾环节）
+
+    流程：按 token 找面试 → 联查候选人/岗位 → 取问题与回答 → 聚合表情数据 →
+    调 report_service.generate_interview_report 让大模型逐题评分 →
+    报告存库（status 推进到 4）并返回前端可用的 evaluation 字段
+
     请求参数 (JSON):
         token: 面试token
-    
+
     返回:
-        面试评价结果
+        {status: success, evaluation: 前端评价字段, report: 完整存档报告}
     """
+    conn = None
     try:
-        print("[Evaluation] 收到生成评价请求")
+        # 函数内导入（与本文件其他 ai_services 模块的导入惯例一致）
+        from app.ai_services.report_service import generate_interview_report
+
         data = request.json
-        print(f"[Evaluation] 请求数据: {data}")
         token = data.get('token')
-        
+
         if not token:
-            print("[Evaluation] 错误: 缺少token参数")
             return jsonify({"status": "error", "message": "缺少token参数"}), 400
-        
-        print(f"[Evaluation] 面试token: {token}")
-        
-        # 从数据库中获取面试数据
+
         conn = get_db()
         cursor = conn.cursor()
-        
-        # 查询面试记录
-        cursor.execute("SELECT id, user_id, interview_type_id, start_time, end_time, status FROM interviews WHERE token = ?", (token,))
+
+        # 查面试记录
+        cursor.execute("SELECT id, candidate_id FROM interviews WHERE token = ?", (token,))
         interview = cursor.fetchone()
-        
+
         if not interview:
-            print("[Evaluation] 错误: 面试记录不存在")
+            return_db(conn)
             return jsonify({"status": "error", "message": "面试记录不存在"}), 404
-        
-        interview_id = interview[0]
-        print(f"[Evaluation] 找到面试记录，ID: {interview_id}")
-        
-        # 查询面试问题和回答
-        cursor.execute("SELECT id, question, answer_text, answered_at FROM interview_questions WHERE interview_id = ? ORDER BY id", (interview_id,))
-        answers = cursor.fetchall()
-        
-        if not answers:
-            print("[Evaluation] 错误: 面试没有回答记录")
+
+        interview_id = interview['id']
+
+        # 联查候选人与岗位（position 名称用于评估提示词）
+        cursor.execute('''
+            SELECT c.name, c.resume_content, p.name AS position_name
+            FROM candidates c
+            JOIN positions p ON c.position_id = p.id
+            WHERE c.id = ?
+        ''', (interview['candidate_id'],))
+        crow = cursor.fetchone()
+
+        if not crow:
+            return_db(conn)
+            return jsonify({"status": "error", "message": "候选人或岗位记录不存在"}), 404
+
+        candidate = {"name": crow['name'], "resume_content": crow['resume_content']}
+        position = {"name": crow['position_name']}
+
+        # 查问题+回答（score_standard 回传给大模型当评分依据）
+        cursor.execute('''
+            SELECT question, score_standard, answer_text
+            FROM interview_questions WHERE interview_id = ? ORDER BY id
+        ''', (interview_id,))
+        questions = [dict(r) for r in cursor.fetchall()]
+
+        if not questions:
+            return_db(conn)
             return jsonify({"status": "error", "message": "面试没有回答记录"}), 404
-        
-        # 构建面试数据
-        questions = []
-        for answer in answers:
-            questions.append({
-                "id": answer[0],
-                "question": answer[1],
-                "answer_text": answer[2],
-                "answered_at": answer[3]
-            })
-        
-        # 查询表情记录
-        cursor.execute("SELECT expression, expression_cn, emotion_status, emotion_score, timestamp FROM interview_expression_records WHERE interview_id = ? ORDER BY timestamp", (interview_id,))
-        expressions_data = cursor.fetchall()
-        
-        expressions = []
-        for expr in expressions_data:
-            expressions.append({
-                "expression": expr[0],
-                "expression_cn": expr[1],
-                "emotion_status": expr[2],
-                "emotion_score": expr[3],
-                "timestamp": expr[4]
-            })
-        
-        interview_data = {
-            "interview_id": interview_id,
-            "questions": questions,
-            "expressions": expressions,
-            "total_questions": len(questions)
-        }
-        
-        cursor.close()
-        conn.close()
-        
-        print(f"[Evaluation] 开始生成面试评价，面试ID: {interview_data['interview_id']}")
-        print(f"[Evaluation] 问题数量: {interview_data['total_questions']}")
-        print(f"[Evaluation] 表情记录数量: {len(interview_data['expressions'])}")
-        
-        # 调用大模型API生成评价
-        print("[Evaluation] 开始调用大模型API...")
-        evaluation = generate_interview_evaluation_with_llm(interview_data)
-        
-        print("[Evaluation] 评价生成成功")
-        print(f"[Evaluation] 评价结果: {evaluation}")
-        
-        return jsonify({
-            "status": "success",
-            "evaluation": evaluation
-        })
-        
+
+        # 聚合表情数据（emotion_status 取值为中文：积极/中性/消极）
+        expression_summary = None
+        cursor.execute('''
+            SELECT COUNT(*) AS total_records,
+                   AVG(emotion_score) AS avg_emotion_score,
+                   AVG(quality_score) AS avg_quality_score,
+                   AVG(final_score) AS avg_final_score,
+                   SUM(CASE WHEN emotion_status = '积极' THEN 1 ELSE 0 END) AS positive_count,
+                   SUM(CASE WHEN emotion_status = '中性' THEN 1 ELSE 0 END) AS neutral_count,
+                   SUM(CASE WHEN emotion_status = '消极' THEN 1 ELSE 0 END) AS negative_count
+            FROM interview_expression_records WHERE interview_id = ?
+        ''', (interview_id,))
+        agg = cursor.fetchone()
+
+        if agg and agg['total_records']:
+            # 表情分布：{表情中文名: 出现次数}
+            cursor.execute('''
+                SELECT expression_cn, COUNT(*) AS cnt
+                FROM interview_expression_records WHERE interview_id = ?
+                GROUP BY expression_cn
+            ''', (interview_id,))
+            distribution = {r['expression_cn']: r['cnt'] for r in cursor.fetchall()}
+            expression_summary = {
+                "total_records": agg['total_records'],
+                "avg_emotion_score": round(agg['avg_emotion_score'] or 0, 1),
+                "avg_quality_score": round(agg['avg_quality_score'] or 0, 1),
+                "avg_final_score": round(agg['avg_final_score'] or 0, 1),
+                "positive_count": agg['positive_count'] or 0,
+                "neutral_count": agg['neutral_count'] or 0,
+                "negative_count": agg['negative_count'] or 0,
+                "expression_distribution": distribution
+            }
+
+        # 报告生成（内部会 commit、归还连接、把状态推进到 4 并返回完整响应）
+        return generate_interview_report(
+            interview_id,
+            candidate, position, questions, expression_summary, cursor, conn
+        )
+
     except Exception as e:
+        # 异常时归还连接（generate_interview_report 成功路径内部已归还，此处兜底）
+        if conn:
+            try:
+                return_db(conn)
+            except Exception:
+                pass
         print(f"[Evaluation] 生成评价失败: {e}")
         import traceback
         traceback.print_exc()
@@ -1575,239 +1591,6 @@ def generate_evaluation():
             "message": str(e)
         }), 500
 
-def generate_interview_evaluation_with_llm(interview_data):
-    """
-    使用大模型生成面试评价
-    
-    参数:
-        interview_data: 面试数据
-    
-    返回:
-        面试评价结果
-    """
-    # 检查API密钥
-    api_key = os.getenv("DASHSCOPE_API_KEY") or os.getenv("OPENAI_API_KEY")
-    if not api_key:
-        print("[Evaluation] 错误: API Key 为空")
-        raise Exception("未配置API Key")
-    
-    print(f"[Evaluation] API Key 已配置，长度: {len(api_key)}")
-    
-    # 构建提示词
-    prompt = build_evaluation_prompt(interview_data)
-    print(f"[Evaluation] 提示词长度: {len(prompt)}")
-    
-    # 调用大模型API
-    import requests
-    
-    # 使用阿里云 DashScope 模型
-    url = "https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation"
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json"
-    }
-    
-    data = {
-        "model": "qwen-plus",
-        "input": {
-            "prompt": prompt
-        },
-        "parameters": {
-            "max_tokens": 2000,
-            "temperature": 0.7,
-            "top_p": 0.9
-        }
-    }
-    
-    print("[Evaluation] 调用大模型API...")
-    print(f"[Evaluation] 请求URL: {url}")
-    print(f"[Evaluation] 请求参数: {data}")
-    
-    response = requests.post(url, headers=headers, json=data, timeout=60)
-    
-    print(f"[Evaluation] API 响应状态: {response.status_code}")
-    print(f"[Evaluation] 响应内容: {response.text}")
-    
-    if response.status_code != 200:
-        error_msg = response.text or f"HTTP {response.status_code}"
-        print(f"[Evaluation] API 调用失败: {error_msg}")
-        raise Exception(f"API 调用失败: {error_msg}")
-    
-    # 解析响应
-    result = response.json()
-    print("[Evaluation] API 响应成功")
-    print(f"[Evaluation] 响应结果: {result}")
-    
-    if "output" not in result or "text" not in result["output"]:
-        print("[Evaluation] 响应格式错误")
-        raise Exception("响应格式错误")
-    
-    generated_text = result["output"]["text"]
-    print(f"[Evaluation] 生成文本长度: {len(generated_text)}")
-    print(f"[Evaluation] 生成文本: {generated_text}")
-    
-    # 解析生成的评价
-    evaluation = parse_generated_evaluation(generated_text)
-    print(f"[Evaluation] 解析后的评价: {evaluation}")
-    return evaluation
-
-def build_evaluation_prompt(interview_data):
-    """
-    构建面试评价提示词
-    
-    参数:
-        interview_data: 面试数据
-    
-    返回:
-        提示词
-    """
-    prompt = f"""
-你是一位专业的面试官，负责对候选人的面试表现进行全面评价。请根据以下面试数据，生成一份详细的面试评价报告。
-
-面试数据：
-- 面试ID: {interview_data['interview_id']}
-- 问题数量: {interview_data['total_questions']}
-
-面试问题和答案：
-"""
-    
-    for i, q in enumerate(interview_data['questions'], 1):
-        prompt += f"Q{i}: {q['question']}\n"
-        if q['answer_text']:
-            prompt += f"A{i}: {q['answer_text']}\n"
-        else:
-            prompt += f"A{i}: [未回答]\n"
-        prompt += "\n"
-    
-    if interview_data['expressions']:
-        prompt += "表情分析记录：\n"
-        for i, e in enumerate(interview_data['expressions'][:5], 1):  # 只取前5条表情记录
-            prompt += f"- {e['expression_cn']} ({e['emotion_status']}, 得分: {e['emotion_score']})\n"
-        prompt += "\n"
-    
-    prompt += """
-请根据以上数据，生成一份详细的面试评价报告，包括以下内容：
-
-1. 总体评价：给出一个综合评分（0-100分）和总体评价描述。
-2. 各项能力评分：
-   - 专业知识（0-10分）
-   - 行业认知（0-10分）
-   - 表达能力（0-10分）
-   - 沟通能力（0-10分）
-   - 思维逻辑（0-10分）
-3. 优势亮点：列出候选人的3-5个优势。
-4. 改进建议：列出候选人需要改进的3-5个方面。
-5. AI个性化建议：根据候选人的表现，给出3个具体的提升建议。
-
-请以JSON格式输出评价结果，确保JSON格式正确，并且包含以下字段：
-- averageScore: 综合评分（0-100分）
-- description: 总体评价描述
-- scores: 各项能力评分（包含professional, communication, comprehensive）
-- detailedScores: 详细评分列表（包含name, score, percentage）
-- strengths: 优势亮点列表
-- improvements: 改进建议列表
-- recommendations: AI个性化建议列表（包含title, description）
-
-示例输出格式：
-{
-  "averageScore": 76,
-  "description": "您在本次面试中表现良好，综合得分为76分，表明您有中上水平，有很大提升空间。",
-  "scores": {
-    "professional": 80,
-    "communication": 68,
-    "comprehensive": 75
-  },
-  "detailedScores": [
-    {"name": "专业知识", "score": 8.5, "percentage": 85},
-    {"name": "行业认知", "score": 7.5, "percentage": 75},
-    {"name": "表达能力", "score": 7.0, "percentage": 70},
-    {"name": "沟通能力", "score": 6.5, "percentage": 65},
-    {"name": "思维逻辑", "score": 8.0, "percentage": 80}
-  ],
-  "strengths": [
-    "基础知识扎实，能够回答大部分专业问题",
-    "专业技能突出，有相关项目经验",
-    "逻辑思维清晰，能有条理地分析问题"
-  ],
-  "improvements": [
-    "在某些领域的知识深度不够，如算法优化",
-    "表达能力有待提高，回答问题时不够流畅",
-    "对行业最新趋势了解不足，需要加强学习"
-  ],
-  "recommendations": [
-    {"title": "学习提升", "description": "建议学习算法优化和系统设计，提升专业深度"},
-    {"title": "表达训练", "description": "加强表达能力训练，提高回答问题的流畅度"},
-    {"title": "行业洞察", "description": "关注行业最新趋势，了解前沿技术发展"}
-  ]
-}
-"""
-    
-    return prompt
-
-def parse_generated_evaluation(generated_text):
-    """
-    解析生成的评价文本
-    
-    参数:
-        generated_text: 生成的文本
-    
-    返回:
-        解析后的评价结果
-    """
-    try:
-        # 提取JSON部分
-        import re
-        import json
-        json_match = re.search(r'\{[\s\S]*\}', generated_text)
-        if json_match:
-            json_str = json_match.group(0)
-            evaluation = json.loads(json_str)
-            return evaluation
-        else:
-            print("[Evaluation] 无法提取JSON")
-            return get_default_evaluation()
-    except Exception as e:
-        print(f"[Evaluation] 解析评价失败: {e}")
-        return get_default_evaluation()
-
-def get_default_evaluation():
-    """
-    获取默认的面试评价
-    
-    返回:
-        默认的面试评价结果
-    """
-    return {
-        "averageScore": 76,
-        "description": "您在本次面试中表现良好，综合得分为76分，表明您有中上水平，有很大提升空间。",
-        "scores": {
-            "professional": 80,
-            "communication": 68,
-            "comprehensive": 75
-        },
-        "detailedScores": [
-            {"name": "专业知识", "score": 8.5, "percentage": 85},
-            {"name": "行业认知", "score": 7.5, "percentage": 75},
-            {"name": "表达能力", "score": 7.0, "percentage": 70},
-            {"name": "沟通能力", "score": 6.5, "percentage": 65},
-            {"name": "思维逻辑", "score": 8.0, "percentage": 80}
-        ],
-        "strengths": [
-            "基础知识扎实，能够回答大部分专业问题",
-            "专业技能突出，有相关项目经验",
-            "逻辑思维清晰，能有条理地分析问题"
-        ],
-        "improvements": [
-            "在某些领域的知识深度不够，如算法优化",
-            "表达能力有待提高，回答问题时不够流畅",
-            "对行业最新趋势了解不足，需要加强学习"
-        ],
-        "recommendations": [
-            {"title": "学习提升", "description": "建议学习算法优化和系统设计，提升专业深度"},
-            {"title": "表达训练", "description": "加强表达能力训练，提高回答问题的流畅度"},
-            {"title": "行业洞察", "description": "关注行业最新趋势，了解前沿技术发展"}
-        ]
-    }
 
 # ==================== 简历上传API ====================
 @app.route('/api/resume/upload', methods=['POST'])

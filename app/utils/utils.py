@@ -36,7 +36,7 @@ def validate_interview_data(data):
         (验证成功标志, 错误信息, 验证后的数据)
     """
     # 验证必填字段
-    required_fields = ['candidate_id', 'interviewer', 'start_time', 'status', 'is_passed']
+    required_fields = ['candidate_id', 'start_time', 'status', 'is_passed']
     for field in required_fields:
         if field not in data:
             return False, f'缺少必填字段: {field}', None
@@ -67,7 +67,6 @@ def validate_interview_data(data):
     
     return True, None, {
         'candidate_id': candidate_id,
-        'interviewer': data['interviewer'],
         'start_time': start_time,
         'status': status,
         'is_passed': is_passed,
