@@ -133,7 +133,6 @@ def generate_interview_report(interview_id, candidate, position, questions, expr
 
     # 提示词第一部分：任务设定（角色 + 评估对象 + 评分规则）
     prompt = f"""你是一位专业的面试评估专家，需要对候选人"{candidate['name']}"应聘"{position['name']}"职位的面试表现进行评估。
-
 请根据以下面试问题和候选人的回答，对每个问题进行评分和点评，并给出综合评价。
 注意每个问题评分范围是0-100分，综合评分范围是0-100分。
 
