@@ -91,9 +91,9 @@ def _parse_by_mineru(pdf_bytes, work_dir):
     raise RuntimeError("MinerU 执行成功但未产出非空 markdown 文件")
 
 
-def _parse_by_pypdf2(pdf_bytes):
+def _parse_by_pypdf(pdf_bytes):
     """
-    降级方案：用 PyPDF2 提取 PDF 纯文本（丢失排版，但保证链路可用）。
+    降级方案：用 pypdf 提取 PDF 纯文本（丢失排版，但保证链路可用）。
 
     Args:
         pdf_bytes: PDF 文件的字节内容
@@ -103,7 +103,7 @@ def _parse_by_pypdf2(pdf_bytes):
     """
     try:
         from io import BytesIO
-        from PyPDF2 import PdfReader
+        from pypdf import PdfReader
 
         reader = PdfReader(BytesIO(pdf_bytes))
         pages = []
@@ -112,10 +112,10 @@ def _parse_by_pypdf2(pdf_bytes):
             if text:
                 pages.append(text)
         text = "\n".join(pages)
-        logger.info(f"[ResumeParser] PyPDF2 降级解析完成，文本长度: {len(text)} 字符")
+        logger.info(f"[ResumeParser] pypdf 降级解析完成，文本长度: {len(text)} 字符")
         return text
     except Exception as e:
-        logger.error(f"[ResumeParser] PyPDF2 降级解析也失败: {e}")
+        logger.error(f"[ResumeParser] pypdf 降级解析也失败: {e}")
         return ""
 
 
@@ -169,8 +169,8 @@ def parse_resume_to_markdown(pdf_bytes, filename=""):
 
         # 2. 降级路径：MinerU 不可用或输出为空时，用 PyPDF2 兜底
         if not md or not md.strip():
-            logger.warning("[ResumeParser] MinerU 未产出有效内容，使用 PyPDF2 降级")
-            md = _parse_by_pypdf2(pdf_bytes)
+            logger.warning("[ResumeParser] MinerU 未产出有效内容，使用 pypdf 降级")
+            md = _parse_by_pypdf(pdf_bytes)
 
         # 3. 清洗并返回（彻底失败时为空字符串，由上层决定如何响应）
         return _clean_text(md) if md else ""

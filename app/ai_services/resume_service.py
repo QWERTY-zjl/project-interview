@@ -13,12 +13,12 @@ logger = logging.getLogger(__name__)
 
 # 导入必要的库
 try:
-    from PyPDF2 import PdfReader
+    from pypdf import PdfReader
     PDF_SUPPORT = True
-    logger.info("[Resume] 导入 PyPDF2 库成功")
+    logger.info("[Resume] 导入 pypdf 库成功")
 except ImportError:
     PDF_SUPPORT = False
-    logger.warning("[Resume] 缺少 PyPDF2 库，无法解析PDF文件")
+    logger.warning("[Resume] 缺少 pypdf 库，无法解析PDF文件")
 
 
 def analyze_resume(resume_content, work_experience, target_position):
@@ -117,6 +117,7 @@ def analyze_resume(resume_content, work_experience, target_position):
 def extract_basic_info(text):
     """
     提取基本信息
+    都是通过正则表达式提取的
     """
     basic_info = {}
     
