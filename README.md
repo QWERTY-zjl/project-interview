@@ -125,6 +125,8 @@ project-interview/
 │   ├── db/                               # 数据库模块
 │   │   ├── db.py                         # 数据库连接管理
 │   │   ├── db_pool.py                    # 数据库连接池
+│   │   ├── create_personal_interview_system_db.py # 建表脚本（权威来源：个人版7表+支付表）
+│   │   ├── create_interview_system_db.py # 旧版建表脚本（仅保留）
 │   │   └── interview_system.db           # SQLite数据库文件
 │   ├── static/                           # 静态前端文件
 │   │   ├── admin.html                    # 管理后台界面
@@ -141,9 +143,6 @@ project-interview/
 │   ├── main.py                           # FastAPI版入口
 │   ├── payment_module.py                 # 支付功能模块
 │   ├── alipay_module.py                  # 支付宝集成模块
-│   ├── create_payment_tables.py          # 支付系统数据库初始化
-│   ├── create_interview_system_db.py     # 数据库初始化脚本
-│   ├── create_personal_interview_system_db.py # 个人版数据库初始化脚本
 │   ├── Dockerfile                        # Docker镜像构建文件
 │   └── resume.md                         # 简历信息提取示例输出
 ├── docs/                                 # 文档目录（开发教程、图片资源、实验notebook）
@@ -162,7 +161,7 @@ project-interview/
 
 ## 数据库设计
 
-系统使用 SQLite 数据库（单文件 `interview_system.db`），当前实际包含 **7 张表**，全部关系均为 **1:N 外键**，无多对多中间表。
+系统使用 SQLite 数据库（单文件 `interview_system.db`），包含 **7 张核心业务表 + 6 张支付扩展表**，核心表关系均为 **1:N 外键**，无多对多中间表。下方 ER 图展示核心业务表。
 
 ### ER 图
 
@@ -278,7 +277,7 @@ erDiagram
 
 1. **时间字段统一存 Unix 时间戳**（`INTEGER`，默认 `strftime('%s','now')`），不是日期字符串
 2. **外键默认不强制**：建表语句虽声明了 `FOREIGN KEY`，但 SQLite 需要连接时执行 `PRAGMA foreign_keys = ON` 才会真正校验
-3. `create_payment_tables.py` 中定义的支付相关表（`user_quotas`、`pricing_plans`、`orders` 等）与旧版脚本的 `positions`、`candidates` 表**均不在当前数据库中**，仅脚本保留
+3. 支付相关表（`user_quotas`、`pricing_plans`、`orders` 等 6 张）定义已并入 `create_personal_interview_system_db.py`，程序启动时由 `init_db()` 自动创建，并含 `users` 表的 `phone/user_type/status` 迁移补列；旧版脚本的 `positions`、`candidates` 表不在当前数据库中，仅脚本保留
 4. 查看/管理数据库可使用 DB Browser for SQLite 或 Navicat Premium（连接类型选择 SQLite → 现有数据库文件）
 
 ## 面试状态流转
@@ -332,9 +331,8 @@ DASHSCOPE_API_KEY=你的API密钥
 ### 第四步：初始化数据库
 
 ```bash
-cd app
-python create_interview_system_db.py
-python create_payment_tables.py
+# 表结构已集中到一个脚本（个人版7表+支付表），程序启动时 init_db() 也会自动执行
+python app\db\create_personal_interview_system_db.py
 ```
 
 ### 第五步：启动服务
@@ -401,9 +399,7 @@ DASHSCOPE_API_KEY=your_api_key_here
 1. **初始化数据库**
 
 ```bash
-cd app
-python create_interview_system_db.py
-python create_payment_tables.py
+python app\db\create_personal_interview_system_db.py
 ```
 
 ## 使用说明
@@ -473,9 +469,8 @@ python server.py
 | server.py                                  | Flask Web服务器，提供RESTful API（包含所有功能） |
 | payment\_module.py                         | 支付功能模块，用户认证、配额管理、套餐管理、订单管理         |
 | alipay\_module.py                          | 支付宝集成模块，支持网页支付、扫码支付、订单查询、模拟支付      |
-| create\_interview\_system\_db.py           | 初始化数据库和表结构                         |
-| create\_personal\_interview\_system\_db.py | 个人版数据库初始化脚本                        |
-| create\_payment\_tables.py                 | 初始化支付系统数据库表                        |
+| create\_interview\_system\_db.py           | 旧版建表脚本（仅保留）                        |
+| create\_personal\_interview\_system\_db.py | 建表脚本（权威来源：个人版7表+支付表，启动时自动执行）       |
 
 ## 核心模块说明
 
