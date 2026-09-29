@@ -124,7 +124,8 @@ project-interview/
 │   │   └── config.py                     # 配置文件
 │   ├── db/                               # 数据库模块
 │   │   ├── db.py                         # 数据库连接管理
-│   │   └── db_pool.py                    # 数据库连接池
+│   │   ├── db_pool.py                    # 数据库连接池
+│   │   └── interview_system.db           # SQLite数据库文件
 │   ├── static/                           # 静态前端文件
 │   │   ├── admin.html                    # 管理后台界面
 │   │   ├── interview.html                # 候选人面试界面
@@ -135,7 +136,7 @@ project-interview/
 │   │   └── js/                           # JavaScript库
 │   ├── utils/                            # 工具函数
 │   │   └── utils.py                      # 通用工具函数
-│   ├── temp/                             # 临时文件目录（简历解析中间产物，用后自动清理）
+│   ├── temp/                             # 临时文件目录（简历解析时自动创建，用后自动清理，平时不存在）
 │   ├── server.py                         # Flask Web服务器（核心API，主入口）
 │   ├── main.py                           # FastAPI版入口
 │   ├── payment_module.py                 # 支付功能模块
@@ -144,14 +145,17 @@ project-interview/
 │   ├── create_interview_system_db.py     # 数据库初始化脚本
 │   ├── create_personal_interview_system_db.py # 个人版数据库初始化脚本
 │   ├── Dockerfile                        # Docker镜像构建文件
-│   └── interview_system.db               # SQLite数据库文件
-├── docs/                                 # 文档目录（含示例简历）
-├── dailylogs/                            # 开发日志
+│   └── resume.md                         # 简历信息提取示例输出
+├── docs/                                 # 文档目录（开发教程、图片资源、实验notebook）
+├── dailylogs/                            # 开发日志（每日总结、技术学习笔记、项目教程）
 ├── nginx/                                # Nginx配置（生产环境）
-├── .env                                  # 环境变量配置（API密钥）
+├── .env                                  # 环境变量配置（API密钥，不提交git）
 ├── docker-compose.yml                    # Docker Compose编排
 ├── start_server.bat / start_server.ps1   # Windows启动脚本
+├── start_personal_server.bat             # 个人版启动脚本
+├── start_server_background.bat           # 后台静默启动脚本
 ├── requirements.txt                      # Python依赖包列表
+├── resume.md                             # 简历解析结果示例
 ├── .gitignore                           # Git忽略文件
 └── README.md                             # 项目说明文档
 ```
@@ -196,7 +200,10 @@ erDiagram
         INTEGER start_time "开始时间"
         INTEGER end_time "结束时间"
         INTEGER status "状态0到4"
+        INTEGER question_count "题目数"
         REAL total_score "总分"
+        INTEGER voice_reading "是否语音读题"
+        TEXT voice_type "面试官发音人"
         TEXT token "面试链接令牌"
         BLOB report_content "评估报告"
     }
@@ -205,9 +212,13 @@ erDiagram
         INTEGER interview_id FK "所属面试"
         TEXT question "题目文本"
         TEXT question_type "默认voice"
+        TEXT score_standard "评分标准"
         BLOB question_audio "预生成题目语音"
+        TEXT voice_type "TTS发音人"
         BLOB answer_audio "回答录音"
         TEXT answer_text "回答转写文本"
+        INTEGER created_at "出题时间(Unix时间戳)"
+        INTEGER answered_at "回答时间(Unix时间戳)"
         REAL user_score "得分"
         TEXT feedback "反馈"
     }
@@ -218,6 +229,7 @@ erDiagram
         TEXT expression_cn "中文表情"
         REAL confidence "置信度"
         TEXT emotion_status "情绪状态"
+        REAL emotion_score "情绪分"
         REAL quality_score "画质分"
         REAL final_score "最终分"
         TEXT suggestions "建议"
@@ -239,6 +251,7 @@ erDiagram
         TEXT feedback_type "反馈类型"
         TEXT feedback_content "反馈内容"
         INTEGER rating "评分"
+        INTEGER created_at "反馈时间(Unix时间戳)"
     }
 ```
 

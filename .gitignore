@@ -51,6 +51,8 @@ Desktop.ini
 
 # Database
 *.db
+*.db-wal
+*.db-shm
 *.sqlite
 *.sqlite3
 
@@ -89,3 +91,6 @@ coverage.xml
 *.cover
 .hypothesis/
 .pytest_cache/
+
+*.db-wal
+*.db-shm

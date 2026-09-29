@@ -5,11 +5,14 @@
 包括：用户表、面试类型表、面试表、面试问题表、表情记录表、练习进度表等
 """
 
+import os
 import sqlite3
 
 # ==================== 数据库连接 ====================
 # 连接到SQLite数据库文件，如果不存在则自动创建
-conn = sqlite3.connect('interview_system.db')
+# 路径锚定到本脚本所在目录（app/db/），与启动时的工作目录无关，
+# 避免在其他目录执行时于错误位置生成一个空库
+conn = sqlite3.connect(os.path.join(os.path.dirname(__file__), 'interview_system.db'))
 cursor = conn.cursor()
 
 # ==================== 用户表 (users) ====================
