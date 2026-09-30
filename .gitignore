@@ -63,6 +63,7 @@ logs/
 
 # SSL 证书私钥（绝不能提交）
 nginx/ssl/
+docker/nginx/ssl/
 
 # 临时文件
 temp/

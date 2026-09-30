@@ -126,7 +126,6 @@ project-interview/
 │   │   ├── db.py                         # 数据库连接管理
 │   │   ├── db_pool.py                    # 数据库连接池
 │   │   ├── create_personal_interview_system_db.py # 建表脚本（权威来源：个人版7表+支付表）
-│   │   ├── create_interview_system_db.py # 旧版建表脚本（仅保留）
 │   │   └── interview_system.db           # SQLite数据库文件
 │   ├── static/                           # 静态前端文件
 │   │   ├── admin.html                    # 管理后台界面
@@ -138,18 +137,18 @@ project-interview/
 │   │   └── js/                           # JavaScript库
 │   ├── utils/                            # 工具函数
 │   │   └── utils.py                      # 通用工具函数
-│   ├── temp/                             # 临时文件目录（简历解析时自动创建，用后自动清理，平时不存在）
+│   ├── temp/                             # 临时文件目录（简历解析时自动创建，用后自动清理）
+│   ├── logs/                             # 运行日志目录（server 启动后生成 app.log）
 │   ├── server.py                         # Flask Web服务器（核心API，主入口）
 │   ├── main.py                           # FastAPI版入口
 │   ├── payment_module.py                 # 支付功能模块
-│   ├── alipay_module.py                  # 支付宝集成模块
-│   ├── Dockerfile                        # Docker镜像构建文件
-│   └── resume.md                         # 简历信息提取示例输出
+│   ├── minimal_test.py / simple_test.py  # 简单测试脚本（开发调试用）
+│   └── alipay_module.py                  # 支付宝集成模块
 ├── docs/                                 # 文档目录（开发教程、图片资源、实验notebook）
 ├── dailylogs/                            # 开发日志（每日总结、技术学习笔记、项目教程）
-├── nginx/                                # Nginx配置（生产环境）
 ├── .env                                  # 环境变量配置（API密钥，不提交git）
-├── docker-compose.yml                    # Docker Compose编排
+├── .dockerignore                         # Docker构建排除名单（防止venv/.env/数据库进镜像）
+├── docker/                               # Docker部署全家桶（Dockerfile、docker-compose.yml、nginx配置与SSL证书）
 ├── start_server.bat / start_server.ps1   # Windows启动脚本
 ├── start_personal_server.bat             # 个人版启动脚本
 ├── start_server_background.bat           # 后台静默启动脚本

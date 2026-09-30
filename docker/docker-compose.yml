@@ -1,0 +1,32 @@
+# Docker Compose 编排文件
+# 作用：一条命令同时启动两个容器 —— app（Flask 后端）+ nginx（反向代理/HTTPS）
+# 运行方式：在本文件所在目录执行  docker compose up -d --build
+# 【路径规则】下面的相对路径都以「本文件所在目录」（docker/）为基准，
+#   ./ = docker/ 目录内，../ = 仓库根目录
+
+services:
+  # ---------- 服务 1：Flask 应用容器 ----------
+  app:
+    build:
+      context: ..                      # 构建上下文 = 仓库根（requirements.txt 在根目录，Dockerfile 的 COPY 相对它取文件）
+      dockerfile: docker/Dockerfile    # Dockerfile 的位置（相对上下文）
+    volumes:
+      - ../app:/srv/app                # 挂载本机 app/ 代码进容器（与镜像内 COPY 的位置一致），改代码不用重建镜像
+      - ../.env:/srv/.env:ro           # API 密钥只读注入：config.py 的 load_dotenv() 会从 /srv/app 向上找到 /srv/.env
+    ports:
+      - "10009:10009"                  # 本机10009 → 容器10009（server.py 实际监听的端口）
+    environment:
+      - PYTHONUNBUFFERED=1             # 让 Python 日志实时显示，不缓冲
+
+  # ---------- 服务 2：nginx 反向代理容器 ----------
+  nginx:
+    image: nginx:latest                # 不用构建，直接拉官方 nginx 镜像
+    ports:
+      - "80:80"                        # HTTP（nginx 自动 301 跳转 HTTPS）
+      - "443:443"                      # HTTPS
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf   # 用自带的配置覆盖容器里的默认配置
+      - ./nginx/ssl:/etc/nginx/ssl                 # HTTPS 证书和私钥
+      - ../app:/srv/app                # 挂载代码，nginx 直接读静态文件（/srv/app/static）
+    depends_on:
+      - app                            # 先启动 app 再启动 nginx
