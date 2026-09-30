@@ -47,12 +47,15 @@ from app.db.db import init_db, close_all_connections
 from app.api.position_api import get_positions, create_position, update_position, delete_position
 from app.api.resume_api import upload_resume
 from app.api.interview_api import get_interview_info, get_next_question, submit_text_answer, toggle_voice_reading, set_interview_voice
+from app.api.interview_api import create_interview, generate_questions, create_and_redirect
+from app.api.report_api import generate_evaluation
 from app.api.tts_api import get_tts_voices, synthesize_tts
 from app.api.expression_api import recognize_expression_api, analyze_expression_api, save_interview_expression, get_expression_report
 from app.api.auth_api import api_register, api_login, api_get_quota
 from app.api.pricing_api import api_get_plans, api_get_plan_detail
 from app.api.order_api import api_create_order, api_pay_order, api_check_order_status, api_get_user_orders
 from app.api.payment_api import alipay_notify, alipay_return
+from app.api.payment_api import mock_confirm_payment, check_quota, use_quota
 
 # 全局变量
 server_running = False
@@ -207,7 +210,10 @@ async def serve_static(path: str):
 # ==================== 根路径 ====================
 @app.get("/")
 async def root():
-    """根路径"""
+    """根路径：返回管理后台首页（对齐 nginx try_files admin.html 的生产行为）"""
+    admin_path = os.path.join(os.path.dirname(__file__), "static", "admin.html")
+    if os.path.exists(admin_path):
+        return FileResponse(admin_path)
     return {"message": "智能招聘面试模拟系统 API", "version": "1.0.0"}
 
 # ==================== 岗位管理API ====================
@@ -225,6 +231,12 @@ app.get("/api/interview/{token}/get_question")(get_next_question)
 app.post("/api/interview/{token}/submit_text_answer")(submit_text_answer)
 app.post("/api/interview/{token}/toggle_voice_reading")(toggle_voice_reading)
 app.post("/api/interview/{token}/set_voice")(set_interview_voice)
+app.post("/api/interview/create")(create_interview)
+app.post("/api/interview/{token}/generate_questions")(generate_questions)
+app.get("/api/interview/create_and_redirect")(create_and_redirect)
+
+# ==================== 面试报告API ====================
+app.post("/api/evaluation/generate")(generate_evaluation)
 
 # ==================== TTS API ====================
 app.get("/api/tts/voices")(get_tts_voices)
@@ -255,6 +267,11 @@ app.get("/api/orders/user/{user_id}")(api_get_user_orders)
 app.post("/api/payment/alipay/notify")(alipay_notify)
 app.get("/api/payment/alipay/return")(alipay_return)
 
+# ==================== 模拟支付与配额API ====================
+app.post("/api/payment/mock/confirm")(mock_confirm_payment)
+app.post("/api/quota/check")(check_quota)
+app.post("/api/quota/use")(use_quota)
+
 # ==================== 应用错误处理 ====================
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
@@ -271,13 +288,13 @@ async def global_exception_handler(request: Request, exc: Exception):
 
 if __name__ == '__main__':
     logger.info("启动FastAPI服务器...")
-    logger.info("服务器启动在 http://0.0.0.0:10003")
-    
-    # 启动uvicorn服务器
+    logger.info("服务器启动在 http://0.0.0.0:10009")
+
+    # 启动uvicorn服务器（端口 10009 与原 Flask 版一致，nginx/Docker 配置无需改动）
     uvicorn.run(
         "app.main:app",
         host="0.0.0.0",
-        port=10003,
+        port=10009,
         reload=False,
         workers=1
     )
