@@ -4,7 +4,6 @@
 相当于数据库的「统一入口」，其他模块不直接 import sqlite3。
 """
 
-import os
 import sqlite3          # Python 自带的 SQLite 驱动，标准库，不用安装
 import logging
 from app.config.config import DATABASE_NAME  # 从配置文件读取数据库文件路径
@@ -28,7 +27,8 @@ def get_db():
     Returns:
         sqlite3.Connection: 配置了行工厂的数据库连接对象
     """
-    # 连接数据库文件（DATABASE_NAME 是配置里的路径，如 app/db/interview_system.db）。
+    # 连接数据库文件（DATABASE_NAME 在 config.py 里已用 __file__ 锚定为
+    # app/db/interview_system.db 的绝对路径，不随启动目录变化）。
     # 如果文件不存在，SQLite 会自动创建一个空的 .db 文件
     conn = sqlite3.connect(DATABASE_NAME)
     # row_factory = sqlite3.Row：设置「行工厂」。
@@ -58,17 +58,18 @@ def return_db(conn):
 def init_db():
     """初始化数据库（创建表结构）
 
-    程序启动时调用一次。不管数据库文件存不存在，都交给
-    create_personal_interview_system_db.py 处理（该脚本内部会
-    判断文件是否存在，然后建库建表或补齐缺失的字段/表）。
-    两个分支 import 同一个模块，是因为建表脚本里两种情况都覆盖了。
+    程序启动时由 server.py 调用一次。
+    【原理】import 一个模块时，Python 会把模块顶层的代码从头到尾执行一遍——
+    建表脚本正是利用这一点：import 它 = 执行建库建表 + 探测式补字段 + 插默认数据。
+    脚本内部用 IF NOT EXISTS / try-except 迁移保证重复执行也安全（幂等），
+    新建库和老库两种情况都覆盖，所以这里不需要先判断文件存不存在。
+
+    【import 路径】import 后面写「点分路径」= 文件在项目里的目录位置：
+    app/db/create_personal_interview_system_db.py → app.db.create_personal_interview_system_db
+    （文件从 app/ 搬到 app/db/ 后，老路径会 ModuleNotFoundError，
+    导致服务器启动直接退出——2026-09-29 修正）
     """
-    if not os.path.exists(DATABASE_NAME):
-        # 数据库不存在，创建新数据库
-        import app.create_personal_interview_system_db
-    else:
-        # 数据库已存在，更新表结构（比如以前没这个字段的表补上字段）
-        import app.create_personal_interview_system_db
+    import app.db.create_personal_interview_system_db
 
 def close_all_connections():
     """关闭所有数据库连接（程序退出时调用）"""

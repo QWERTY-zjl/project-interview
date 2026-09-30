@@ -25,8 +25,17 @@ DASHSCOPE_BASE_URL = os.getenv("DASHSCOPE_BASE_URL", "https://dashscope.aliyuncs
 # 出题用的文本模型（qwen-flash 为 DashScope 上最便宜的文本模型）
 LLM_MODEL = os.getenv("LLM_MODEL", "qwen-flash")
 
-# SQLite 数据库文件名
-DATABASE_NAME = "interview_system.db"
+# SQLite 数据库文件路径（变量名叫 NAME，实际存的是完整路径）
+# 【为什么要锚定】"interview_system.db" 这种裸文件名是相对路径，跟「进程启动目录」走：
+#   从仓库根启动 → 连 <仓库根>/interview_system.db，从别处启动 → 又是另一个文件。
+#   实际后果：服务器连到一个凭空生成的空库，所有查询报 no such table。
+# 【从里到外拆开读】
+#   __file__                  → 本文件 config.py 自己的路径（.../app/config/config.py）
+#   os.path.dirname(__file__) → 上一级目录（.../app/config）
+#   再套一层 dirname          → 再上一级（.../app）
+#   os.path.join(..., 'db', 'interview_system.db') → 拼出 .../app/db/interview_system.db
+# 和建表脚本的锚定方式一致：不管从哪个目录启动，连的都是同一个库文件
+DATABASE_NAME = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'db', 'interview_system.db')
 
 # 日志级别（默认 DEBUG）
 LOG_LEVEL = os.getenv("LOG_LEVEL", "DEBUG")
