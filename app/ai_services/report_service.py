@@ -29,7 +29,6 @@ import json        # 标准库：序列化报告存库 / 解析大模型返回�
 import re          # 标准库：正则剥掉模型返回里可能出现的 ```json 围栏
 import os          # 标准库：读环境变量 DASHSCOPE_API_KEY（.env 由启动脚本加载进环境）
 import requests    # 第三方 HTTP 库：调用大模型接口（server.py 等模块已在用，无新增依赖）
-from flask import jsonify  # Flask：把 Python 字典打包成 HTTP JSON 响应（带正确 Content-Type）
 from app.config.config import DASHSCOPE_API_KEY, DASHSCOPE_BASE_URL
 # ↑ 两个配置来自 app/config/config.py（从 .env 读取），与 question_service 完全一致：
 #   DASHSCOPE_API_KEY  -> 阿里云百炼平台 API 密钥（鉴权用，只存 .env，不入代码库）
@@ -112,15 +111,17 @@ def generate_interview_report(interview_id, candidate, position, questions, expr
         conn: 数据库连接对象。来源：同上，用于 commit 和归还连接池
 
     返回:
-        JSON响应: 成功时含 evaluation（前端视图）和 report（完整存档）；
+        (dict, 状态码) 元组: 成功时含 evaluation（前端视图）和 report（完整存档）；
                   大模型调用/解析失败时返回 500 错误
                   （与 question_service 的"失败兜底"不同，本函数失败直接报错，
                   因为报告没有"默认报告"可用，失败必须让调用方感知）
+                  注意：本函数只负责业务，不直接构造 HTTP 响应——
+                  (dict, code) 由调用方（FastAPI 路由层）打包成 JSONResponse
     """
     # 先检查密钥：没配置就不发请求，直接返回 500（省一次注定失败的调用）
     if not (os.getenv("DASHSCOPE_API_KEY") or DASHSCOPE_API_KEY):
         return_db(conn)
-        return jsonify({"error": "未配置DASHSCOPE_API_KEY"}), 500
+        return {"error": "未配置DASHSCOPE_API_KEY"}, 500
 
     # 检查是否有简历
     # resume_content 是简历文件的二进制（BLOB）；有无简历决定提示词里是否附加简历背景段落
@@ -249,7 +250,7 @@ JSON格式示例:
         # 网络错误、超时、HTTP 4xx/5xx 都会进这里
         print(f"[Report] 调用大模型失败: {e}")
         return_db(conn)# 失败也要归还数据库连接，否则连接池泄漏
-        return jsonify({"error": f"调用大模型失败: {str(e)}"}), 500
+        return {"error": f"调用大模型失败: {str(e)}"}, 500
         # ↑ 500：服务端错误，前端收到后会走本地默认评价兜底
 
     # 解析大模型响应（两步兜底：直接解析失败则剥围栏重试）
@@ -257,7 +258,7 @@ JSON格式示例:
     if not evaluation_result:
         print("[Report] 解析大模型响应失败")
         return_db(conn)
-        return jsonify({"error": "解析大模型响应失败"}), 500
+        return {"error": "解析大模型响应失败"}, 500
 
     # 与兜底结构浅合并：模型漏字段时补默认值，保证前端渲染不出现 undefined
     evaluation = {**_get_default_evaluation(), **evaluation_result}
@@ -282,9 +283,9 @@ JSON格式示例:
     conn.commit()# 提交事务：UPDATE 必须commit 才真正落盘
     return_db(conn)# 用完归还连接（关闭并移出连接池）
 
-    return jsonify({
+    return {
         "status": "success",
         "message": "面试报告生成成功",
         "evaluation": evaluation,# 前端报告页直接使用的评价字段
         "report": report_data# 完整存档（含逐题评价、环境信息、生成时间）
-    })
+    }, 200

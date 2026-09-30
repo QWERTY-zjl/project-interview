@@ -3,7 +3,8 @@
 """
 
 import logging
-from fastapi import Request, HTTPException
+import time
+from fastapi import Request, HTTPException, Body
 from fastapi.responses import JSONResponse, PlainTextResponse
 
 logger = logging.getLogger(__name__)
@@ -173,3 +174,103 @@ async def alipay_return(request: Request):
             status_code=500,
             content={"error": "处理支付结果失败"}
         )
+
+
+# ==================== 模拟支付确认API ====================
+# 以下 3 个接口从 server.py 平移（Flask→FastAPI），业务逻辑与响应格式保持一字不差
+
+async def mock_confirm_payment(order_no: str = Body(...)):
+    """
+    模拟支付确认（测试环境用：跳过支付宝，直接把订单标记为已支付）
+
+    请求参数 (JSON):
+        order_no: 订单号
+
+    返回:
+        {"status": "success", "message": "模拟支付成功"} 或错误信息
+    """
+    if not PAYMENT_ENABLED:
+        return JSONResponse(status_code=503, content={"error": "付费功能未启用"})
+
+    if not order_no:
+        return JSONResponse(status_code=400, content={"error": "缺少订单号"})
+
+    # 模拟支付确认
+    if mock_payment.confirm_payment(order_no):
+        # 更新订单状态
+        success, message = payment_module.update_order_payment(
+            order_no=order_no,
+            pay_method='mock',
+            pay_trade_no=f'MOCK{int(time.time())}'
+        )
+
+        if success:
+            return JSONResponse(status_code=200, content={"status": "success", "message": "模拟支付成功"})
+        else:
+            return JSONResponse(status_code=500, content={"error": message})
+    else:
+        return JSONResponse(status_code=404, content={"error": "订单不存在"})
+
+
+async def check_quota(user_id: int = Body(None), resource_type: str = Body('interview')):
+    """
+    检查用户是否有足够配额（创建面试前由前端调用）
+
+    请求参数 (JSON):
+        user_id: 用户ID
+        resource_type: 资源类型（默认 interview）
+
+    返回:
+        {"status": "success", "has_quota": bool, "quota_info": ..., "message": ...}
+    """
+    if not PAYMENT_ENABLED:
+        return JSONResponse(
+            status_code=200,
+            content={"status": "success", "has_quota": True, "message": "付费功能未启用，允许使用"}
+        )
+
+    if not user_id:
+        return JSONResponse(status_code=400, content={"error": "缺少用户ID"})
+
+    has_quota, quota_info = payment_module.check_quota(user_id, resource_type)
+
+    return JSONResponse(
+        status_code=200,
+        content={
+            "status": "success",
+            "has_quota": has_quota,
+            "quota_info": quota_info,
+            "message": "配额充足" if has_quota else "配额不足，请购买套餐"
+        }
+    )
+
+
+async def use_quota(user_id: int = Body(None), resource_type: str = Body('interview'),
+                    quantity: int = Body(1), resource_id: int = Body(None)):
+    """
+    使用配额（面试创建成功后扣减）
+
+    请求参数 (JSON):
+        user_id: 用户ID
+        resource_type: 资源类型（默认 interview）
+        quantity: 数量（默认 1）
+        resource_id: 关联资源ID（可选）
+
+    返回:
+        {"status": "success", "message": ...} 或 {"error": ...}
+    """
+    if not PAYMENT_ENABLED:
+        return JSONResponse(
+            status_code=200,
+            content={"status": "success", "message": "付费功能未启用"}
+        )
+
+    if not user_id:
+        return JSONResponse(status_code=400, content={"error": "缺少用户ID"})
+
+    success, message = payment_module.use_quota(user_id, resource_type, quantity, resource_id)
+
+    if success:
+        return JSONResponse(status_code=200, content={"status": "success", "message": message})
+    else:
+        return JSONResponse(status_code=400, content={"error": message})
