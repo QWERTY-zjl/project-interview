@@ -88,7 +88,7 @@
 
 ## 系统架构
 
-- **后端**：基于Python和Flask的RESTful API服务
+- **后端**：基于Python和FastAPI的RESTful API服务（uvicorn 启动，自带 /docs 接口文档）
 - **前端**：使用Vue.js 3和Bootstrap 5构建的响应式Web界面
 - **数据库**：使用SQLite进行数据存储
 - **AI模型**：集成阿里云百炼大语言模型（OpenAI 兼容接口），出题使用 qwen-flash 文本模型，面试报告使用 qwen-plus
@@ -139,8 +139,8 @@ project-interview/
 │   │   └── utils.py                      # 通用工具函数
 │   ├── temp/                             # 临时文件目录（简历解析时自动创建，用后自动清理）
 │   ├── logs/                             # 运行日志目录（server 启动后生成 app.log）
-│   ├── server.py                         # Flask Web服务器（核心API，主入口）
-│   ├── main.py                           # FastAPI版入口
+│   ├── server.py                         # 旧版 Flask 入口（已退役，仅作对照参考，不保证可运行）
+│   ├── main.py                           # FastAPI版入口（现役，uvicorn 启动，端口 10009）
 │   ├── payment_module.py                 # 支付功能模块
 │   ├── minimal_test.py / simple_test.py  # 简单测试脚本（开发调试用）
 │   └── alipay_module.py                  # 支付宝集成模块
@@ -336,21 +336,24 @@ python app\db\create_personal_interview_system_db.py
 
 ### 第五步：启动服务
 
-**仅需要启动1个服务（所有功能已集成到server.py）：**
+**仅需要启动1个服务（所有功能已集成到 main.py，FastAPI + uvicorn）：**
 
 ```bash
-python server.py
+app\venv\Scripts\python.exe -m app.main
 ```
+
+（或直接双击 start_server.bat）
 
 ### 第六步：访问系统
 
 启动成功后，打开浏览器访问：
 
-- **管理后台**：<http://localhost:10003/static/admin.html>
-- **登录界面**：<http://localhost:10003/static/login.html>
-- **注册界面**：<http://localhost:10003/static/register.html>
-- **套餐购买**：<http://localhost:10003/static/pricing.html>
-- **面试界面**：<http://localhost:10003/static/interview.html?token=xxx>
+- **管理后台**：<http://localhost:10009/static/admin.html>
+- **登录界面**：<http://localhost:10009/static/login.html>
+- **注册界面**：<http://localhost:10009/static/register.html>
+- **套餐购买**：<http://localhost:10009/static/pricing.html>
+- **面试界面**：<http://localhost:10009/static/interview.html?token=xxx>
+- **接口文档**：<http://localhost:10009/docs>（FastAPI 自带，可在线调试全部 API）
 
 ***
 
@@ -408,16 +411,16 @@ python app\db\create_personal_interview_system_db.py
 1. **启动Web服务器**
 
 ```bash
-python server.py
+app\venv\Scripts\python.exe -m app.main
 ```
 
 ### 访问地址
 
-- **管理后台**：<http://localhost:10003/static/admin.html>
-- **登录界面**：<http://localhost:10003/static/login.html>
-- **注册界面**：<http://localhost:10003/static/register.html>
-- **套餐购买**：<http://localhost:10003/static/pricing.html>
-- **面试界面**：<http://localhost:10003/static/interview.html?token=xxx>
+- **管理后台**：<http://localhost:10009/static/admin.html>
+- **登录界面**：<http://localhost:10009/static/login.html>
+- **注册界面**：<http://localhost:10009/static/register.html>
+- **套餐购买**：<http://localhost:10009/static/pricing.html>
+- **面试界面**：<http://localhost:10009/static/interview.html?token=xxx>
 
 ### 系统流程
 
@@ -465,10 +468,10 @@ python server.py
 
 | 文件名                                        | 功能描述                               |
 | ------------------------------------------ | ---------------------------------- |
-| server.py                                  | Flask Web服务器，提供RESTful API（包含所有功能） |
+| main.py                                    | FastAPI Web服务器，提供RESTful API（包含所有功能，现役入口） |
+| server.py                                  | 旧版 Flask 入口（已退役，仅作对照参考）             |
 | payment\_module.py                         | 支付功能模块，用户认证、配额管理、套餐管理、订单管理         |
 | alipay\_module.py                          | 支付宝集成模块，支持网页支付、扫码支付、订单查询、模拟支付      |
-| create\_interview\_system\_db.py           | 旧版建表脚本（仅保留）                        |
 | create\_personal\_interview\_system\_db.py | 建表脚本（权威来源：个人版7表+支付表，启动时自动执行）       |
 
 ## 核心模块说明
@@ -476,8 +479,8 @@ python server.py
 | 模块名      | 功能描述                               | 文件位置                                    |
 | -------- | ---------------------------------- | --------------------------------------- |
 | 岗位管理API  | 管理招聘岗位                             | app/api/position\_api.py                |
-| 候选人管理API | 管理候选人信息                            | app/api/candidate\_api.py               |
 | 面试管理API  | 管理面试流程                             | app/api/interview\_api.py               |
+| 面试报告API  | 生成面试评估报告                           | app/api/report\_api.py                  |
 | 数据库连接管理  | 管理数据库连接                            | app/db/db.py                            |
 | 数据库连接池   | 提高数据库操作性能                          | app/db/db\_pool.py                      |
 | 表情分析服务   | 分析面试者表情                            | app/ai\_services/expression\_service.py |
@@ -543,7 +546,7 @@ python server.py
 
 | 类别      | 技术                                   |
 | ------- | ------------------------------------ |
-| Web框架   | Flask                                |
+| Web框架   | FastAPI + uvicorn（2026-09 从 Flask 迁移） |
 | 前端框架    | Vue.js 3                             |
 | UI组件    | Bootstrap 5                          |
 | AI模型    | 阿里云百炼 qwen-flash（出题）/ qwen-plus（报告）  |

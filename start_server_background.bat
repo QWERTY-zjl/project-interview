@@ -1,10 +1,10 @@
 @echo off
 
-REM 设置环境变量
-set DASHSCOPE_API_KEY=sk-cde6f62f2d4b41eaa98943b4f69fb19f
+REM 后台静默启动服务器（FastAPI 版）
+REM API key 从项目根目录 .env 读取（config.py 的 load_dotenv 自动加载），勿在此硬编码
 
-REM 启动服务器
-start "Interview Server" python -m app.server
+REM 启动服务器（使用项目内置 venv）
+start "Interview Server" /d "%~dp0" app\venv\Scripts\python.exe -m app.main
 
 REM 等待服务器启动
 timeout /t 5 /nobreak

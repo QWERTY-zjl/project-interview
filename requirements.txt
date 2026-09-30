@@ -4,11 +4,11 @@ openai==1.75.0
 pypdf==6.16.2
 Jinja2==3.1.6
 weasyprint==65.1
-Flask==3.1.0
-flask-cors==5.0.1
 FastAPI==0.110.0
 uvicorn==0.29.0
 python-dotenv==1.1.0
 torch==2.10.0
 alibabacloud-facebody20191230>=4.0.8
 alibabacloud-tea-openapi>=0.3.8
+# 注：2026-09-30 Web 层已从 Flask 迁移到 FastAPI，Flask/flask-cors 不再是运行时依赖。
+# 旧版 Flask 入口 app/server.py 仅作参考代码保留，如需运行它请手动安装：pip install Flask flask-cors

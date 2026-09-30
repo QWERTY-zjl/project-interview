@@ -1,6 +1,19 @@
 """
-智能招聘面试模拟系统 - 主服务器模块
-=====================================
+智能招聘面试模拟系统 - 旧版 Flask 主服务器（已退役，仅供参考）
+================================================================
+【2026-09-30 退役说明】Web 层已整体迁移到 FastAPI，新入口为 app/main.py
+（uvicorn 启动，命令 python -m app.main，端口仍为 10009）。
+
+本文件不再作为运行入口，也不保证可运行：
+- 岗位管理路由挂载的 app/api/position_api.py 已改为 FastAPI 实现，Flask 挂载会失效
+- 依赖的 app/ai_services/report_service.py 已去 Flask 化（返回 dict 而非 jsonify）
+- 运行时依赖 requirements.txt 已移除 Flask/flask-cors
+
+保留价值：所有接口的"行为基准"原文都在这里，迁移后的 FastAPI 实现逐接口对照过；
+学习时可对照阅读同一接口的两种框架写法。确需运行旧版：
+pip install Flask flask-cors 后 git checkout 到迁移前的提交。
+
+原文件说明：
 本文件包含Flask Web服务器的核心功能：
 - 岗位、候选人、面试管理API
 - 语音识别（ASR）和语音合成（TTS）

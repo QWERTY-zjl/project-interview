@@ -1,30 +1,17 @@
 @echo off
 
-REM 启动个人用户版面试模拟系统服务器
-cd /d "%~dp0\app"
+REM 启动个人用户版面试模拟系统服务器（FastAPI 版，使用项目内置 venv）
+cd /d "%~dp0"
 
-REM 检查Python是否安装
-python --version >nul 2>&1
-if %errorlevel% neq 0 (
-    echo Python 未安装，请先安装 Python 3.7 或更高版本
+REM 检查虚拟环境是否存在
+if not exist app\venv\Scripts\python.exe (
+    echo 未找到项目虚拟环境 app\venv，请先按 README 完成环境搭建
     pause
     exit /b 1
 )
 
-REM 检查依赖是否安装
-pip list | findstr "Flask" >nul 2>&1
-if %errorlevel% neq 0 (
-    echo 正在安装依赖...
-    pip install -r requirements.txt
-    if %errorlevel% neq 0 (
-        echo 依赖安装失败，请检查网络连接
-        pause
-        exit /b 1
-    )
-)
-
-REM 启动服务器
+REM 启动服务器（API key 从项目根目录 .env 读取，勿在此硬编码）
 echo 启动个人用户版面试模拟系统服务器...
-python server.py
+app\venv\Scripts\python.exe -m app.main
 
 pause

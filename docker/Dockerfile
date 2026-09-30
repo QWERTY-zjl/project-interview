@@ -33,6 +33,6 @@ COPY app/ ./app/
 # EXPOSE：声明容器监听的端口（文档性声明，不生效；真正对外映射由 compose 的 ports 决定）
 EXPOSE 10009
 
-# CMD：容器启动时执行的命令 = 本机 start_server.bat 里的 python -m app.server
-# Flask 自带服务器且 host=0.0.0.0，nginx 容器才能通过服务名 app 访问到它
-CMD ["python", "-m", "app.server"]
+# CMD：容器启动时执行的命令 = 本机 start_server.bat 里的 python -m app.main
+# uvicorn 启动 FastAPI 应用且 host=0.0.0.0，nginx 容器才能通过服务名 app 访问到它
+CMD ["python", "-m", "app.main"]
