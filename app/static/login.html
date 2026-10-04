@@ -4,22 +4,28 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>登录 - AI面试系统</title>
+  <!-- 引入 Bootstrap 样式库：提供 form-control、btn 等现成 CSS 类（.min.css = 压缩版，体积小加载快） -->
   <link href="css/bootstrap.min.css" rel="stylesheet">
+  <!-- 引入本地 JS 库（无 npm 构建架构：直接用 <script> 引文件，浏览器全局可用） -->
+  <!-- Vue 本体：负责"数据变 → 页面自动变"的响应式框架 -->
   <script src="js/vue.global.prod.js"></script>
+  <!-- SweetAlert2：颜值更高的弹窗库（替代浏览器原生的 alert） -->
   <script src="js/sweetalert2.js"></script>
   <style>
+    /* ===== 页面整体背景 ===== */
     body {
-      background: #0f172a;
+      background: #0f172a;                     /* 深蓝黑底色（十六进制颜色） */
       background-image: 
-        linear-gradient(rgba(30, 41, 59, 0.1) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(30, 41, 59, 0.1) 1px, transparent 1px);
-      background-size: 20px 20px;
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: #e2e8f0;
+        linear-gradient(rgba(30, 41, 59, 0.1) 1px, transparent 1px),   /* 横向细线 */
+        linear-gradient(90deg, rgba(30, 41, 59, 0.1) 1px, transparent 1px);  /* 纵向细线 → 两层叠加成网格 */
+      background-size: 20px 20px;              /* 网格格子大小 20px */
+      min-height: 100vh;                       /* vh = 视口高度单位，100vh = 铺满整屏 */
+      display: flex;                           /* 弹性布局：让子元素可以居中 */
+      align-items: center;                     /* 垂直居中 */
+      justify-content: center;                 /* 水平居中 → 登录卡片屏幕正中 */
+      color: #e2e8f0;                          /* 全局文字颜色（浅灰白） */
     }
+    /* ===== 登录卡片本体 ===== */
     .login-container {
       background: rgba(15, 23, 42, 0.8);
       backdrop-filter: blur(10px);
@@ -30,6 +36,7 @@
       width: 100%;
       max-width: 400px;
     }
+    /* ===== 卡片内部：标题区 / 输入框 / 登录按钮 ===== */
     .login-header {
       text-align: center;
       margin-bottom: 30px;
@@ -42,6 +49,7 @@
     .login-header p {
       color: #94a3b8;
     }
+    /* 输入框样式（覆盖 Bootstrap 默认的 .form-control 外观） */
     .form-control {
       padding: 12px;
       border-radius: 8px;
@@ -49,11 +57,13 @@
       border: 1px solid rgba(59, 130, 246, 0.3);
       color: #e2e8f0;
     }
+    /* :focus 伪类 = 输入框被点击、正在输入时的状态（高亮边框+外发光） */
     .form-control:focus {
       background: rgba(30, 41, 59, 0.8);
       border-color: #3b82f6;
       box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
     }
+    /* 登录按钮：linear-gradient 做蓝紫渐变底色 */
     .btn-login {
       width: 100%;
       padding: 12px;
@@ -63,13 +73,15 @@
       color: white;
       font-size: 16px;
       font-weight: 500;
-      cursor: pointer;
-      transition: all 0.3s ease;
+      cursor: pointer;               /* 鼠标悬停时变成小手（表示可点击） */
+      transition: all 0.3s ease;     /* 样式变化用 0.3 秒平滑过渡（hover 效果不生硬） */
     }
+    /* :hover 伪类 = 鼠标悬停在按钮上时的状态（变深 + 轻微上浮） */
     .btn-login:hover {
       background: linear-gradient(135deg, #2563eb 0%, #4f46e5 100%);
       transform: translateY(-1px);
     }
+    /* ===== 底部链接区（注册 / 查看价格）与免费徽章 ===== */
     .register-link {
       text-align: center;
       margin-top: 20px;
@@ -102,20 +114,26 @@
   </style>
 </head>
 <body>
+  <!-- id="app"：Vue 的"挂载点"。下面 script 里 .mount('#app') 会接管这个 div，
+       从此 div 内部的 v-model / @click / v-if 等 Vue 指令全部生效（div 外的不归 Vue 管） -->
   <div id="app">
     <div class="login-container">
       <div class="login-header">
         <h2>🔐 用户登录</h2>
-        <p class="text-muted">登录您的AI面试系统账号</p>
+        <p class="text-muted">登录您的AI面试系统账号</p>  <!-- text-muted = Bootstrap 的弱化灰字样式 -->
         <span class="free-badge">🎁 新用户免费体验3次面试</span>
       </div>
 
+      <!-- @submit.prevent = Vue 语法：监听表单"提交"事件，.prevent 表示
+           阻止浏览器默认行为（默认会整页刷新跳转），改由 JS 全权处理 -->
       <form @submit.prevent="handleLogin">
-        <div class="mb-3">
+        <div class="mb-3">  <!-- mb-3 = Bootstrap 的 margin-bottom 第3档间距 -->
           <label class="form-label">用户名或邮箱</label>
-          <input 
-            type="text" 
-            class="form-control" 
+          <!-- v-model：双向绑定，打字实时存入 JS 变量 form.username；
+               required：HTML 原生属性，不填就提交时浏览器自动拦截提示 -->
+          <input
+            type="text"
+            class="form-control"
             v-model="form.username"
             placeholder="请输入用户名或邮箱"
             required
@@ -124,15 +142,18 @@
 
         <div class="mb-3">
           <label class="form-label">密码</label>
-          <input 
-            type="password" 
-            class="form-control" 
+          <!-- type="password"：输入显示为圆点，不明文 -->
+          <input
+            type="password"
+            class="form-control"
             v-model="form.password"
             placeholder="请输入密码"
             required
           >
         </div>
 
+        <!-- :disabled（v-bind 缩写）：按钮禁用状态由 loading 变量决定——请求期间防重复点击；
+             v-if / v-else：二选一渲染，loading 为真显示"登录中..."，否则显示"登录" -->
         <button type="submit" class="btn btn-login" :disabled="loading">
           <span v-if="loading">登录中...</span>
           <span v-else>登录</span>
@@ -147,38 +168,57 @@
   </div>
 
   <script>
+    // ================= 登录页逻辑（Vue 选项式写法）=================
+    // ★ 教学对照：本页用 Vue 的"选项式 API"（data() / methods / this.xxx），
+    //   而 interview.html 用的是"组合式 API"（setup() / ref() / .value）。
+    //   两套写法能力相同：选项式更像"填表格"（把数据填进 data、函数填进 methods），
+    //   组合式更像"写普通函数"。老项目常用选项式，新项目推荐组合式。
+    // 本页流程：提交表单 → POST /api/auth/login → 成功则把用户信息存入 localStorage → 跳 admin.html
+
+    // 解构赋值：从 Vue 全局对象里取出 createApp 这一项
+    // （等价于 Python 的 from Vue import createApp；interview.html 直接写 Vue.createApp 效果相同）
     const { createApp } = Vue;
 
     createApp({
+      // data()：选项式的"变量仓库"——这里 return 的所有数据，模板里直接用、methods 里用 this. 访问
       data() {
         return {
+          // 三目表达式选 baseURL：本机开发(localhost/127.0.0.1)连本地端口，线上连正式域名
           baseURL: (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
             ? 'http://localhost:10008/'   // dev
             : 'https://www.en9.cn/', // prd
+          // 嵌套对象：两个输入框的内容通过 v-model="form.username" 实时存到这里
           form: {
             username: '',
             password: ''
           },
-          loading: false
+          loading: false   // 请求进行中标志：控制按钮禁用和"登录中..."文字
         };
       },
+      // methods：选项式的"函数仓库"——模板里 @submit.prevent="handleLogin" 调的就是它
       methods: {
         async handleLogin() {
-          this.loading = true;
+          this.loading = true;   // this = 当前 Vue 实例；选项式里 this.loading 等价于组合式的 loading.value
 
           try {
+            // fetch：浏览器原生的 HTTP 请求函数（axios 是封装过的第三方库，fetch 免安装）
+            // JSON.stringify：把 JS 对象变成 JSON 字符串（Python 的 json.dumps）
             const response = await fetch(`${this.baseURL}/api/auth/login`, {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(this.form)
+              headers: { 'Content-Type': 'application/json' },   // 告诉后端：请求体是 JSON 格式
+              body: JSON.stringify(this.form)                    // 请求体：用户名+密码打包成 JSON
             });
 
+            // response.json()：把响应体解析成 JS 对象（Python 的 response.json()），也是异步要 await
             const data = await response.json();
 
             if (data.status === 'success') {
-              // 保存用户信息到localStorage
+              // localStorage：浏览器自带的本地键值存储（关浏览器也不丢，按"域名"隔离）
+              // 登录凭证存这里，其他页面（如 admin.html）可取出判断"是否已登录"
+              // JSON.stringify 再存：localStorage 只能存字符串，对象必须先转成字符串
               localStorage.setItem('currentUser', JSON.stringify(data.user));
-              
+
+              // Swal.fire：SweetAlert2 弹窗（比原生 alert 美观）；timer=1500 → 1.5 秒后自动关闭
               Swal.fire({
                 title: '登录成功！',
                 text: '欢迎回来，' + data.user.username,
@@ -186,20 +226,25 @@
                 timer: 1500,
                 showConfirmButton: false
               }).then(() => {
-                // 跳转到管理页面或套餐页面
+                // .then(回调)：弹窗关闭后"回头"执行——跳转到管理页
+                // window.location.href = 网址 → 让浏览器整页跳转（相当于在地址栏输网址回车）
                 window.location.href = 'admin.html';
               });
             } else {
+              // 登录失败：弹出错误框，data.error 是后端返回的错误信息，|| 取不到时用默认文案
               Swal.fire('登录失败', data.error || '用户名或密码错误', 'error');
             }
           } catch (error) {
-            console.error('登录错误:', error);
-            Swal.fire('错误', '登录过程中发生错误', 'error');
+            // 网络不通、服务器没启动等异常都会落到这里
+            console.error('登录错误:', error);   // 只打印在 F12 控制台，用户看不见
+            Swal.fire('错误', '登录过程中发生错误', 'error');   // 用户可见的弹窗
           } finally {
+            // finally = 无论成功失败都执行：关掉 loading，按钮恢复可点
             this.loading = false;
           }
         }
       }
+      // .mount('#app')：把上面这套数据+方法挂载到 <div id="app">，Vue 从此接管该区域
     }).mount('#app');
   </script>
 </body>

@@ -7,7 +7,7 @@
 - **智能面试问题生成**：基于候选人简历和岗位要求，自动生成针对性面试问题
 - **在线语音面试**：候选人可通过网页进行语音回答，系统自动录音
 - **自动面试评估**：系统自动分析面试表现，生成详细的面试评估报告
-- **完整招聘管理**：支持岗位管理、候选人管理和面试流程管理
+- **模拟面试流程**：上传简历、生成面试问题、在线作答到评估报告的完整闭环
 - **定时自动处理**：定期检查并处理待生成的面试问题和面试报告
 - **多样化面试官风格**：提供6种不同风格的虚拟面试官，适应不同岗位和面试场景
 - **智能语音合成**：集成阿里云cosyvoice-v3-flash大模型，支持语音预生成，提升用户体验
@@ -111,12 +111,10 @@ project-interview/
 │   │   └── speech_service.py             # 语音处理服务
 │   ├── api/                              # API层
 │   │   ├── auth_api.py                   # 用户认证API
-│   │   ├── candidate_api.py              # 候选人管理API
 │   │   ├── expression_api.py             # 表情分析API
 │   │   ├── interview_api.py              # 面试管理API
 │   │   ├── order_api.py                  # 订单管理API
 │   │   ├── payment_api.py                # 支付回调API
-│   │   ├── position_api.py               # 岗位管理API
 │   │   ├── pricing_api.py                # 套餐定价API
 │   │   ├── resume_api.py                 # 简历上传API
 │   │   └── tts_api.py                    # 语音合成API
@@ -276,7 +274,7 @@ erDiagram
 
 1. **时间字段统一存 Unix 时间戳**（`INTEGER`，默认 `strftime('%s','now')`），不是日期字符串
 2. **外键默认不强制**：建表语句虽声明了 `FOREIGN KEY`，但 SQLite 需要连接时执行 `PRAGMA foreign_keys = ON` 才会真正校验
-3. 支付相关表（`user_quotas`、`pricing_plans`、`orders` 等 6 张）定义已并入 `create_personal_interview_system_db.py`，程序启动时由 `init_db()` 自动创建，并含 `users` 表的 `phone/user_type/status` 迁移补列；旧版脚本的 `positions`、`candidates` 表不在当前数据库中，仅脚本保留
+3. 支付相关表（`user_quotas`、`pricing_plans`、`orders` 等 6 张）定义已并入 `create_personal_interview_system_db.py`，程序启动时由 `init_db()` 自动创建，并含 `users` 表的 `phone/user_type/status` 迁移补列；旧版企业版的 `positions`、`candidates` 表已彻底清理（数据库无表、代码无引用）
 4. 查看/管理数据库可使用 DB Browser for SQLite 或 Navicat Premium（连接类型选择 SQLite → 现有数据库文件）
 
 ## 面试状态流转

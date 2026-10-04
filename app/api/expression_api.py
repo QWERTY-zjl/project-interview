@@ -6,7 +6,7 @@ import base64
 import json
 import logging
 import time
-from fastapi import Path, UploadFile, File, Body, HTTPException
+from fastapi import APIRouter, Path, UploadFile, File, Body, HTTPException
 from fastapi.responses import JSONResponse
 
 from app.ai_services.expression_service import analyze_face_expression
@@ -14,22 +14,25 @@ from app.db.db import get_db, return_db
 
 logger = logging.getLogger(__name__)
 
+# 表情分析路由：本文件所有表情接口共用
+router = APIRouter(tags=["表情分析"])
 
+
+@router.post("/api/expression/recognize", summary="识别表情")
 async def recognize_expression_api(
     image: UploadFile = File(None),
     image_url: str = Body(None),
     image_base64: str = Body(None)
 ):
-    """
-    识别表情
-    
-    参数:
-        image: 图片文件
-        image_url: 图片URL
+    """识别图片中的表情（不存库）
+
+    Args:
+        image: 上传的图片文件
+        image_url: 图片URL（暂不支持）
         image_base64: 图片base64编码
-    
-    返回:
-        表情分析结果
+
+    Returns:
+        JSONResponse: {"success": True, "expression": 表情, "expression_cn": 表情中文名, "confidence": 置信度, "emotion_status": 情绪状态, ...}
     """
     try:
         if image:
@@ -110,21 +113,21 @@ async def recognize_expression_api(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.post("/api/expression/analyze", summary="分析表情")
 async def analyze_expression_api(
     image: UploadFile = File(None),
     image_url: str = Body(None),
     image_base64: str = Body(None)
 ):
-    """
-    分析表情
-    
-    参数:
-        image: 图片文件
-        image_url: 图片URL
+    """分析图片中的表情（不存库）
+
+    Args:
+        image: 上传的图片文件
+        image_url: 图片URL（暂不支持）
         image_base64: 图片base64编码
-    
-    返回:
-        表情分析结果
+
+    Returns:
+        JSONResponse: {"success": True, "expression": 表情, "expression_cn": 表情中文名, "confidence": 置信度, "emotion_status": 情绪状态, ...}
     """
     try:
         if image:
@@ -205,6 +208,7 @@ async def analyze_expression_api(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.post("/api/interview/{token}/expression", summary="保存面试表情")
 async def save_interview_expression(
     token: str = Path(...),
     image: UploadFile = File(None),
@@ -217,23 +221,22 @@ async def save_interview_expression(
     final_score: float = Body(0),
     suggestions: list = Body([])
 ):
-    """
-    保存面试表情记录
-    
-    参数:
-        token: 面试token
-        image: 图片文件
-        image_base64: 图片base64编码
-        expression: 表情
-        expression_cn: 表情中文
-        emotion_status: 情绪状态
+    """保存面试表情记录（识别或直接接收前端表情数据后入库）
+
+    Args:
+        token: 面试token（路径参数）
+        image: 上传的图片文件（可选，传入则现场识别）
+        image_base64: 图片base64编码（可选）
+        expression: 表情名（可选，前端直接传入）
+        expression_cn: 表情中文名
+        emotion_status: 情绪状态（积极/中性/消极）
         emotion_score: 情绪得分
         quality_score: 质量得分
         final_score: 最终得分
-        suggestions: 建议
-    
-    返回:
-        保存结果
+        suggestions: 改进建议列表
+
+    Returns:
+        JSONResponse: {"success": True, "expression": 表情, "expression_cn": 表情中文名, ...}，记录写入 interview_expression_records 表
     """
     try:
         conn = get_db()
@@ -368,15 +371,15 @@ async def save_interview_expression(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.get("/api/interview/{token}/expression_report", summary="获取表情报告")
 async def get_expression_report(token: str = Path(...)):
-    """
-    获取表情分析报告
-    
-    参数:
-        token: 面试token
-    
-    返回:
-        表情分析报告
+    """获取面试表情分析报告
+
+    Args:
+        token: 面试token（路径参数）
+
+    Returns:
+        JSONResponse: {"success": True, "total_records": 记录数, "summary": 平均分与表情分布统计, "top_suggestions": 高频建议, "records": 表情记录明细}
     """
     try:
         conn = get_db()

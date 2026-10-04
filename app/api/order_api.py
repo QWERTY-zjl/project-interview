@@ -3,10 +3,13 @@
 """
 
 import logging
-from fastapi import Path, Body, Query, HTTPException
+from fastapi import APIRouter, Path, Body, Query, HTTPException
 from fastapi.responses import JSONResponse
 
 logger = logging.getLogger(__name__)
+
+# 订单路由：本文件所有订单接口共用
+router = APIRouter(tags=["订单"])
 
 # 导入付费模块
 PAYMENT_ENABLED = False
@@ -48,16 +51,16 @@ def init_alipay():
 init_alipay()
 
 
+@router.post("/api/orders/create", summary="创建订单")
 async def api_create_order(user_id: int = Body(...), plan_id: int = Body(...)):
-    """
-    创建订单
-    
-    参数:
+    """创建订单
+
+    Args:
         user_id: 用户ID
         plan_id: 套餐ID
-    
-    返回:
-        创建结果
+
+    Returns:
+        JSONResponse: {"status": "success", "message": 提示信息, "order": 订单信息}
     """
     if not PAYMENT_ENABLED:
         return JSONResponse(
@@ -85,15 +88,15 @@ async def api_create_order(user_id: int = Body(...), plan_id: int = Body(...)):
         )
 
 
+@router.post("/api/orders/pay", summary="支付订单")
 async def api_pay_order(order_no: str = Body(...)):
-    """
-    支付订单 - 创建支付宝支付
-    
-    参数:
+    """支付订单，返回支付宝支付链接（未启用支付宝时走模拟支付）
+
+    Args:
         order_no: 订单号
-    
-    返回:
-        支付结果
+
+    Returns:
+        JSONResponse: {"status": "success", "payment_url": 支付链接, "order_no": 订单号, "mock": 是否模拟支付}
     """
     if not PAYMENT_ENABLED:
         return JSONResponse(
@@ -153,15 +156,15 @@ async def api_pay_order(order_no: str = Body(...)):
         )
 
 
+@router.get("/api/orders/{order_no}/status", summary="查询订单状态")
 async def api_check_order_status(order_no: str = Path(...)):
-    """
-    查询订单支付状态
-    
-    参数:
-        order_no: 订单号
-    
-    返回:
-        订单状态
+    """查询订单支付状态
+
+    Args:
+        order_no: 订单号（路径参数）
+
+    Returns:
+        JSONResponse: {"status": "success", "order": {"order_no": 订单号, "pay_status": 支付状态, "pay_status_text": 状态文本, "amount": 金额, "plan_name": 套餐名}}
     """
     if not PAYMENT_ENABLED:
         return JSONResponse(
@@ -191,16 +194,16 @@ async def api_check_order_status(order_no: str = Path(...)):
     )
 
 
+@router.get("/api/orders/user/{user_id}", summary="查询用户订单")
 async def api_get_user_orders(user_id: int = Path(...), limit: int = Query(10)):
-    """
-    获取用户订单列表
-    
-    参数:
-        user_id: 用户ID
-        limit: 限制数量
-    
-    返回:
-        订单列表
+    """查询用户订单列表
+
+    Args:
+        user_id: 用户ID（路径参数）
+        limit: 返回条数上限（默认 10）
+
+    Returns:
+        JSONResponse: {"status": "success", "orders": 订单列表}
     """
     if not PAYMENT_ENABLED:
         return JSONResponse(

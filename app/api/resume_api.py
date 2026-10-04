@@ -5,7 +5,7 @@
 import json
 import logging
 import time
-from fastapi import UploadFile, File, Form, HTTPException, Request
+from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Request
 from fastapi.responses import JSONResponse
 
 from app.utils.utils import generate_token
@@ -15,23 +15,26 @@ from app.db.db import get_db, return_db
 
 logger = logging.getLogger(__name__)
 
+# 简历路由：本文件所有简历接口共用
+router = APIRouter(tags=["简历"])
 
+
+@router.post("/api/resume/upload", summary="上传简历并分析")
 async def upload_resume(
     request: Request,
     resume: UploadFile = File(...),
     work_experience: str = Form(...),
     target_position: str = Form(...)
 ):
-    """
-    上传简历并分析
-    
-    参数:
-        resume: 上传的简历文件
-        work_experience: 工作经验
-        target_position: 目标岗位
-    
-    返回:
-        面试ID和token
+    """上传简历并分析，返回面试token
+
+    Args:
+        resume: 上传的简历文件（PDF/PPT）
+        work_experience: 工作经验年限
+        target_position: 目标岗位名称
+
+    Returns:
+        JSONResponse: {"status": "success", "token": "面试令牌", "interview_id": 面试ID}
     """
     logger.info("[Resume] 开始处理上传简历请求")
     

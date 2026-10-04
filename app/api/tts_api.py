@@ -3,12 +3,15 @@
 """
 
 import logging
-from fastapi import Body, HTTPException
+from fastapi import APIRouter, Body, HTTPException
 from fastapi.responses import JSONResponse
 
 from app.ai_services.speech_service import synthesize_speech
 
 logger = logging.getLogger(__name__)
+
+# 语音合成路由：本文件所有TTS接口共用
+router = APIRouter(tags=["语音合成"])
 
 # cosyvoice-v3-flash 支持的音色列表
 # 参考: https://help.aliyun.com/zh/model-studio/multimodal-timbre-list
@@ -46,12 +49,12 @@ INTERVIEWER_VOICES = {
 }
 
 
+@router.get("/api/tts/voices", summary="获取音色列表")
 async def get_tts_voices():
-    """
-    获取TTS音色列表
-    
-    返回:
-        音色列表
+    """获取可用面试官音色列表
+
+    Returns:
+        JSONResponse: {"voices": [{"id": 音色ID, "name": 音色名称, "description": 音色描述}]}
     """
     voices = []
     for key, config in INTERVIEWER_VOICES.items():
@@ -66,16 +69,16 @@ async def get_tts_voices():
     )
 
 
+@router.post("/api/tts/synthesize", summary="合成语音")
 async def synthesize_tts(text: str = Body(...), voice_type: str = Body("professional_male")):
-    """
-    语音合成
-    
-    参数:
+    """合成语音并返回 base64 音频
+
+    Args:
         text: 要合成的文本
-        voice_type: 语音类型
-    
-    返回:
-        合成的语音数据
+        voice_type: 音色类型（默认 professional_male）
+
+    Returns:
+        JSONResponse: {"status": "success", "audio": base64音频, "format": "mp3"}；模型额度不足时返回 use_browser_tts=True 提示前端改用浏览器合成
     """
     if not text:
         raise HTTPException(status_code=400, detail="文本不能为空")

@@ -3,12 +3,16 @@
 """
 
 import logging
-from fastapi import Path, Query, HTTPException
+import time
+from fastapi import APIRouter, Path, Query, HTTPException
 from fastapi.responses import JSONResponse
 
 logger = logging.getLogger(__name__)
 
-# 导入付费模块
+# 套餐定价路由：本文件所有套餐接口共用
+router = APIRouter(tags=["套餐定价"])
+
+# 付费功能总开关：默认 False（关闭）。payment_module 加载成功时在下方改为 True
 PAYMENT_ENABLED = False
 try:
     import payment_module
@@ -18,15 +22,15 @@ except ImportError as e:
     logger.warning(f"[WARNING] 付费功能模块加载失败: {e}")
 
 
+@router.get("/api/pricing/plans", summary="获取套餐列表")
 async def api_get_plans(plan_type: str = Query(None)):
-    """
-    获取套餐列表
-    
-    参数:
-        plan_type: 套餐类型
-    
-    返回:
-        套餐列表
+    """获取套餐列表
+
+    Args:
+        plan_type: 套餐类型（可选，按类型筛选）
+
+    Returns:
+        JSONResponse: {"status": "success", "plans": 套餐列表}
     """
     if not PAYMENT_ENABLED:
         return JSONResponse(
@@ -37,19 +41,21 @@ async def api_get_plans(plan_type: str = Query(None)):
     plans = payment_module.get_pricing_plans(plan_type=plan_type)
     return JSONResponse(
         status_code=200,
-        content={"status": "success", "plans": plans}
+        content={"status": "success",
+                  "plans": plans,
+                  "server_time": int(time.time())},
     )
 
 
+@router.get("/api/pricing/plans/{plan_id}", summary="获取套餐详情")
 async def api_get_plan_detail(plan_id: int = Path(...)):
-    """
-    获取套餐详情
-    
-    参数:
-        plan_id: 套餐ID
-    
-    返回:
-        套餐详情
+    """获取套餐详情
+
+    Args:
+        plan_id: 套餐ID（路径参数）
+
+    Returns:
+        JSONResponse: {"status": "success", "plan": 套餐详情}
     """
     if not PAYMENT_ENABLED:
         return JSONResponse(

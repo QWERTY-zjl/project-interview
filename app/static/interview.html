@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- 本文件仅供学习参考，禁止商用。这是一个"AI 模拟面试"单页应用：HTML 结构 + CSS 样式 + JavaScript 逻辑全部写在这一个文件里 -->
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
@@ -6,13 +7,21 @@
     <title>Web语音面试系统</title>
     <!-- Bootstrap CSS -->
     <link href="css/bootstrap.min.css" rel="stylesheet">
+    <!-- ============ 引入三个本地库文件（本项目没有 npm/打包工具，直接用 <script> 标签引库）============ -->
+    <!-- Vue 3：前端框架，负责把 JS 里的数据自动渲染到 HTML 上（整个页面的"引擎"） -->
     <!-- Vue 3 -->
     <script src="js/vue.global.prod.js"></script>
+    <!-- Axios：发 HTTP 请求的库，作用类似 Python 的 requests，专门用来和后端 API 通信 -->
     <!-- Axios for HTTP requests -->
     <script src="js/axios.min.js"></script>
+    <!-- SweetAlert2：替代浏览器原生 alert 的精美弹窗库（"确认跳过"、"AI辅助提示"等用它实现） -->
     <!-- SweetAlert2 -->
     <script src="js/sweetalert2.js"></script>
     <style>
+        /* <style> 标签内是 CSS（层叠样式表），负责页面"外观"：颜色、布局、动画。
+           基本语法固定为 "选择器 { 属性: 值; }"——选择器指定"改谁"（.类名 / 标签名），花括号里是"改成什么样"。
+           类比 Python：选择器像函数名，属性块像函数体，浏览器按名字找到元素后逐条套用。 */
+        /* ===== 第 1 部分：全局基础样式（body 背景、默认字体、页面容器）===== */
         /* 全局样式 */
         * {
             margin: 0;
@@ -38,6 +47,7 @@
             margin: 0 auto;
         }
         
+        /* ===== 第 2 部分：顶部导航栏（毛玻璃半透明背景 + 链接悬停动画）===== */
         /* 顶部导航栏 */
         .navbar {
             background: rgba(15, 23, 42, 0.9) !important;
@@ -99,6 +109,7 @@
             letter-spacing: 0;
         }
         
+        /* ===== 第 3 部分：状态信息栏（面试进度 / 剩余时间 / 网络状态 / 录音状态 四个小项）===== */
         /* 状态信息栏 */
         .status-bar {
             display: flex;
@@ -129,6 +140,7 @@
             color: #e2e8f0;
         }
         
+        /* ===== 第 4 部分：页面主布局（grid 两栏：左 350px 固定 + 右侧自适应，间距 24px）===== */
         /* 主要内容区域 */
         .main-content {
             display: grid;
@@ -144,6 +156,7 @@
             gap: 24px;
         }
         
+        /* ===== 第 5 部分：摄像头区（视频画面容器 + 未开启时的虚线遮罩层）===== */
         /* 摄像头容器 */
         .camera-section {
             background: rgba(15, 23, 42, 0.8);
@@ -246,6 +259,7 @@
             color: #94a3b8;
         }
         
+        /* ===== 第 6 部分：表情分析面板（表情/情绪/语言表达/综合评分，进度条按分数染色）===== */
         /* 表情分析面板 */
         .expression-section {
             background: rgba(15, 23, 42, 0.8);
@@ -346,6 +360,7 @@
             gap: 24px;
         }
         
+        /* ===== 第 7 部分：AI 面试官卡片与问题展示区（头像、在线状态灯、朗读开关、答题提示）===== */
         /* AI面试官面板 */
         .ai-interviewer-section {
             background: rgba(15, 23, 42, 0.8);
@@ -568,6 +583,7 @@
             line-height: 1.5;
         }
         
+        /* ===== 第 8 部分：答题区（语音/打字模式切换、录音按钮、输入框、操作按钮、进度条）===== */
         /* 答案输入面板 */
         .answer-section {
             background: rgba(15, 23, 42, 0.8);
@@ -789,6 +805,7 @@
             transition: width 0.3s ease;
         }
         
+        /* ===== 第 9 部分：全屏加载动画与错误提示条 ===== */
         /* 加载状态 */
         .loading-overlay {
             position: fixed;
@@ -849,6 +866,7 @@
             color: #fca5a5;
         }
         
+        /* ===== 第 10 部分：面试评分报告卡片（总分圆环、分项得分、技能条、优势与建议）===== */
         /* 面试完成提示 */
         .completed-section {
             margin-top: 20px;
@@ -1135,6 +1153,7 @@
             line-height: 1.5;
         }
         
+        /* ===== 第 11 部分：响应式设计（@media 媒体查询：屏幕宽度 ≤768px 时改成单列，答题区排到上面）===== */
         /* 响应式设计 */
         @media (max-width: 768px) {
             .main-content {
@@ -1152,6 +1171,8 @@
     </style>
 </head>
 <body>
+    <!-- id="app"：Vue 应用的"挂载点"——文件末尾的 createApp(...).mount('#app') 会接管这个 div 内部的显示。
+         下面所有 {{ }}、v-if 等模板语法都由 Vue 处理：JS 里数据一变，页面自动跟着变。 -->
     <div id="app" class="container">
         <!-- 顶部导航栏 -->
         <nav class="navbar navbar-expand-lg">
@@ -1165,6 +1186,12 @@
             </div>
         </nav>
         
+        <!-- 状态信息栏：显示面试进度、录音状态等（时间/网络两项是写死的演示数据）。
+             {{ }} 是 Vue 的"插值表达式"：把 JS 表达式的结果填进 HTML，类似 Python 的 f"{表达式}"。
+             例：{{ currentQuestionIndex + 1 }}/{{ totalQuestions }} 会实时显示"第几题/共几题"。
+             :class 是"动态类名绑定"（v-bind:class 的缩写）：引号里是 JS 表达式，算出什么字符串就当什么 class。
+             下面用了三目运算符 条件 ? 值A : 值B（等价 Python 的 值A if 条件 else 值B），
+             实现"录音中变红、已就绪变绿"。 -->
         <!-- 状态信息栏 -->
         <div class="status-bar">
             <div class="status-item">
@@ -1187,6 +1214,9 @@
             </div>
         </div>
         
+        <!-- 错误提示条：v-if="error" 表示"error 变量非空才渲染这个区块"，类似 Python 的 if 判断；
+             条件不成立时整个区块从页面里消失（不是隐藏，是压根不生成）。
+             @click 是"点击事件绑定"（v-on:click 的缩写）：按钮被点一下就执行引号里的函数，类似按钮的回调。 -->
         <!-- 错误提示 -->
         <div v-if="error" class="error-message">
             <div class="error-icon">
@@ -1198,6 +1228,8 @@
             </div>
         </div>
 
+        <!-- 面试尚未开始提示：interviewStatus === 0 时显示（状态码含义见 JS 变量区的注释），
+             && 表示"两个条件都为真"（等价 Python 的 and）。 -->
         <!-- 状态提示 -->
         <div v-if="!error && interviewStatus === 0" class="card text-center interview-container">
             <div class="card-body">
@@ -1209,6 +1241,11 @@
             </div>
         </div>
 
+        <!-- 欢迎页：状态为 1 或 2 且还没开始面试时显示。
+             v-model 是"双向绑定"：下拉框选中的值和 JS 变量 selectedVoice 自动同步，改哪边另一边都跟着变。
+             v-for 是"循环渲染"：把 availableVoices 数组的每一项各生成一个 <option>（类似 Python 的 for voice in list）。
+             :key / :value 里的冒号是 v-bind 缩写：把引号内容当 JS 表达式求值后绑给 HTML 属性，
+             不加冒号则只是普通字符串；:key 帮 Vue 高效识别每一项。 -->
         <!-- 初始提示框 - 只有当状态为1或2时才显示 -->
         <div v-if="!error && !isInterviewStarted && (interviewStatus === 1 || interviewStatus === 2)" class="card text-center interview-container">
             <div class="card-body">
@@ -1231,6 +1268,9 @@
             </div>
         </div>
 
+        <!-- 评分报告页：状态 ≥3（面试已完成）时显示，内容全部来自 interviewEvaluation 大对象。
+             v-if="interviewEvaluation.isLoading" 先显示加载动画；v-else 表示"否则"——
+             二者互斥必显示其一，类似 Python 的 if/else。报告加载完成后自动切换到 v-else 的内容。 -->
         <!-- 面试已完成提示 -->
         <div v-if="!error  && (interviewStatus >= 3) " class="completed-section">
             <div class="completed-card">
@@ -1289,7 +1329,10 @@
                             </div>
                             <div class="skills-right">
                                 <div class="skills-title">各项评分详情</div>
-                                <div v-for="skill in interviewEvaluation.detailedScores" :key="skill.name" class="skill-item">
+                                <!-- v-for 循环渲染每项技能；:style 动态绑定行内样式，
+                                         把分数百分比拼成进度条宽度（width: 85% + '%'），
+                                         数据一变进度条自动伸缩——这就是 Vue"响应式"的好处 -->
+                                    <div v-for="skill in interviewEvaluation.detailedScores" :key="skill.name" class="skill-item">
                                     <div class="skill-name">{{ skill.name }}</div>
                                     <div class="skill-bar">
                                         <div class="skill-progress" :style="{ width: skill.percentage + '%' }"></div>
@@ -1335,10 +1378,14 @@
             </div>
         </div>
 
+        <!-- 面试主界面：开始面试后（isInterviewStarted 为真且未结束）显示，左侧摄像头+右侧答题的两栏布局 -->
         <!-- 面试界面 -->
         <div v-if="isInterviewStarted && !isFinished" class="main-content">
             <!-- 左侧面板 -->
             <div class="left-panel">
+                <!-- 摄像头区：两个按钮用 v-if / v-else 互斥显示（未开启显示"启用"，开启后显示"停止"）。
+                     <video> 标签上的 ref="cameraVideo" 是 Vue 的"引用"：在 JS 里通过 this 拿到这个真实标签，
+                     类似 document.getElementById，用来把摄像头画面接到标签上。 -->
                 <!-- 摄像头区域 -->
                 <div class="camera-section">
                     <div class="camera-title">
@@ -1373,6 +1420,9 @@
                     </div>
                 </div>
                 
+                <!-- 表情分析：实时显示后端识别的表情与评分。
+                     {{ expressionData.expression_cn || '检测中...' }} 里的 || 是"或"（等价 Python 的 or），
+                     左边取不到值时用右边的兜底文案，避免页面出现空白/undefined。 -->
                 <!-- 表情分析面板 -->
                 <div class="expression-section">
                     <div class="expression-title">表情分析</div>
@@ -1426,6 +1476,10 @@
                     </div>
                 </div>
                 
+                <!-- 问题面板：显示当前题目。currentQuestion?.text 里的 ?. 是"可选链"——
+                     currentQuestion 为 null 时整个表达式直接返回 undefined 而不是报错（类似 Python 的 getattr(obj, 'text', None)），
+                     再配合 || 给出"加载问题中..."的兜底文案。
+                     中间的开关用 v-model 绑定 voiceReadingEnabled，@change 在拨动时触发朗读开关函数。 -->
                 <!-- 问题面板 -->
                 <div class="question-section">
                     <div class="question-header">
@@ -1455,6 +1509,9 @@
                     </div>
                 </div>
                 
+                <!-- 答题面板：顶部两个按钮切换语音/打字模式。
+                     :class="answerMode === 'voice' ? 'active' : ''" 用三目表达式给当前模式加高亮；
+                     @click="answerMode = 'voice'" 展示了事件绑定也能直接写一句赋值，不必调函数。 -->
                 <!-- 答案输入面板 -->
                 <div class="answer-section">
                     <div class="answer-header">
@@ -1469,6 +1526,9 @@
                         </div>
                     </div>
                     
+                    <!-- 语音作答区：v-if 判断在"开始录音"和"停止录音"两个按钮间切换（同一时刻只显示一个）；
+                         :disabled="loading" 表示加载中禁用按钮，防止重复点击；
+                         {{ formatTime(recordingTime) }} 调用 JS 函数把秒数格式化成 00:35 的样子实时显示。 -->
                     <!-- 语音答题区域 -->
                     <div v-if="answerMode === 'voice'" class="voice-answer-area">
                         <div class="voice-answer-hint">
@@ -1490,6 +1550,8 @@
                         </div>
                     </div>
                     
+                    <!-- 打字作答区：textarea 用 v-model 与 textAnswer 双向绑定（输入→变量、变量→输入框都自动同步）；
+                         {{ textAnswer?.length || 0 }} 借助可选链和 || 兜底，实时统计已输入字数 -->
                     <!-- 打字答题区域 -->
                     <div v-if="answerMode === 'text'" class="text-answer-area">
                         <textarea 
@@ -1507,6 +1569,9 @@
                         </div>
                     </div>
                     
+                    <!-- 操作按钮区：跳过/AI辅助/提交三个按钮。
+                         提交按钮的 :disabled 逻辑："加载中"或"打字模式且答案为空"时不可点；
+                         里面的 && 是"并且"（等价 Python 的 and），! 是"取反"，?.trim() 去掉首尾空格后判断是否为空。 -->
                     <!-- 控制按钮区域 -->
                     <div class="control-section">
                         <button class="control-btn secondary" @click="skipQuestion">
@@ -1539,6 +1604,8 @@
             </div>
         </div>
         
+        <!-- 全屏加载遮罩：loading 为 true 时盖住整个页面，显示 loadingMessage 文案，
+             既告知用户"正在忙什么"，也防止等待期间误点其他按钮 -->
         <!-- 加载状态 -->
         <div v-if="loading" class="loading-overlay">
             <div class="loading-content">
@@ -1549,35 +1616,60 @@
     </div>
 
     <script>
+        // ============ JS 逻辑区开始 ============
+        // 下面是整个页面的 JavaScript 代码。解构赋值：从 Vue 这个大对象里"一次掏出"四个工具，
+        // 类似 Python 的 from vue import createApp, ref, computed, onMounted
         const { createApp, ref, computed, onMounted } = Vue;
 
+        // ============ Vue 应用入口 ============
+        // 三件套：① createApp({...}) 创建一个 Vue 应用实例；② setup() 里集中定义本页所有数据和函数；
+        //        ③ 文件末尾 .mount('#app') 把它挂到上面 <div id="app"> 上，页面从此"活"起来。
+        // setup() 是 Vue 3 的写法：把它想成 main() 函数，返回值决定了模板里能用哪些东西。
         createApp({
             setup() {
-                const isInterviewStarted = ref(false);
-                const isFinished = ref(false);
-                const currentQuestion = ref(null);
-                const currentQuestionIndex = ref(0);
-                const totalQuestions = ref(10);
-                const isRecording = ref(false);
-                const textAnswer = ref('');
-                const answerMode = ref('voice');
-                const mediaRecorder = ref(null);
-                const loading = ref(false);
-                const loadingMessage = ref('');
-                const error = ref('');
-                const recordingTime = ref(0);
-                const timerInterval = ref(null);
+                // ---------- 页面主流程状态变量 ----------
+                // ref(...) 是 Vue 3 创建"响应式变量"的方式：值一变，页面里用到它的地方自动刷新。
+                // 注意：在 JS 里读写它的值必须加 .value（"开盒"取真正的值），
+                //      但在模板 {{ }} 里直接写变量名即可，Vue 自动开盒。
+                // 类比 Python：相当于一个带监控的盒子，装着一个普通值。
+                const isInterviewStarted = ref(false); // 面试是否已开始（true 后模板切到面试界面）
+                const isFinished = ref(false); // 全部题目答完标记
+                const currentQuestion = ref(null); // 当前题目对象，形如 {id: 1, text: '...'}，类似 Python 字典
+                const currentQuestionIndex = ref(0); // 当前是第几题（从 0 数起）
+                const totalQuestions = ref(10); // 题目总数，稍后会被后端返回值覆盖
+                // ---------- 答题与录音相关变量 ----------
+                const isRecording = ref(false); // 是否正在录音（按钮、状态栏都依赖它切换显示）
+                const textAnswer = ref(''); // 答案文本（打字输入 / 语音识别结果都存这里）
+                const answerMode = ref('voice'); // 作答模式：'voice' 语音 或 'text' 打字
+                const mediaRecorder = ref(null); // 浏览器录音器对象（历史方案预留，现版本未真正使用）
+                const loading = ref(false); // 是否显示全屏加载遮罩
+                const loadingMessage = ref(''); // 加载遮罩上的提示文字
+                const error = ref(''); // 错误提示文字，非空时页面顶部显示红色错误条
+                const recordingTime = ref(0); // 录音已持续秒数
+                const timerInterval = ref(null); // 计时器编号（关掉计时器时要用）
+                // baseURL：后端服务器地址，根据"当前页面从哪打开"自动二选一。
+                // 语法点 1：三目运算符 条件 ? 值A : 值B，等价 Python 的 值A if 条件 else 值B。
+                // 语法点 2：window.location 是浏览器提供的"当前网址信息"对象：
+                //          hostname 是域名（localhost / 127.0.0.1 都表示本机开发），
+                //          protocol 是协议（'file:' 表示直接双击 html 文件打开）。
+                // 命中任一条件用本地测试服务器，否则用线上正式服务器。
                 const baseURL =  (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.protocol === 'file:')
                 ? 'http://127.0.0.1:10009/'   // dev
                 : 'https://www.en9.cn/'; // prd
                 
+                // 面试状态码：0=未开始，1=题目已备好，2=面试进行中，3=已完成。
+                // 模板靠它决定显示"欢迎页/面试界面/评分报告"哪个区块。
                 const interviewStatus = ref(1);
-                const voiceReadingEnabled = ref(true);
-                const selectedVoice = ref('professional_male');
-                const availableVoices = ref([]);
-                const isPlayingAudio = ref(false);
-                const currentAudioPlayer = ref(null);
+                // ---------- 语音朗读相关变量 ----------
+                const voiceReadingEnabled = ref(true); // 是否自动朗读题目（对应问题面板上的开关）
+                const selectedVoice = ref('professional_male'); // 选中的面试官音色
+                const availableVoices = ref([]); // 可选音色列表（从后端拉取）
+                const isPlayingAudio = ref(false); // 当前是否有音频在播放（控制小喇叭图标）
+                const currentAudioPlayer = ref(null); // 当前正在用的 <audio> 播放器对象，用于随时叫停
                 
+                // ---------- 评价报告数据 ----------
+                // 这里预置了一份"假数据"（前端术语叫 mock 数据）：接口没做好或请求失败时，
+                // 报告页也能显示完整示例而不至于白屏。generateInterviewEvaluation 会用后端返回覆盖它。
                 // 面试评价数据
                 const interviewEvaluation = ref({
                     averageScore: 76,
@@ -1612,12 +1704,20 @@
                     isLoading: false
                 });
                 
+                // ============ 函数：getTokenFromUrl（从网址里取出 token）============
+                // 作用：解析当前页面地址，提取 ?token=xxx 中的 token 值
+                // 输入：无（自己读 window.location.href）；输出：token 字符串，没有则 null
+                // 调用时机：下一行定义 token 变量时立即执行一次
+                // 语法点：const fn = () => {} 是"箭头函数"，相当于 Python 的 def fn():（简化写法）；
+                //        new URL(...) 把网址字符串解析成对象；url.searchParams 是 ? 后面的查询参数，
+                //        .get('token') 像用字典按 key 取 value，取不到返回 null（Python 的 None）。
                 // 从URL获取token并验证
                 //url 形如 /interview.html?token=1234567890
                 const getTokenFromUrl = () => {
                     const url = new URL(window.location.href);
                     return url.searchParams.get('token');
                 };
+                // 调用上面的函数，把取到的 token 存进响应式变量（本页所有请求都要带它标识"哪场面试"）
                 const token = ref(getTokenFromUrl());
 
                 // 创建新面试
@@ -1626,6 +1726,12 @@
                 // 创建新面试
 
 
+                // ============ 函数：validateToken（校验 URL 里的 token 是否有效）============
+                // 作用：拿 token 去后端查一次面试信息，无效就自动创建新面试
+                // 输入：无；输出：无（副作用：error 变量、创建新面试）
+                // 调用时机：本版本里 onMounted 内联了同样的校验逻辑，此函数保留备用
+                // 语法点：async/await —— await 会"暂停"本函数直到后端返回（类似 time.sleep，但不卡界面）；
+                //        try/catch 捕获异常，等价 Python 的 try/except；请求失败会抛异常走进 catch。
                 // 验证token是否有效，如果无效则创建新面试
                 const validateToken = async () => {
                     console.log('开始验证token:', token.value);
@@ -1657,6 +1763,7 @@
                     }
                 };
 
+                // 面试信息（时间、岗位、候选人等），初始为空，由 fetchInterviewInfo 从后端拉取后填充
                 // 面试信息
                 const interviewInfo = ref({
                     time: '',
@@ -1668,12 +1775,21 @@
 
 
                 // 计算进度百分比
+                // computed(...) 是"计算属性"：类似 Python 的 @property——依赖的值（第几题/总题数）
+                // 一变它自动重算，模板里直接当变量用（不用加 .value）。
+                // Math.round 是四舍五入取整。
                 const progressPercentage = computed(() => {
                      return Math.round((   (currentQuestionIndex.value + 1) / totalQuestions.value) * 100);
                 });
 
            
 
+                // ============ 函数：createNewInterview（让后端创建一场新面试）============
+                // 作用：POST 请求后端，生成新面试并返回新 token
+                // 输入：无；输出：成功返回新 token 字符串，失败返回 null
+                // 调用时机：URL 没有 token / token 校验失败 / 获取面试信息失败时
+                // 语法点：axios.post(网址, {对象}) 发 POST 请求，第二个参数会转成 JSON 发给后端，
+                //        类似 Python 的 requests.post(url, json={...})；response.data 是后端返回的内容。
                 // 创建新面试
                 const createNewInterview = async () => {
                     try {
@@ -1701,6 +1817,10 @@
                     }
                 };
 
+                // ============ onMounted：页面加载完成后的自动入口 ============
+                // onMounted 是 Vue 的"生命周期钩子"：DOM 渲染完成后自动执行一次。
+                // 心智上对应 Python 的 if __name__ == "__main__"——程序从这里开始跑。
+                // 流程：校验 token → 无效则跳转后端接口换新 token → 拉面试信息与音色列表 → 状态允许时自动开始面试。
                 // 页面加载时获取面试信息
                 onMounted(async () => {
                     console.log('页面加载开始...');
@@ -1724,6 +1844,7 @@
                         if (!tokenValid) {
                             console.log('创建新面试...');
                             // 直接重定向到创建面试的API，然后重定向回面试页面
+                            // 让浏览器整页跳转到该网址（后端会创建新面试，并带着新 token 重定向回本页面）
                             window.location.href = `${baseURL}api/interview/create_and_redirect`;
                             return;
                         }
@@ -1737,6 +1858,7 @@
                             console.log('fetchAvailableVoices 调用成功');
                             // 自动开始面试
                             console.log('interviewStatus.value:', interviewStatus.value);
+                            // 状态 1（题目已备好）或 2（进行中）时自动开始面试，无需用户再点按钮
                             if (interviewStatus.value === 1 || interviewStatus.value === 2) {
                                 console.log('调用 startInterview...');
                                 startInterview();
@@ -1754,6 +1876,12 @@
                     }
                 });
 
+                // ============ 函数：fetchAvailableVoices（拉取可选的"面试官音色"列表）============
+                // 作用：GET 请求后端 /api/tts/voices，把音色数组存入 availableVoices
+                // 输入：无；输出：无（写入 availableVoices）
+                // 调用时机：onMounted 页面加载时
+                // 语法点：response.data.voices || [] —— || 等价 Python 的 or，
+                //        左边取不到（undefined/null）就用右边的空数组兜底。
                 // 获取可用音色列表
                 const fetchAvailableVoices = async () => {
                     try {
@@ -1761,7 +1889,7 @@
                         availableVoices.value = response.data.voices || [];
                     } catch (err) {
                         console.error('获取音色列表失败:', err);
-                        // 后端服务器不可用时，使用模拟数据
+                        // 后端服务器不可用时，使用模拟数据（写死的四个音色，保证下拉框有东西可选）
                         availableVoices.value = [
                             { id: 'zh-CN-YunxiNeural', name: '云溪' },
                             { id: 'zh-CN-YunxiaNeural', name: '云夏' },
@@ -1773,6 +1901,12 @@
 
 
 
+                // ============ 函数：fetchInterviewInfo（获取本场面试的详细信息）============
+                // 作用：GET 后端 /api/interview/{token}/info，填充面试信息、状态码、朗读开关、题目总数等
+                // 输入：无（内部用 token）；输出：无（写入多个响应式变量）
+                // 调用时机：onMounted 中 token 有效后；失败时内部还会重建面试并重试一次
+                // 语法点：finally 块无论成功失败都会执行（等价 Python 的 finally），
+                //        适合放"无论如何都要做"的收尾——这里是关掉加载遮罩。
                 const fetchInterviewInfo = async () => {
                     loading.value = true;
                     loadingMessage.value = '获取面试信息...';
@@ -1785,7 +1919,9 @@
                         }
                         
                         // 设置语音朗读状态（默认开启）
+                        // !== undefined / !== null：双重确认"后端确实返回了这个字段"（!== 类似 Python 的 !=）
                         if (response.data.voice_reading !== undefined && response.data.voice_reading !== null) {
+                            // Boolean(...)：强制转成 true/false，兼容后端返回 1/0 的情况
                             voiceReadingEnabled.value = Boolean(response.data.voice_reading);
                         } else {
                             voiceReadingEnabled.value = true;
@@ -1796,6 +1932,7 @@
                             selectedVoice.value = response.data.voice_type;
                         }
                         
+                        // 状态 3 表示面试已完成：标记结束并触发"生成评价报告"
                         if (interviewStatus.value === 3) {
                             isFinished.value = true;
                             // 生成面试评价
@@ -1814,6 +1951,8 @@
                         console.error('错误堆栈:', err.stack);
                         // 尝试创建新面试
                         console.log('尝试创建新面试...');
+                        // (async () => {...})() 叫"立即执行函数"（IIFE）：定义完马上运行。
+                        // 为什么要包一层？因为 await 只能写在 async 函数里，而 catch 块本身是同步代码。
                         (async () => {
                             try {
                                 const success = await createNewInterview();
@@ -1827,6 +1966,7 @@
                                 console.error('调用 createNewInterview 失败:', err);
                             }
                         })();
+                        // 下面这份 mock 数据与真实接口返回结构一致，保证页面每个字段都有值可显示
                         // 后端服务器不可用时，使用模拟数据
                         interviewInfo.value = {
                             id: 'mock-interview-id',
@@ -1851,6 +1991,12 @@
                     }
                 };
                 
+                // ============ 函数：stopCurrentAudio（叫停正在播放的音频）============
+                // 作用：暂停 <audio> 播放器 + 取消浏览器自带朗读，复位播放状态
+                // 输入：无；输出：无
+                // 调用时机：取新题、提交答案、切换朗读开关时——防止两段声音叠在一起
+                // 语法点：currentAudioPlayer.value 存的是 <audio> 对象：pause() 暂停、
+                //        currentTime = 0 把进度拨回开头；speechSynthesis.cancel() 关掉浏览器朗读。
                 // 停止当前音频播放
                 const stopCurrentAudio = () => {
                     if (currentAudioPlayer.value) {
@@ -1868,6 +2014,11 @@
 
             
 
+                // ============ 函数：toggleVoiceReading（开关"自动朗读题目"）============
+                // 作用：把开关状态 POST 给后端记住；若开启则立刻把当前题目读一遍
+                // 输入：无（读 voiceReadingEnabled 最新值）；输出：无
+                // 调用时机：模板里开关的 @change 事件（用户拨动开关瞬间）
+                // 语法点：第二个 axios.post 参数 { enabled: ... } 会作为 JSON 请求体发送。
                 // 切换语音朗读状态
                 const toggleVoiceReading = async () => {
                     try {
@@ -1887,6 +2038,12 @@
                     }
                 };
 
+                // ============ 函数：startInterview（正式开始面试）============
+                // 作用：保存所选音色 → 让后端生成题目 → 切换到面试界面 → 拉第一道题
+                // 输入：无；输出：无
+                // 调用时机：欢迎页"开始面试"按钮 @click，以及 onMounted 里自动开始
+                // 语法点：三个 try/catch 各包一步，任何一步后端挂掉都只打日志继续走
+                //        （降级思想：前端尽量自己扛，不让用户卡死）。
                 // 开始面试
                 const startInterview = async () => {
                     console.log('开始面试');
@@ -1914,6 +2071,7 @@
                     }
                     
                     // 只有当状态为1(试题已备好)或2(面试进行中)时才允许开始面试
+                    // isInterviewStarted 置 true 后，模板里的 v-if 立刻切换显示"面试主界面"
                     if (interviewStatus.value === 1 || interviewStatus.value === 2) {
                         isInterviewStarted.value = true;
                         try {
@@ -1927,6 +2085,14 @@
                     }
                 };
 
+                // ============ 函数：fetchQuestion（拉取当前题目——核心函数）============
+                // 作用：GET 后端 /get_question，题目写入 currentQuestion 并触发语音朗读；
+                //       后端返回 id=0 表示"没有更多题"，此时结束面试并生成评价
+                // 输入：无；输出：无
+                // 调用时机：startInterview 首题、submitTextAnswer 答完下一题、skipQuestion 跳过
+                // 语法点：axios.get 的第二个参数 { params: {...} } 会拼成查询字符串
+                //        ?current_id=xxx，类似 Python 的 requests.get(url, params={...})；
+                //        三目 currentQuestion.value ? ... : 0 表示"有当前题就传它的 id，没有传 0"。
                 // 获取面试问题
                 const fetchQuestion = async () => {
                     console.log('开始获取面试问题...');
@@ -1943,6 +2109,7 @@
                         });
                         console.log('API响应:', response.data);
                         
+                        // 后端约定：返回 id 为 0 就是"题问完了"，面试进入完成状态
                         if (response.data.id === 0) {
                             console.log('面试完成，没有更多问题');
                             isFinished.value = true;
@@ -1954,6 +2121,7 @@
                             currentQuestion.value = response.data;
                             if (voiceReadingEnabled.value) {
                                 // 优先使用预生成的语音
+                                // && 表示"且"：后端说有预生成音频、且确实带了数据，两个条件都成立才走这个分支
                                 if (response.data.use_pre_generated && response.data.audio) {
                                     console.log('使用预生成的语音');
                                     playPreGeneratedAudio(response.data.audio);
@@ -2004,6 +2172,9 @@
                             let nextQuestion = null;
                             if (currentQuestion.value) {
                                 const currentId = currentQuestion.value.id;
+                                // find(条件)：返回数组里第一个满足条件的元素，找不到返回 undefined；
+                                // 箭头函数 q => q.id > currentId 是筛选条件。类似 Python 的
+                                // next((q for q in mockQuestions if q.id > currentId), None)
                                 nextQuestion = mockQuestions.find(q => q.id > currentId) || null;
                             } else {
                                 // 如果currentQuestion为null，获取第一个问题
@@ -2018,6 +2189,7 @@
                                 console.log('使用模拟问题:', nextQuestion.text);
                                 currentQuestion.value = nextQuestion;
                                 // 更新currentQuestionIndex
+                                // findIndex(条件)：返回满足条件的元素下标（找不到是 -1），用来同步"第几题"的进度显示
                                 currentQuestionIndex.value = mockQuestions.findIndex(q => q.id === nextQuestion.id);
                                 if (voiceReadingEnabled.value) {
                                     readQuestionAloud(currentQuestion.value.text);
@@ -2037,12 +2209,19 @@
                     }
                 };
                 
+                // ============ 函数：playPreGeneratedAudio（播放后端提前生成好的题目音频）============
+                // 作用：把后端返回的 base64 mp3 解码、转成可播放对象并播出（TTS 降级链第 1 级）
+                // 输入：audioBase64 —— base64 编码的音频字符串；输出：无
+                // 调用时机：fetchQuestion 发现后端附带预生成音频时
+                // 语法点：核心套路是"解码 → 装进 ArrayBuffer 内存 → 转成 Blob'文件'
+                //        → URL.createObjectURL 生成临时网址 → new Audio(网址).play() 播放"。
                 // 播放预生成的音频
                 const playPreGeneratedAudio = (audioBase64) => {
                     try {
                         isPlayingAudio.value = true;
                         console.log('播放预生成音频');
                         
+                        // atob()：把 base64 字符串解码成二进制文本（base64 编码的逆操作）
                         const audioData = atob(audioBase64);
                         const arrayBuffer = new ArrayBuffer(audioData.length);
                         const view = new Uint8Array(arrayBuffer);
@@ -2055,6 +2234,8 @@
                         const audio = new Audio(audioUrl);
                         currentAudioPlayer.value = audio;
                         
+                        // onended：音频播完自动触发的"回调函数"（类似 Python 传入的 on_finished 回调）；
+                        // 回调里复位播放状态，并用 revokeObjectURL 释放临时网址，防止内存泄漏
                         audio.onended = () => {
                             console.log('预生成音频播放结束');
                             isPlayingAudio.value = false;
@@ -2062,6 +2243,7 @@
                             URL.revokeObjectURL(audioUrl);
                         };
                         
+                        // onerror：播放出错自动触发 → 降级改用实时合成朗读，保证用户仍能听到题目
                         audio.onerror = (e) => {
                             console.error('预生成音频播放错误:', e);
                             isPlayingAudio.value = false;
@@ -2081,6 +2263,16 @@
                     }
                 };
 
+                // ============ TTS 语音合成"三级降级链"总览 ============
+                // 朗读题目按优先级依次尝试，前一级失败自动退到下一级，保证总能听到声音：
+                //   第 1 级 playPreGeneratedAudio    —— 播后端提前生成好的音频（最快最稳）
+                //   第 2 级 fallbackToServerTTS      —— 实时请求后端大模型合成音频
+                //   第 3 级 useBrowserSpeechSynthesis —— 浏览器自带朗读（零网络依赖，音质一般）
+                // readQuestionAloud 是这条链的调度入口：先走第 2 级，失败再退第 3 级（第 1 级由 fetchQuestion 直接调用）。
+                // ============ 函数：readQuestionAloud（朗读题目，降级链调度入口）============
+                // 输入：text —— 要读的题目文字；输出：无
+                // 调用时机：拿到新题且朗读开关打开、或预生成音频播放失败时
+                // 语法点：await fallbackToServerTTS(text) 会等它返回 true/false，据此决定是否再降级。
                 // 使用语音朗读问题
                 const readQuestionAloud = async (text) => {
                     console.log('开始语音朗读...');
@@ -2115,6 +2307,11 @@
                     }
                 };
                 
+                // ============ 函数：fallbackToServerTTS（请求后端大模型实时合成语音）============
+                // 作用：POST /api/tts/synthesize 拿合成音频并播放（降级链第 2 级）
+                // 输入：text 题目文字；输出：true 表示合成播放成功（false 时调用方会再降级）
+                // 调用时机：readQuestionAloud 中
+                // 语法点：整个函数被 try/catch 包住——网络失败会抛异常进 catch，catch 里再降级到浏览器合成。
                 // 服务器TTS方案：使用大模型TTS
                 const fallbackToServerTTS = async (text) => {
                     console.log('开始使用服务器大模型TTS...');
@@ -2131,6 +2328,7 @@
                         
                         if (response.data.status === 'success') {
                             if (response.data.use_browser_tts) {
+                                // 后端可以"建议"前端改用浏览器合成（比如服务器繁忙时）；return 会把结果(true/false)透传给调用方
                                 // 服务器建议使用浏览器内置语音合成
                                 console.log('服务器建议使用浏览器内置语音合成:', response.data.message);
                                 return useBrowserSpeechSynthesis(text);

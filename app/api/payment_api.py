@@ -4,10 +4,16 @@
 
 import logging
 import time
-from fastapi import Request, HTTPException, Body
+from fastapi import APIRouter, Request, HTTPException, Body
 from fastapi.responses import JSONResponse, PlainTextResponse
 
 logger = logging.getLogger(__name__)
+
+# 支付路由：支付宝回调与模拟支付
+router = APIRouter(tags=["支付"])
+
+# 配额路由：配额检查与扣减（与支付接口同文件，但属"配额"分组）
+quota_router = APIRouter(tags=["配额"])
 
 # 导入付费模块
 PAYMENT_ENABLED = False
@@ -50,15 +56,12 @@ def init_alipay():
 init_alipay()
 
 
+@router.post("/api/payment/alipay/notify", summary="支付宝异步通知")
 async def alipay_notify(request: Request):
-    """
-    支付宝异步通知
-    
-    参数:
-        request: 请求对象
-    
-    返回:
-        通知处理结果
+    """支付宝异步通知回调（验签后更新订单支付状态）
+
+    Returns:
+        PlainTextResponse: "success"（处理成功）或 "fail"
     """
     if not PAYMENT_ENABLED:
         return PlainTextResponse("success")
@@ -105,15 +108,12 @@ async def alipay_notify(request: Request):
         return PlainTextResponse("fail")
 
 
+@router.get("/api/payment/alipay/return", summary="支付宝同步返回")
 async def alipay_return(request: Request):
-    """
-    支付宝同步返回
-    
-    参数:
-        request: 请求对象
-    
-    返回:
-        同步返回结果
+    """支付宝支付完成后的同步跳转（验签后更新订单状态）
+
+    Returns:
+        JSONResponse: {"status": "success", "message": "支付成功", "order_no": 订单号} 或错误信息
     """
     if not PAYMENT_ENABLED:
         return JSONResponse(
@@ -179,15 +179,15 @@ async def alipay_return(request: Request):
 # ==================== 模拟支付确认API ====================
 # 以下 3 个接口从 server.py 平移（Flask→FastAPI），业务逻辑与响应格式保持一字不差
 
+@router.post("/api/payment/mock/confirm", summary="模拟支付确认")
 async def mock_confirm_payment(order_no: str = Body(...)):
-    """
-    模拟支付确认（测试环境用：跳过支付宝，直接把订单标记为已支付）
+    """模拟支付确认（测试环境用：跳过支付宝，直接把订单标记为已支付）
 
-    请求参数 (JSON):
+    Args:
         order_no: 订单号
 
-    返回:
-        {"status": "success", "message": "模拟支付成功"} 或错误信息
+    Returns:
+        JSONResponse: {"status": "success", "message": "模拟支付成功"} 或错误信息
     """
     if not PAYMENT_ENABLED:
         return JSONResponse(status_code=503, content={"error": "付费功能未启用"})
@@ -212,16 +212,16 @@ async def mock_confirm_payment(order_no: str = Body(...)):
         return JSONResponse(status_code=404, content={"error": "订单不存在"})
 
 
+@quota_router.post("/api/quota/check", summary="检查用户配额")
 async def check_quota(user_id: int = Body(None), resource_type: str = Body('interview')):
-    """
-    检查用户是否有足够配额（创建面试前由前端调用）
+    """检查用户配额是否充足（创建面试前由前端调用）
 
-    请求参数 (JSON):
+    Args:
         user_id: 用户ID
         resource_type: 资源类型（默认 interview）
 
-    返回:
-        {"status": "success", "has_quota": bool, "quota_info": ..., "message": ...}
+    Returns:
+        JSONResponse: {"status": "success", "has_quota": 是否充足, "quota_info": 配额信息, "message": 提示信息}
     """
     if not PAYMENT_ENABLED:
         return JSONResponse(
@@ -245,19 +245,19 @@ async def check_quota(user_id: int = Body(None), resource_type: str = Body('inte
     )
 
 
+@quota_router.post("/api/quota/use", summary="扣减用户配额")
 async def use_quota(user_id: int = Body(None), resource_type: str = Body('interview'),
                     quantity: int = Body(1), resource_id: int = Body(None)):
-    """
-    使用配额（面试创建成功后扣减）
+    """扣减用户配额（面试创建成功后调用）
 
-    请求参数 (JSON):
+    Args:
         user_id: 用户ID
         resource_type: 资源类型（默认 interview）
-        quantity: 数量（默认 1）
+        quantity: 扣减数量（默认 1）
         resource_id: 关联资源ID（可选）
 
-    返回:
-        {"status": "success", "message": ...} 或 {"error": ...}
+    Returns:
+        JSONResponse: {"status": "success", "message": 提示信息} 或 {"error": 错误信息}
     """
     if not PAYMENT_ENABLED:
         return JSONResponse(

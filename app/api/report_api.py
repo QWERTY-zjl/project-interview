@@ -9,26 +9,26 @@
 """
 
 import logging
-from fastapi import Body
+from fastapi import APIRouter, Body
 from fastapi.responses import JSONResponse
 
 from app.db.db import get_db, return_db
 
 logger = logging.getLogger(__name__)
 
+# 面试报告路由：本文件所有报告接口共用
+router = APIRouter(tags=["面试报告"])
 
+
+@router.post("/api/evaluation/generate", summary="生成面试评价报告")
 def generate_evaluation(token: str = Body(None)):
-    """
-    生成面试评价（面试收尾环节，前端答完全部问题后调用）
+    """生成面试评价报告（面试收尾环节，前端答完全部问题后调用）
 
-    【为什么是 def 不是 async def】报告要调大模型逐题评分，耗时数十秒。
-    FastAPI 对 def 同步函数自动放进线程池执行，不阻塞事件循环。
-
-    请求参数 (JSON):
+    Args:
         token: 面试token
 
-    返回:
-        {status: success, evaluation: 前端评价字段, report: 完整存档报告}
+    Returns:
+        JSONResponse: {"status": "success", "evaluation": 前端评价字段, "report": 完整存档报告}
     """
     conn = None
     try:
@@ -45,7 +45,7 @@ def generate_evaluation(token: str = Body(None)):
         cursor = conn.cursor()
 
         # 查面试记录
-        cursor.execute("SELECT id, candidate_id FROM interviews WHERE token = ?", (token,))
+        cursor.execute("SELECT id FROM interviews WHERE token = ?", (token,))
         interview = cursor.fetchone()
 
         if not interview:
@@ -57,26 +57,11 @@ def generate_evaluation(token: str = Body(None)):
 
         interview_id = interview['id']
 
-        # 联查候选人与岗位（position 名称用于评估提示词）
-        # 注：candidates/positions 是早期企业版遗留表，个人版建表脚本不创建它们，
-        # 但现役库文件里仍有残留数据，此查询逻辑与 server.py 现役实现保持一致
-        cursor.execute('''
-            SELECT c.name, c.resume_content, p.name AS position_name
-            FROM candidates c
-            JOIN positions p ON c.position_id = p.id
-            WHERE c.id = ?
-        ''', (interview['candidate_id'],))
-        crow = cursor.fetchone()
-
-        if not crow:
-            return_db(conn)
-            return JSONResponse(
-                status_code=404,
-                content={"status": "error", "message": "候选人或岗位记录不存在"}
-            )
-
-        candidate = {"name": crow['name'], "resume_content": crow['resume_content']}
-        position = {"name": crow['position_name']}
+        # 个人版单用户，无候选人/岗位表（candidates/positions 为企业版遗留，已清理）。
+        # 简历原文未入库，评估提示词只使用问题回答与表情数据；
+        # 占位结构与 generate_questions 的个人版模拟数据保持一致
+        candidate = {"name": "个人用户", "resume_content": ""}
+        position = {"name": "模拟面试"}
 
         # 查问题+回答（score_standard 回传给大模型当评分依据）
         cursor.execute('''
