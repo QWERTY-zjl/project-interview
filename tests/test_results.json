@@ -1,14 +1,14 @@
 {
   "base": "http://127.0.0.1:10009",
-  "elapsed": 4.828274726867676,
+  "elapsed": 5.313379526138306,
   "timing": {
-    "resume_upload": 0.0067157745361328125,
-    "generate_questions": 0.016414642333984375
+    "resume_upload": 0.04723024368286133,
+    "generate_questions": 0.016816377639770508
   },
   "summary": {
-    "通过": 50,
-    "失败": 5,
-    "已知问题": 12,
+    "通过": 67,
+    "失败": 0,
+    "已知问题": 0,
     "跳过-大模型": 0
   },
   "results": [
@@ -41,7 +41,7 @@
       "path": "/openapi.json",
       "params": "-",
       "http_status": 200,
-      "resp_key": "paths=32",
+      "resp_key": "paths=33",
       "conclusion": "通过",
       "note": ""
     },
@@ -62,10 +62,10 @@
       "method": "POST",
       "path": "/api/auth/register",
       "params": "username/email/password/phone",
-      "http_status": 503,
-      "resp_key": "{\"error\": \"付费功能未启用\"}",
-      "conclusion": "已知问题",
-      "note": "payment_module 在 python -m 启动下裸 import 失败，503 兜底（已知问题1）"
+      "http_status": 200,
+      "resp_key": "{\"status\": \"success\", \"message\": \"注册成功\", \"user_id\": 3}",
+      "conclusion": "通过",
+      "note": "payment_module 已启用，真实落库 users+user_quotas"
     },
     {
       "id": "S1-02",
@@ -84,10 +84,10 @@
       "method": "POST",
       "path": "/api/auth/login",
       "params": "username+password",
-      "http_status": 503,
-      "resp_key": "{\"error\": \"付费功能未启用\"}",
-      "conclusion": "已知问题",
-      "note": "payment_module 在 python -m 启动下裸 import 失败，503 兜底（已知问题1）"
+      "http_status": 200,
+      "resp_key": "{\"status\": \"success\", \"message\": \"登录成功\", \"user\": {\"id\": 3, \"username\": \"testuser_1791125454\", \"email\": \"testuser_1791125454@example.com\", \"user_type\":",
+      "conclusion": "通过",
+      "note": "payment_module 已启用，真实校验密码哈希"
     },
     {
       "id": "S1-04",
@@ -95,21 +95,21 @@
       "method": "POST",
       "path": "/api/auth/login",
       "params": "错误密码",
-      "http_status": 503,
-      "resp_key": "{\"error\": \"付费功能未启用\"}",
-      "conclusion": "已知问题",
-      "note": "payment_module 在 python -m 启动下裸 import 失败，503 兜底（已知问题1）"
+      "http_status": 401,
+      "resp_key": "{\"error\": \"用户名或密码错误\"}",
+      "conclusion": "通过",
+      "note": "错误密码 → 401 Unauthorized"
     },
     {
       "id": "S1-05",
-      "name": "查询配额(默认配额降级)",
+      "name": "查询配额(真查库)",
       "method": "GET",
       "path": "/api/user/quota",
       "params": "user_id=1",
       "http_status": 200,
       "resp_key": "{\"status\": \"success\"} free_interviews=3",
       "conclusion": "通过",
-      "note": "付费模块未启用 → 返回内置默认配额"
+      "note": "payment_module 已启用 → 真查库（user 1 无配额记录时自动初始化 3/10/5）"
     },
     {
       "id": "S2-01",
@@ -117,10 +117,10 @@
       "method": "GET",
       "path": "/api/pricing/plans",
       "params": "-",
-      "http_status": 503,
-      "resp_key": "{\"error\": \"付费功能未启用\"}",
-      "conclusion": "已知问题",
-      "note": "payment_module 加载失败 → 503 兜底（已知问题1）"
+      "http_status": 200,
+      "resp_key": "{\"status\": \"success\", \"plans\": [{\"id\": 1, \"name\": \"免费试用\", \"code\": \"free_trial\", \"description\": \"新用户免费体验3次面试\", \"plan_type\": \"onetime\", \"price\": 0.0, \"o",
+      "conclusion": "通过",
+      "note": "payment_module 已启用，读 pricing_plans 真实数据（含 6 条默认套餐）"
     },
     {
       "id": "S2-02",
@@ -128,10 +128,10 @@
       "method": "GET",
       "path": "/api/pricing/plans/1",
       "params": "-",
-      "http_status": 503,
-      "resp_key": "{\"error\": \"付费功能未启用\"}",
-      "conclusion": "已知问题",
-      "note": "payment_module 加载失败 → 503 兜底（已知问题1）"
+      "http_status": 200,
+      "resp_key": "{\"status\": \"success\", \"plan\": {\"id\": 1, \"name\": \"免费试用\", \"code\": \"free_trial\", \"description\": \"新用户免费体验3次面试\", \"plan_type\": \"onetime\", \"price\": 0.0, \"ori",
+      "conclusion": "通过",
+      "note": "payment_module 已启用，读 pricing_plans 真实数据（含 6 条默认套餐）"
     },
     {
       "id": "S2-03",
@@ -139,21 +139,21 @@
       "method": "GET",
       "path": "/api/pricing/plans/9999",
       "params": "-",
-      "http_status": 503,
-      "resp_key": "{\"error\": \"付费功能未启用\"}",
-      "conclusion": "已知问题",
-      "note": "payment_module 加载失败 → 503 兜底（已知问题1）"
+      "http_status": 404,
+      "resp_key": "{\"error\": \"套餐不存在\"}",
+      "conclusion": "通过",
+      "note": "payment_module 已启用，读 pricing_plans 真实数据（含 6 条默认套餐）"
     },
     {
       "id": "S3-01",
       "name": "创建订单",
       "method": "POST",
       "path": "/api/orders/create",
-      "params": "user_id=1,plan_id=1",
-      "http_status": 503,
-      "resp_key": "{\"error\": \"付费功能未启用\"}",
-      "conclusion": "已知问题",
-      "note": "payment_module 加载失败 → 503 兜底（已知问题1）"
+      "params": "user_id=3,plan_id=1",
+      "http_status": 200,
+      "resp_key": "{\"status\": \"success\", \"message\": \"订单创建成功\", \"order\": {\"order_id\": 2, \"order_no\": \"INT17911254553609\", \"amount\": 0.0, \"plan_name\": \"免费试用\"}}",
+      "conclusion": "通过",
+      "note": "真实落库 orders，订单号=INT17911254553609"
     },
     {
       "id": "S3-02",
@@ -161,43 +161,43 @@
       "method": "POST",
       "path": "/api/orders/pay",
       "params": "{\"order_no\":...}",
-      "http_status": 422,
-      "resp_key": "{\"detail\": [{\"type\": \"string_type\", \"loc\": [\"body\"], \"msg\": \"Input should be a valid string\", \"input\": {\"order_no\": \"TESTORDER0001\"}}]}",
-      "conclusion": "失败",
-      "note": "重构后单字段Body要求裸值，前端发对象被422 → 新回归"
+      "http_status": 200,
+      "resp_key": "{\"status\": \"success\", \"payment_url\": \"/mock_payment_page?order_no=INT17911254553609\", \"order_no\": \"INT17911254553609\", \"mock\": true}",
+      "conclusion": "通过",
+      "note": "embed 修复后对象形态可支付；无支付宝配置 → mock 模拟支付链接"
     },
     {
       "id": "S3-02b",
-      "name": "支付订单(裸值形态,根因验证)",
+      "name": "支付订单(裸值形态,已拒绝)",
       "method": "POST",
       "path": "/api/orders/pay",
       "params": "\"TESTORDER0001\"",
-      "http_status": 503,
-      "resp_key": "{\"error\": \"付费功能未启用\"}",
-      "conclusion": "已知问题",
-      "note": "裸字符串可进入业务逻辑(503=payment_module未加载)，证明422根源是Body签名"
+      "http_status": 422,
+      "resp_key": "{\"detail\": [{\"type\": \"missing\", \"loc\": [\"body\", \"order_no\"], \"msg\": \"Field required\", \"input\": null}]}",
+      "conclusion": "通过",
+      "note": "embed=True 修复后裸值不再被接受（422 回归 4.1 验证闭合）"
     },
     {
       "id": "S3-03",
       "name": "查询订单状态",
       "method": "GET",
       "path": "/api/orders/{order_no}/status",
-      "params": "TESTORDER0001",
-      "http_status": 503,
-      "resp_key": "{\"error\": \"付费功能未启用\"}",
-      "conclusion": "已知问题",
-      "note": "payment_module 加载失败 → 503 兜底（已知问题1）"
+      "params": "INT17911254553609",
+      "http_status": 200,
+      "resp_key": "{\"status\": \"success\", \"order\": {\"order_no\": \"INT17911254553609\", \"pay_status\": 0, \"pay_status_text\": \"未支付\", \"amount\": 0.0, \"plan_name\": \"免费试用\"}}",
+      "conclusion": "通过",
+      "note": "支付确认前 pay_status=0（未支付）"
     },
     {
       "id": "S3-04",
       "name": "用户订单列表",
       "method": "GET",
-      "path": "/api/orders/user/1",
-      "params": "user_id=1",
-      "http_status": 503,
-      "resp_key": "{\"error\": \"付费功能未启用\"}",
-      "conclusion": "已知问题",
-      "note": "payment_module 加载失败 → 503 兜底（已知问题1）"
+      "path": "/api/orders/user/{user_id}",
+      "params": "user_id=3",
+      "http_status": 200,
+      "resp_key": "{\"status\": \"success\", \"orders\": [{\"id\": 2, \"order_no\": \"INT17911254553609\", \"user_id\": 3, \"plan_id\": 1, \"plan_name\": \"免费试用\", \"amount\": 0.0, \"pay_metho",
+      "conclusion": "通过",
+      "note": "payment_module 已启用，读 orders 表真实数据"
     },
     {
       "id": "S3-05",
@@ -208,18 +208,18 @@
       "http_status": 200,
       "resp_key": "'success'",
       "conclusion": "通过",
-      "note": "付费未启用时直接回 success"
+      "note": "无支付宝配置(manager=None)跳过验签 → update_order_status → 回 success"
     },
     {
       "id": "S3-06",
       "name": "支付宝同步返回",
       "method": "GET",
       "path": "/api/payment/alipay/return",
-      "params": "out_trade_no=X",
+      "params": "out_trade_no=X&trade_status=TRADE_SUCCESS",
       "http_status": 200,
-      "resp_key": "{\"status\": \"success\", \"message\": \"支付成功\"}",
+      "resp_key": "{\"status\": \"success\", \"message\": \"支付成功\", \"order_no\": \"X\"}",
       "conclusion": "通过",
-      "note": "付费未启用时直接返回成功"
+      "note": "无支付宝配置跳过验签，TRADE_SUCCESS → 200 支付成功"
     },
     {
       "id": "S3-07",
@@ -227,43 +227,43 @@
       "method": "POST",
       "path": "/api/payment/mock/confirm",
       "params": "{\"order_no\":...}",
-      "http_status": 422,
-      "resp_key": "{\"detail\": [{\"type\": \"string_type\", \"loc\": [\"body\"], \"msg\": \"Input should be a valid string\", \"input\": {\"order_no\": \"TESTORDER0001\"}}]}",
-      "conclusion": "失败",
-      "note": "单字段Body裸值契约，前端发对象被422 → 新回归"
+      "http_status": 200,
+      "resp_key": "{\"status\": \"success\", \"message\": \"模拟支付成功\"}",
+      "conclusion": "通过",
+      "note": "embed 修复后对象形态可确认 → 订单置为已支付并激活订阅"
     },
     {
       "id": "S3-07b",
-      "name": "模拟支付确认(裸值形态)",
+      "name": "模拟支付确认(裸值形态,已拒绝)",
       "method": "POST",
       "path": "/api/payment/mock/confirm",
       "params": "\"TESTORDER0001\"",
-      "http_status": 503,
-      "resp_key": "{\"error\": \"付费功能未启用\"}",
-      "conclusion": "已知问题",
-      "note": "裸字符串进入业务逻辑 → 503（已知问题1）"
+      "http_status": 422,
+      "resp_key": "{\"detail\": [{\"type\": \"missing\", \"loc\": [\"body\", \"order_no\"], \"msg\": \"Field required\", \"input\": null}]}",
+      "conclusion": "通过",
+      "note": "embed=True 修复后裸值不再被接受（422 回归 4.1 验证闭合）"
     },
     {
       "id": "S3-08",
       "name": "配额检查",
       "method": "POST",
       "path": "/api/quota/check",
-      "params": "user_id=1",
+      "params": "user_id=3",
       "http_status": 200,
-      "resp_key": "{\"has_quota\": true, \"message\": \"付费功能未启用，允许使用\"}",
+      "resp_key": "{\"has_quota\": true, \"message\": \"配额充足\"}",
       "conclusion": "通过",
-      "note": "付费未启用 → 放行"
+      "note": "真查库：新注册用户免费配额 3 次面试"
     },
     {
       "id": "S3-09",
       "name": "配额扣减",
       "method": "POST",
       "path": "/api/quota/use",
-      "params": "user_id=1,qty=1",
+      "params": "user_id=3,qty=1",
       "http_status": 200,
-      "resp_key": "{\"status\": \"success\", \"message\": \"付费功能未启用\"}",
+      "resp_key": "{\"status\": \"success\", \"message\": \"配额使用成功\"}",
       "conclusion": "通过",
-      "note": "付费未启用 → 直接成功"
+      "note": "真查库：扣减免费配额并写 usage_logs"
     },
     {
       "id": "S4-01",
@@ -272,22 +272,22 @@
       "path": "/api/resume/upload",
       "params": "PDF(885B)+work_experience+target_position",
       "http_status": 200,
-      "resp_key": "{\"status\": \"success\", \"interview_id\": 2274, \"message\": \"上传简历成功，已生成面试问题\"}",
+      "resp_key": "{\"status\": \"success\", \"interview_id\": 2475, \"message\": \"上传简历成功，已生成面试问题\"}",
       "conclusion": "通过",
       "note": "现役实现为本地正则解析(非MinerU)+默认问题降级链",
-      "elapsed_s": 0.01
+      "elapsed_s": 0.05
     },
     {
       "id": "S4-02",
-      "name": "上传非PDF文件(行为验证)",
+      "name": "上传非PDF文件(内容校验拒绝)",
       "method": "POST",
       "path": "/api/resume/upload",
       "params": "readme.txt 纯文本",
-      "http_status": 200,
-      "resp_key": "{\"status\": \"success\", \"message\": \"上传简历成功，已生成面试问题\"}",
-      "conclusion": "已知问题",
-      "note": "接口不校验文件内容/扩展名，非PDF也接收（已知问题3）",
-      "elapsed_s": 0.01
+      "http_status": 400,
+      "resp_key": "{\"status\": \"error\", \"message\": \"简历文件不是有效的 PDF（缺少 PDF 文件头）\", \"error_code\": \"RESUME_NOT_PDF\"}",
+      "conclusion": "通过",
+      "note": "magic bytes 校验：缺少 %PDF- 文件头 → 400 拒绝",
+      "elapsed_s": 0.02
     },
     {
       "id": "S4-03",
@@ -307,7 +307,7 @@
       "path": "/api/interview/create",
       "params": "user_id=1,type=1,5题",
       "http_status": 200,
-      "resp_key": "{\"status\": \"success\", \"interview_id\": 2276}",
+      "resp_key": "{\"status\": \"success\", \"interview_id\": 2476}",
       "conclusion": "通过",
       "note": ""
     },
@@ -328,21 +328,21 @@
       "method": "POST",
       "path": "/api/interview/{token}/set_voice",
       "params": "{\"voice_type\":...}",
-      "http_status": 422,
-      "resp_key": "{\"detail\": [{\"type\": \"string_type\", \"loc\": [\"body\"], \"msg\": \"Input should be a valid string\", \"input\": {\"voice_type\": \"friendly_female\"}}]}",
-      "conclusion": "失败",
-      "note": "单字段Body裸值契约，前端发对象被422 → 新回归"
-    },
-    {
-      "id": "S5-03b",
-      "name": "设置音色(裸值形态)",
-      "method": "POST",
-      "path": "/api/interview/{token}/set_voice",
-      "params": "\"friendly_female\"",
       "http_status": 200,
       "resp_key": "{\"status\": \"success\", \"voice_type\": \"friendly_female\"}",
       "conclusion": "通过",
-      "note": "裸字符串可正常设置音色"
+      "note": "embed 修复后对象形态与前端契约一致"
+    },
+    {
+      "id": "S5-03b",
+      "name": "设置音色(裸值形态,已拒绝)",
+      "method": "POST",
+      "path": "/api/interview/{token}/set_voice",
+      "params": "\"friendly_female\"",
+      "http_status": 422,
+      "resp_key": "{\"detail\": [{\"type\": \"missing\", \"loc\": [\"body\", \"voice_type\"], \"msg\": \"Field required\", \"input\": null}]}",
+      "conclusion": "通过",
+      "note": "embed=True 修复后裸值不再被接受"
     },
     {
       "id": "S5-04",
@@ -350,21 +350,21 @@
       "method": "POST",
       "path": "/api/interview/{token}/toggle_voice_reading",
       "params": "{\"enabled\":false}",
-      "http_status": 422,
-      "resp_key": "{\"detail\": [{\"type\": \"bool_type\", \"loc\": [\"body\"], \"msg\": \"Input should be a valid boolean\", \"input\": {\"enabled\": false}}]}",
-      "conclusion": "失败",
-      "note": "单字段Body裸值契约，前端发对象被422 → 新回归"
-    },
-    {
-      "id": "S5-04b",
-      "name": "关闭语音朗读(裸值形态)",
-      "method": "POST",
-      "path": "/api/interview/{token}/toggle_voice_reading",
-      "params": "false",
       "http_status": 200,
       "resp_key": "{\"status\": \"success\", \"voice_reading\": false}",
       "conclusion": "通过",
-      "note": ""
+      "note": "embed 修复后对象形态与前端契约一致"
+    },
+    {
+      "id": "S5-04b",
+      "name": "关闭语音朗读(裸值形态,已拒绝)",
+      "method": "POST",
+      "path": "/api/interview/{token}/toggle_voice_reading",
+      "params": "false",
+      "http_status": 422,
+      "resp_key": "{\"detail\": [{\"type\": \"missing\", \"loc\": [\"body\", \"enabled\"], \"msg\": \"Field required\", \"input\": null}]}",
+      "conclusion": "通过",
+      "note": "embed=True 修复后裸值不再被接受"
     },
     {
       "id": "S5-05",
@@ -396,7 +396,7 @@
       "path": "/api/interview/{token}/info",
       "params": "token",
       "http_status": 200,
-      "resp_key": "{\"interview_id\": 2276, \"status\": 1, \"question_count\": 5, \"voice_type\": \"friendly_female\", \"voice_reading\": 0}",
+      "resp_key": "{\"interview_id\": 2476, \"status\": 1, \"question_count\": 5, \"voice_type\": \"friendly_female\", \"voice_reading\": 0}",
       "conclusion": "通过",
       "note": ""
     },
@@ -407,7 +407,7 @@
       "path": "/api/interview/{token}/get_question",
       "params": "current_id=0",
       "http_status": 200,
-      "resp_key": "{\"id\": 1181, \"text\": \"大模型调用失败\", \"use_pre_generated\": false}",
+      "resp_key": "{\"id\": 2183, \"text\": \"大模型调用失败\", \"use_pre_generated\": false}",
       "conclusion": "通过",
       "note": "降级默认问题文本=大模型调用失败"
     },
@@ -427,7 +427,7 @@
       "name": "完成后改音色(应拒绝)",
       "method": "POST",
       "path": "/api/interview/{token}/set_voice",
-      "params": "\"strict_male\" status=3",
+      "params": "{\"voice_type\":\"strict_male\"} status=3",
       "http_status": 400,
       "resp_key": "{\"detail\": \"面试已开始，无法更改面试官类型\"}",
       "conclusion": "通过",
@@ -440,7 +440,7 @@
       "path": "/api/interview/create_and_redirect",
       "params": "-",
       "http_status": 302,
-      "resp_key": "Location: /static/interview.html?token=uR3BEyALvBP7Q0hfdO4Hxmojj4lqlBHr",
+      "resp_key": "Location: /static/interview.html?token=1YTIEAxx2o9APRj24aknIGaIXMbootMr",
       "conclusion": "通过",
       "note": ""
     },
@@ -449,9 +449,9 @@
       "name": "快速开始-后台出题验证",
       "method": "GET",
       "path": "/api/interview/{token}/get_question",
-      "params": "token=uR3BEyAL...",
+      "params": "token=1YTIEAxx...",
       "http_status": 200,
-      "resp_key": "{\"id\": 1186, \"text\": \"大模型调用失败\"}",
+      "resp_key": "{\"id\": 2188, \"text\": \"大模型调用失败\"}",
       "conclusion": "通过",
       "note": "响应后 BackgroundTasks 异步出题（默认问题降级）"
     },
@@ -570,18 +570,18 @@
       "name": "生成报告(前端契约:JSON对象)",
       "method": "POST",
       "path": "/api/evaluation/generate",
-      "params": "{\"token\":...}",
-      "http_status": 422,
-      "resp_key": "{\"detail\": [{\"type\": \"string_type\", \"loc\": [\"body\"], \"msg\": \"Input should be a valid string\", \"input\": {\"token\": \"any\"}}]}",
-      "conclusion": "失败",
-      "note": "单字段Body裸值契约，前端发对象被422 → 新回归"
+      "params": "{\"token\":\"any\"}",
+      "http_status": 404,
+      "resp_key": "{}",
+      "conclusion": "通过",
+      "note": "embed 修复后对象形态进入业务层，无效 token → 404"
     },
     {
       "id": "S8-02",
-      "name": "生成报告-空token(裸值)",
+      "name": "生成报告-空token",
       "method": "POST",
       "path": "/api/evaluation/generate",
-      "params": "\"\"",
+      "params": "{\"token\":\"\"}",
       "http_status": 400,
       "resp_key": "{\"status\": \"error\", \"message\": \"缺少token参数\"}",
       "conclusion": "通过",
@@ -589,10 +589,10 @@
     },
     {
       "id": "S8-03",
-      "name": "生成报告-无效token(裸值)",
+      "name": "生成报告-无效token",
       "method": "POST",
       "path": "/api/evaluation/generate",
-      "params": "\"invalid_token_xxx\"",
+      "params": "{\"token\":\"invalid_token_xxx\"}",
       "http_status": 404,
       "resp_key": "{\"status\": \"error\", \"message\": \"面试记录不存在\"}",
       "conclusion": "通过",
@@ -603,7 +603,7 @@
       "name": "生成报告-有效token(降级)",
       "method": "POST",
       "path": "/api/evaluation/generate",
-      "params": "已完成面试 token(裸值)",
+      "params": "已完成面试 token(对象形态)",
       "http_status": 500,
       "resp_key": "{\"error\": \"未配置DASHSCOPE_API_KEY\"}",
       "conclusion": "通过",
@@ -691,9 +691,9 @@
       "name": "interviews落库-简历上传面试",
       "method": "SQL",
       "path": "interviews",
-      "params": "token=kl8zKMTu...",
+      "params": "token=JaXQJQG5...",
       "http_status": 200,
-      "resp_key": "{\"id\": 2274, \"status\": 1, \"question_count\": 5, \"voice_type\": \"professional_male\"}",
+      "resp_key": "{\"id\": 2475, \"status\": 1, \"question_count\": 5, \"voice_type\": \"professional_male\"}",
       "conclusion": "通过",
       "note": ""
     },
@@ -702,9 +702,9 @@
       "name": "interviews落库-API创建面试",
       "method": "SQL",
       "path": "interviews",
-      "params": "token=Cv40lGGE...",
+      "params": "token=WUzvNsrA...",
       "http_status": 200,
-      "resp_key": "{\"id\": 2276, \"status\": 3, \"question_count\": 5, \"voice_type\": \"friendly_female\"}",
+      "resp_key": "{\"id\": 2476, \"status\": 3, \"question_count\": 5, \"voice_type\": \"friendly_female\"}",
       "conclusion": "通过",
       "note": ""
     },
@@ -713,9 +713,9 @@
       "name": "interviews落库-快速开始面试",
       "method": "SQL",
       "path": "interviews",
-      "params": "token=uR3BEyAL...",
+      "params": "token=1YTIEAxx...",
       "http_status": 200,
-      "resp_key": "{\"id\": 2277, \"status\": 1, \"question_count\": 5, \"voice_type\": \"professional_male\"}",
+      "resp_key": "{\"id\": 2477, \"status\": 1, \"question_count\": 5, \"voice_type\": \"professional_male\"}",
       "conclusion": "通过",
       "note": ""
     },
@@ -724,7 +724,7 @@
       "name": "interview_questions落库+答案",
       "method": "SQL",
       "path": "interview_questions",
-      "params": "interview_id=2276",
+      "params": "interview_id=2476",
       "http_status": 200,
       "resp_key": "题数=5 已作答=5 面试status=3",
       "conclusion": "通过",
@@ -735,7 +735,7 @@
       "name": "interview_expression_records落库",
       "method": "SQL",
       "path": "interview_expression_records",
-      "params": "interview_id=2276",
+      "params": "interview_id=2476",
       "http_status": 200,
       "resp_key": "记录数=2",
       "conclusion": "通过",
@@ -746,7 +746,7 @@
       "name": "后台出题落库(create_and_redirect)",
       "method": "SQL",
       "path": "interview_questions",
-      "params": "interview_id=2277",
+      "params": "interview_id=2477",
       "http_status": 200,
       "resp_key": "题数=5",
       "conclusion": "通过",
