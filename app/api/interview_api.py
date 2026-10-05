@@ -77,7 +77,9 @@ router = APIRouter(tags=["面试流程"])
 # {token} 是路径占位符：URL 里这一段是什么，token 参数的值就是什么，
 # 例如 GET /api/interview/Ab3xY9.../info → token = "Ab3xY9..."
 # summary 是 /docs 接口列表里显示的中文摘要
-@router.get("/api/interview/{token}/get_interview_info", summary="获取面试token")
+# 路径用 /info 对齐前端契约：interview.html 3 处调用 /api/interview/{token}/info，
+# 旧路径 get_interview_info 从未被任何调用方使用（2026-10-04 测试发现的前后端契约断裂）
+@router.get("/api/interview/{token}/info", summary="获取面试信息")
 # token: str = Path(...) —— 参数从路径取值；冒号后的 str 是类型标注（Python 自带
 # 语法），框架按类型自动校验；(...) 表示必填，缺失时框架直接回 422，函数不执行
 async def get_interview_info(token: str = Path(...)):
@@ -396,11 +398,11 @@ async def submit_text_answer(token: str = Path(...), question_id: int = Body(...
         raise HTTPException(status_code=500, detail=str(e))
 
 
-# 【已知 422 回归】enabled 是"单个标量 Body(...) 参数"：FastAPI 此时默认期望
-# 请求体是裸值 true/false 而不是 {"enabled": true}，前端发 JSON 对象必现 422。
-# 修复方向：Body(..., embed=True)，全项目共 5 处同类问题，暂缓修复（见测试报告）
+# embed=True：单个标量 Body(...) 参数默认要求请求体是裸值（true/false），
+# 加 embed 后改为从 JSON 对象 {"enabled": true} 里按键名取值——与前端契约一致
+# （2026-10-01 测试报告回归 4.1，共 5 处同类问题，已全部修复）
 @router.post("/api/interview/{token}/toggle_voice_reading", summary="切换语音朗读")
-async def toggle_voice_reading(token: str = Path(...), enabled: bool = Body(...)):
+async def toggle_voice_reading(token: str = Path(...), enabled: bool = Body(..., embed=True)):
     """切换语音朗读开关
 
     Args:
@@ -435,9 +437,9 @@ async def toggle_voice_reading(token: str = Path(...), enabled: bool = Body(...)
         raise HTTPException(status_code=500, detail=str(e))
 
 
-# 【已知 422 回归】同 toggle_voice_reading：单个标量 Body(...) 参数要求裸 JSON 值
+# embed=True 同 toggle_voice_reading：接受 {"voice_type": "..."} 对象形态
 @router.post("/api/interview/{token}/set_voice", summary="设置面试官音色")
-async def set_interview_voice(token: str = Path(...), voice_type: str = Body(...)):
+async def set_interview_voice(token: str = Path(...), voice_type: str = Body(..., embed=True)):
     """设置面试官音色（面试开始前）
 
     Args:

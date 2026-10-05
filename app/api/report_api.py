@@ -21,7 +21,9 @@ router = APIRouter(tags=["面试报告"])
 
 
 @router.post("/api/evaluation/generate", summary="生成面试评价报告")
-def generate_evaluation(token: str = Body(None)):
+# embed=True：告诉 FastAPI 这个参数嵌在 JSON 对象里（{"token": "..."}）而不是裸值（"..."）
+# 前端 interview.html 发的是对象形态，不加 embed 会 422（2026-10-01 测试报告回归 4.1）
+def generate_evaluation(token: str = Body(None, embed=True)):
     """生成面试评价报告（面试收尾环节，前端答完全部问题后调用）
 
     Args:
