@@ -29,7 +29,7 @@ async def upload_resume(
     """上传简历并分析，返回面试token
 
     Args:
-        resume: 上传的简历文件（PDF/PPT）
+        resume: 上传的简历文件（仅接受 PDF，内容级校验）
         work_experience: 工作经验年限
         target_position: 目标岗位名称
 
@@ -69,6 +69,16 @@ async def upload_resume(
             return JSONResponse(
                 status_code=400,
                 content={"status": "error", "message": "简历文件为空", "error_code": "RESUME_FILE_EMPTY"}
+            )
+
+        # 内容级校验（magic bytes）：真实 PDF 文件的前 5 个字节固定是 "%PDF-"
+        # 之前只看扩展名，改名的 txt/pptx 也能混进来（2026-10-01 测试报告已知问题，已修复）
+        if not file_content.startswith(b'%PDF-'):
+            logger.error("[Resume] 错误: 文件内容不是有效的 PDF（缺少 %PDF- 文件头）")
+            return JSONResponse(
+                status_code=400,
+                content={"status": "error", "message": "简历文件不是有效的 PDF（缺少 PDF 文件头）",
+                         "error_code": "RESUME_NOT_PDF"}
             )
         
         # 分析简历内容
