@@ -37,8 +37,16 @@ async def upload_resume(
         JSONResponse: {"status": "success", "token": "面试令牌", "interview_id": 面试ID}
     """
     logger.info("[Resume] 开始处理上传简历请求")
-    
+
     try:
+        # 目标岗位必填校验：岗位是出题方向的主要依据，为空会触发后端"前端开发"兜底，
+        # 导致丢什么简历都出前端题；strip() 去掉首尾空格，纯空格输入同样视为未填
+        if not (target_position and target_position.strip()):
+            return JSONResponse(
+                status_code=422,
+                content={"detail": "目标岗位不能为空，请填写后再上传（出题方向由岗位决定）"}
+            )
+
         # 检查文件类型
         file_ext = resume.filename.split('.')[-1].lower() if resume.filename else ''
         logger.info(f"[Resume] 文件扩展名: {file_ext}")

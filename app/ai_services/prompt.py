@@ -59,16 +59,23 @@ def build_interview_prompt(candidate: dict, position: dict, resume_analysis: str
     )
 
     # user 消息：本次出题的全部"素材"，逐项列出便于模型针对性出题
+    # 【权重设计】个人版没有 positions 表，岗位只有名称（要求/职责均为"未提供"），
+    # 简历分析结果才是最丰富的真实素材——所以指令明确"简历优先、岗位定方向"，
+    # 防止模型只看岗位名泛泛出题、完全无视简历内容
     user_prompt = (
         f"候选人信息：\n"
         f"- 姓名：{candidate.get('name', '未提供')}\n"
         f"- 工作经验：{candidate.get('experience', '未提供')}\n\n"
-        f"应聘职位：{position.get('name', '未提供')}\n"
-        f"岗位要求：{position.get('requirements', '未提供')}\n"
-        f"岗位职责：{position.get('responsibilities', '未提供')}\n\n"
-        f"简历分析结果：\n{resume_analysis or '未提供简历分析信息'}\n\n"
+        f"应聘职位：{position.get('name', '未提供')}（岗位要求/职责未提供，仅供方向参考）\n\n"
+        f"简历分析结果（出题的核心依据）：\n{resume_analysis or '未提供简历分析信息'}\n\n"
         # ↑ or 兜底：resume_analysis 为 None/空串时显示占位文案，避免出现空白段落
-        f"请根据以上信息生成 5 个高质量的面试问题，每个问题需包含评分标准。"
+        f"请根据以上信息生成 5 个高质量的面试问题，每个问题需包含评分标准。\n"
+        f"出题要求（按优先级排列）：\n"
+        f"1. 以简历分析结果为核心依据：围绕候选人的真实项目经历、技术栈、工作内容提问，考察真实深度；\n"
+        f"2. 应聘职位仅用于确定考察方向和专业边界；\n"
+        f"3. 若简历经历与应聘职位方向不一致，以简历实际经历为主出题，"
+        f"并加入 1 个关于职业方向或转岗动机的问题；\n"
+        f"4. 不要出与简历和岗位都无关的泛泛的概念题。"
         # ↑ 明确数量要求（5个），与 question_service.validate_questions 的 valid[:5] 上限一致
     )
 

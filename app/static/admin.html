@@ -906,7 +906,7 @@
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-400 mb-1">目标岗位</label>
-            <input type="text" class="form-control" placeholder="例如：前端开发、产品经理等" v-model="targetPosition">
+            <input type="text" class="form-control" placeholder="例如：AI应用经理、前端开发、产品经理等" v-model="targetPosition" required>
           </div>
         </div>
         
@@ -985,12 +985,14 @@
     createApp({
       data() {
         return {
-          baseURL: (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
-            ? 'http://localhost:10009/'   // dev
-            : 'https://www.en9.cn/', // prd
+          // 默认空串 = 相对路径：请求发到"当前页面所在的域名+端口"，开发和部署通吃。
+          // 保留可配置能力：页面上的"API基础路径"输入框或 ?baseURL= 参数仍可覆盖默认值
+          baseURL: '',
           // 工作台数据
           workExperience: '',
-          targetPosition: 'frontend',
+          // 目标岗位默认必须为空：默认值会被直接传给后端当岗位出题（曾因默认 'frontend'
+          // 导致丢什么简历都出前端题）；留空时后端 422 拦截，强制用户填写
+          targetPosition: '',
           resumeFile: null,
           trainingRecords: [
             {
@@ -1160,7 +1162,17 @@
             });
             return;
           }
-          
+
+          // 目标岗位必填校验：岗位决定出题方向，不填就上传会导致答非所问的题目
+          if (!this.targetPosition || !this.targetPosition.trim()) {
+            Swal.fire({
+              title: '提示',
+              text: '请填写目标岗位（出题方向由岗位决定）',
+              icon: 'warning'
+            });
+            return;
+          }
+
           // 禁用按钮，防止重复点击
           const startButton = document.querySelector('.btn-primary.w-full');
           if (startButton) {
