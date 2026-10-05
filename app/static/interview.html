@@ -1647,15 +1647,9 @@
                 const error = ref(''); // 错误提示文字，非空时页面顶部显示红色错误条
                 const recordingTime = ref(0); // 录音已持续秒数
                 const timerInterval = ref(null); // 计时器编号（关掉计时器时要用）
-                // baseURL：后端服务器地址，根据"当前页面从哪打开"自动二选一。
-                // 语法点 1：三目运算符 条件 ? 值A : 值B，等价 Python 的 值A if 条件 else 值B。
-                // 语法点 2：window.location 是浏览器提供的"当前网址信息"对象：
-                //          hostname 是域名（localhost / 127.0.0.1 都表示本机开发），
-                //          protocol 是协议（'file:' 表示直接双击 html 文件打开）。
-                // 命中任一条件用本地测试服务器，否则用线上正式服务器。
-                const baseURL =  (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.protocol === 'file:')
-                ? 'http://127.0.0.1:10009/'   // dev
-                : 'https://www.en9.cn/'; // prd
+                // 请求地址用相对路径（接口都写在 /api/...）：页面从哪打开，请求就发到哪——
+                // 本机打开自动请求 127.0.0.1:10009，部署后自动请求正式域名，一套代码通吃。
+                // 不再写死后端地址，避免端口改错、双斜杠、localhost 解析出 IPv6 被拒等问题。
                 
                 // 面试状态码：0=未开始，1=题目已备好，2=面试进行中，3=已完成。
                 // 模板靠它决定显示"欢迎页/面试界面/评分报告"哪个区块。
@@ -1749,7 +1743,7 @@
                     try {
                         console.log('验证token是否有效...');
                         console.log('调用 /api/interview/${token.value}/info 端点...');
-                        const response = await axios.get(`${baseURL}api/interview/${token.value}/info`);
+                        const response = await axios.get(`/api/interview/${token.value}/info`);
                         console.log('token有效:', response.data);
                     } catch (err) {
                         console.error('token无效:', err);
@@ -1794,7 +1788,7 @@
                 const createNewInterview = async () => {
                     try {
                         console.log('创建新面试...');
-                        const response = await axios.post(`${baseURL}api/interview/create`, {
+                        const response = await axios.post(`/api/interview/create`, {
                             user_id: 1,
                             interview_type_id: 1,
                             question_count: 5,
@@ -1831,7 +1825,7 @@
                         if (token.value) {
                             try {
                                 console.log('验证token是否有效...');
-                                const response = await axios.get(`${baseURL}api/interview/${token.value}/info`);
+                                const response = await axios.get(`/api/interview/${token.value}/info`);
                                 console.log('token有效:', response.data);
                                 tokenValid = true;
                             } catch (err) {
@@ -1845,7 +1839,7 @@
                             console.log('创建新面试...');
                             // 直接重定向到创建面试的API，然后重定向回面试页面
                             // 让浏览器整页跳转到该网址（后端会创建新面试，并带着新 token 重定向回本页面）
-                            window.location.href = `${baseURL}api/interview/create_and_redirect`;
+                            window.location.href = `/api/interview/create_and_redirect`;
                             return;
                         }
                         
@@ -1885,7 +1879,7 @@
                 // 获取可用音色列表
                 const fetchAvailableVoices = async () => {
                     try {
-                        const response = await axios.get(`${baseURL}api/tts/voices`);
+                        const response = await axios.get(`/api/tts/voices`);
                         availableVoices.value = response.data.voices || [];
                     } catch (err) {
                         console.error('获取音色列表失败:', err);
@@ -1911,7 +1905,7 @@
                     loading.value = true;
                     loadingMessage.value = '获取面试信息...';
                     try {
-                        const response = await axios.get(`${baseURL}api/interview/${token.value}/info`);
+                        const response = await axios.get(`/api/interview/${token.value}/info`);
                         interviewInfo.value = response.data;
                         // 获取面试状态
                         if (response.data.status !== undefined) {
@@ -2023,7 +2017,7 @@
                 const toggleVoiceReading = async () => {
                     try {
                         const response = await axios.post(
-                            `${baseURL}api/interview/${token.value}/toggle_voice_reading`, 
+                            `/api/interview/${token.value}/toggle_voice_reading`, 
                             { enabled: voiceReadingEnabled.value }
                         );
                         if (voiceReadingEnabled.value) {
@@ -2049,7 +2043,7 @@
                     console.log('开始面试');
                     // 先保存选择的面试官类型
                     try {
-                        await axios.post(`${baseURL}api/interview/${token.value}/set_voice`, {
+                        await axios.post(`/api/interview/${token.value}/set_voice`, {
                             voice_type: selectedVoice.value
                         });
                     } catch (err) {
@@ -2061,7 +2055,7 @@
                     try {
                         loading.value = true;
                         loadingMessage.value = '生成面试问题中...';
-                        const response = await axios.post(`${baseURL}api/interview/${token.value}/generate_questions`);
+                        const response = await axios.post(`/api/interview/${token.value}/generate_questions`);
                         console.log('生成面试问题成功:', response.data);
                     } catch (err) {
                         console.error('生成面试问题失败:', err);
@@ -2096,13 +2090,16 @@
                 // 获取面试问题
                 const fetchQuestion = async () => {
                     console.log('开始获取面试问题...');
+                    // 快照：进入本函数时是否已有当前题（用于下方推进题号）。
+                    // 首次取题（开始面试）时为 false，答完/跳过后再取时为 true
+                    const hadQuestion = !!currentQuestion.value;
                     loading.value = true;
                     loadingMessage.value = '获取问题中...';
                     stopCurrentAudio();
                     try {
-                        console.log('调用API获取问题:', `${baseURL}api/interview/${token.value}/get_question`);
+                        console.log('调用API获取问题:', `/api/interview/${token.value}/get_question`);
                         console.log('当前问题ID:', currentQuestion.value ? currentQuestion.value.id : 0);
-                        const response = await axios.get(`${baseURL}api/interview/${token.value}/get_question`, {
+                        const response = await axios.get(`/api/interview/${token.value}/get_question`, {
                             params: {
                                 current_id: currentQuestion.value ? currentQuestion.value.id : 0
                             }
@@ -2119,6 +2116,11 @@
                         } else {
                             console.log('获取问题成功:', response.data.text);
                             currentQuestion.value = response.data;
+                            // 推进题号：首次取题归 0，之后每取到一题 +1。
+                            // 进度条（progressPercentage）和「第几题/共几题」显示都依赖它。
+                            // 2026-10-05 修复：之前只有后端挂掉走模拟数据的分支才更新此值，
+                            // 真实面试时进度条永远停在 20%，让人误以为提交没生效
+                            currentQuestionIndex.value = hadQuestion ? currentQuestionIndex.value + 1 : 0;
                             if (voiceReadingEnabled.value) {
                                 // 优先使用预生成的语音
                                 // && 表示"且"：后端说有预生成音频、且确实带了数据，两个条件都成立才走这个分支
@@ -2316,9 +2318,9 @@
                 const fallbackToServerTTS = async (text) => {
                     console.log('开始使用服务器大模型TTS...');
                     try {
-                        console.log('调用TTS API:', `${baseURL}api/tts/synthesize`);
+                        console.log('调用TTS API:', `/api/tts/synthesize`);
                         console.log('TTS参数:', { text: text, voice_type: selectedVoice.value });
-                        const response = await axios.post(`${baseURL}api/tts/synthesize`, {
+                        const response = await axios.post(`/api/tts/synthesize`, {
                             text: text,
                             voice_type: selectedVoice.value
                         });
@@ -2770,7 +2772,7 @@
                         console.log('问题ID:', questionId);
                         
                         // 提交答案
-                        const response = await axios.post(`${baseURL}api/interview/${token.value}/submit_text_answer`, {
+                        const response = await axios.post(`/api/interview/${token.value}/submit_text_answer`, {
                             question_id: questionId,
                             answer_text: textAnswer.value
                         });
@@ -2923,7 +2925,7 @@
                         
                         const imageBase64 = canvas.toDataURL('image/jpeg', 0.8);
                         
-                        const response = await axios.post(`${baseURL}api/expression/analyze`, {
+                        const response = await axios.post(`/api/expression/analyze`, {
                             image_base64: imageBase64
                         }, {
                             timeout: 10000
@@ -2948,7 +2950,7 @@
                 // 保存表情记录到服务器
                 const saveExpressionRecord = async (data, imageBase64) => {
                     try {
-                        await axios.post(`${baseURL}api/interview/${token.value}/expression`, {
+                        await axios.post(`/api/interview/${token.value}/expression`, {
                             image_base64: imageBase64,
                             expression: data.expression,
                             expression_cn: data.expression_cn,
@@ -2983,7 +2985,7 @@
                         await new Promise(resolve => setTimeout(resolve, 2000));
                         
                         // 调用大模型API生成评价
-                        const response = await axios.post(`${baseURL}api/evaluation/generate`, {
+                        const response = await axios.post(`/api/evaluation/generate`, {
                             token: token.value
                         });
                         
