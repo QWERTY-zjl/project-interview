@@ -7,7 +7,8 @@
 import base64
 import json
 import requests
-from app.config.config import DASHSCOPE_API_KEY
+# 模型名和 API 地址都从配置读取（.env 可覆盖，无需改代码），见 config.py 的 AI 服务配置区块
+from app.config.config import DASHSCOPE_API_KEY, DASHSCOPE_NATIVE_URL, EXPRESSION_MODEL
 
 
 def analyze_face_expression(image_data):
@@ -29,8 +30,8 @@ def analyze_face_expression(image_data):
             print("[FACE] 错误: API Key 为空!")
             return None, "未配置 DASHSCOPE_API_KEY"
         
-        # 构建API请求
-        url = "https://dashscope.aliyuncs.com/api/v1/services/vision/face/expression"
+        # 构建API请求（地址和模型名来自 config，.env 可覆盖）
+        url = f"{DASHSCOPE_NATIVE_URL}/api/v1/services/vision/face/expression"
         headers = {
             "Authorization": f"Bearer {api_key}",
             "Content-Type": "application/json"
@@ -41,7 +42,7 @@ def analyze_face_expression(image_data):
         
         # 构建请求参数
         data = {
-            "model": "face-expression-detection",
+            "model": EXPRESSION_MODEL,
             "input": {
                 "image": image_base64
             },

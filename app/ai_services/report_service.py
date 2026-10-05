@@ -14,7 +14,8 @@
 
 【与出题流程（question_service）的配置一致性】
 统一走 DashScope 的 OpenAI 兼容端点（DASHSCOPE_BASE_URL + DASHSCOPE_API_KEY），
-模型用 qwen-plus——比出题的 qwen-flash 高一档：报告要逐题评分+多维综合，质量优先
+模型统一用 LLM_MODEL（默认 qwen-flash）——个人版成本优先：qwen-flash 是百炼
+上最便宜的合理选择（输入 0.15 元/百万 token），且支持 JSON 输出与结构化评分
 
 【一次返回两个视图】
   - evaluation：前端报告页直接使用的字段（averageScore/scores/detailedScores/
@@ -29,10 +30,11 @@ import json        # 标准库：序列化报告存库 / 解析大模型返回�
 import re          # 标准库：正则剥掉模型返回里可能出现的 ```json 围栏
 import os          # 标准库：读环境变量 DASHSCOPE_API_KEY（.env 由启动脚本加载进环境）
 import requests    # 第三方 HTTP 库：调用大模型接口（server.py 等模块已在用，无新增依赖）
-from app.config.config import DASHSCOPE_API_KEY, DASHSCOPE_BASE_URL
-# ↑ 两个配置来自 app/config/config.py（从 .env 读取），与 question_service 完全一致：
+from app.config.config import DASHSCOPE_API_KEY, DASHSCOPE_BASE_URL, LLM_MODEL
+# ↑ 三个配置来自 app/config/config.py（从 .env 读取），与 question_service 完全一致：
 #   DASHSCOPE_API_KEY  -> 阿里云百炼平台 API 密钥（鉴权用，只存 .env，不入代码库）
 #   DASHSCOPE_BASE_URL -> DashScope 的 OpenAI 兼容端点，拼 /chat/completions 得完整地址
+#   LLM_MODEL          -> 模型名（默认 qwen-flash），出题和报告统一用它，换模型只改 .env
 from app.db.db import return_db
 # ↑ 数据库辅助函数：关闭连接并从全局连接池 _connections 中移除。
 #   本模块在"成功返回前"和"每个失败分支"都调用它——
@@ -219,8 +221,10 @@ JSON格式示例:
     # 完整请求地址 = 基地址 + OpenAI 兼容的对话补全路径
     url = f"{DASHSCOPE_BASE_URL}/chat/completions"
     data = {
-        # 报告生成比出题复杂（逐题评分 + 多维综合），用高一档的 qwen-plus 保证质量
-        "model": "qwen-plus",
+        # 模型统一走 config 的 LLM_MODEL（默认 qwen-flash）：
+        # qwen-flash 是百炼上最便宜的合理选择（输入 0.15 元/百万 token，Qwen3 支持 JSON 输出），
+        # 个人版以成本优先，出题和报告统一用一个模型，以后换模型只改 .env 一处
+        "model": LLM_MODEL,
         "messages": [
             # system 定评估专家角色并强调 JSON 输出；user 放全部评估素材
             {"role": "system", "content": "你是一位专业的面试评估专家，负责评估技术面试表现。请返回JSON格式。"},

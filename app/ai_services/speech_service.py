@@ -8,16 +8,19 @@
 import base64
 import logging
 import requests
-from app.config.config import DASHSCOPE_API_KEY
+# 模型名和 API 地址都从配置读取（.env 可覆盖，无需改代码），见 config.py 的 AI 服务配置区块
+from app.config.config import DASHSCOPE_API_KEY, DASHSCOPE_NATIVE_URL, ASR_MODEL, TTS_MODEL, DEFAULT_TTS_VOICE
 
 logger = logging.getLogger(__name__)
 
-# 音色映射表：前端音色类型 → 阿里云音色ID
+# 音色映射表：前端音色类型 → qwen-tts 音色ID
+# 注意：qwen-tts 只认英文别名音色（Cherry=女/Ethan=男/Chelsie=女），
+# 旧版 zh-CN-*Neural 风格音色在 qwen-tts 上无效
 VOICE_MAP = {
-    "professional_male": "zh-CN-YunxiNeural",   # 专业男声
-    "professional_female": "zh-CN-YunxiaNeural",  # 专业女声
-    "energetic_male": "zh-CN-YunyangNeural",     # 活力男声
-    "gentle_female": "zh-CN-YunqingNeural"        # 温柔女声
+    "professional_male": "Ethan",      # 专业男声
+    "professional_female": "Cherry",   # 专业女声
+    "energetic_male": "Ethan",         # 活力男声
+    "gentle_female": "Chelsie"         # 温柔女声
 }
 
 def transcribe_audio_with_openai(audio_data, format="wav"):
@@ -39,12 +42,12 @@ def transcribe_audio_with_openai(audio_data, format="wav"):
         # 将音频转换为 base64 编码
         audio_base64 = base64.b64encode(audio_data).decode('utf-8')
         
-        # 调用阿里云 ASR API
+        # 调用阿里云 ASR API（地址和模型名来自 config，.env 可覆盖）
         response = requests.post(
-            "https://dashscope.aliyuncs.com/api/v1/services/audio/asr",
+            f"{DASHSCOPE_NATIVE_URL}/api/v1/services/audio/asr",
             headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
             json={
-                "model": "paraformer-v2",
+                "model": ASR_MODEL,
                 "input": {"audio": audio_base64},
                 "parameters": {"language": "zh-CN", "format": format}
             },
@@ -78,25 +81,30 @@ def synthesize_speech(text, voice_type="professional_male"):
             return None, "未配置 API Key"
         
         # 映射音色类型
-        voice = VOICE_MAP.get(voice_type, "zh-CN-YunxiNeural")
-        
-        # 调用阿里云 TTS API
+        voice = VOICE_MAP.get(voice_type, DEFAULT_TTS_VOICE)
+
+        # qwen-tts 走 multimodal-generation 端点（不是旧版 /audio/tts）
+        # 非流式调用返回的是音频下载地址（24小时有效），需要二次下载二进制
         response = requests.post(
-            "https://dashscope.aliyuncs.com/api/v1/services/audio/tts",
+            f"{DASHSCOPE_NATIVE_URL}/api/v1/services/aigc/multimodal-generation/generation",
             headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
             json={
-                "model": "Qwen-TTS",
-                "input": {"text": text},
-                "parameters": {"voice": voice, "format": "wav", "sample_rate": 16000}
+                "model": TTS_MODEL,
+                "input": {"text": text, "voice": voice}
             },
             timeout=60
         )
-        
+
         if response.status_code == 200:
             result = response.json()
-            # 解码音频数据
-            audio_data = base64.b64decode(result["output"]["audio"])
-            return audio_data, None
+            audio_url = result.get("output", {}).get("audio", {}).get("url", "")
+            if not audio_url:
+                return None, "语音合成失败: 响应中无音频URL"
+            # 下载音频二进制（调用方拿到的是 bytes，与旧接口返回格式保持一致）
+            audio_resp = requests.get(audio_url, timeout=60)
+            if audio_resp.status_code == 200:
+                return audio_resp.content, None
+            return None, f"音频下载失败: {audio_resp.status_code}"
         return None, f"语音合成失败: {response.status_code}"
     except Exception as e:
         logger.error(f"[TTS] 错误: {e}")
