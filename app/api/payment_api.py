@@ -18,8 +18,8 @@ quota_router = APIRouter(tags=["配额"])
 # 导入付费模块
 PAYMENT_ENABLED = False
 try:
-    import payment_module
-    from alipay_module import AlipayManager, mock_payment
+    from app import payment_module
+    from app.alipay_module import AlipayManager, mock_payment
     PAYMENT_ENABLED = True
     logger.info("[INFO] 付费功能模块已加载")
 except ImportError as e:
@@ -180,7 +180,7 @@ async def alipay_return(request: Request):
 # 以下 3 个接口从 server.py 平移（Flask→FastAPI），业务逻辑与响应格式保持一字不差
 
 @router.post("/api/payment/mock/confirm", summary="模拟支付确认")
-async def mock_confirm_payment(order_no: str = Body(...)):
+async def mock_confirm_payment(order_no: str = Body(..., embed=True)):
     """模拟支付确认（测试环境用：跳过支付宝，直接把订单标记为已支付）
 
     Args:

@@ -15,7 +15,7 @@ router = APIRouter(tags=["套餐定价"])
 # 付费功能总开关：默认 False（关闭）。payment_module 加载成功时在下方改为 True
 PAYMENT_ENABLED = False
 try:
-    import payment_module
+    from app import payment_module  # 包内导入（裸导入在 python -m 启动下找不到，见 auth_api.py）
     PAYMENT_ENABLED = True
     logger.info("[INFO] 付费功能模块已加载")
 except ImportError as e:

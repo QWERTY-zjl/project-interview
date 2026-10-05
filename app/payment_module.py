@@ -8,9 +8,14 @@ import time
 from datetime import datetime, timedelta
 from functools import wraps
 
+# 数据库路径从统一配置读取（app/config/config.py 用 __file__ 锚定成绝对路径）。
+# 不能写裸文件名 'interview_system.db'：那是相对路径，跟着进程启动目录走，
+# 从仓库根启动会连到一个凭空生成的空库（no such table），与 db.py 的修复同理
+from app.config.config import DATABASE_NAME
+
 def get_db():
-    """获取数据库连接"""
-    conn = sqlite3.connect('interview_system.db')
+    """获取数据库连接（连主库 app/db/interview_system.db，与 db.py 同一份数据）"""
+    conn = sqlite3.connect(DATABASE_NAME)
     conn.row_factory = sqlite3.Row
     return conn
 
@@ -95,9 +100,10 @@ def login_user(username_or_email, password):
         if user['status'] == 0:
             return False, "账号已被禁用", None
         
-        # 更新最后登录时间
+        # 更新最后登录时间（个人版 users 表的列名是 last_login_at，
+        # 没有企业版的 updated_at 列，照搬会报 no such column: updated_at）
         cursor.execute('''
-            UPDATE users SET updated_at = ? WHERE id = ?
+            UPDATE users SET last_login_at = ? WHERE id = ?
         ''', (int(time.time()), user['id']))
         conn.commit()
         
@@ -167,8 +173,8 @@ def get_user_quota(user_id):
             ORDER BY end_date DESC
         ''', (user_id, current_time))
         
-        subscriptions = cursor.fetchall()
-        
+        subscriptions = [dict(row) for row in cursor.fetchall()]  # sqlite3.Row 没有 .get 方法，先转 dict
+
         # 汇总配额
         total_interviews = quota_dict.get('free_interviews_remaining', 3)
         total_tts = quota_dict.get('tts_quota_minutes', 10)
@@ -492,6 +498,35 @@ def get_order_by_no(order_no):
         cursor.execute("SELECT * FROM orders WHERE order_no = ?", (order_no,))
         order = cursor.fetchone()
         return dict(order) if order else None
+    finally:
+        conn.close()
+
+def update_order_status(order_no, pay_status, trade_no=None, total_amount=None):
+    """只更新订单支付状态（支付宝异步通知/同步返回回调用）
+
+    与 update_order_payment 的区别：本函数只改 orders 表的状态字段，
+    不创建用户订阅（订阅激活走 mock/confirm 等明确入口）。
+    total_amount 保留在签名里与回调数据对齐，但 orders 表没有对应列，暂不落库。
+
+    Returns: (success, message)
+    """
+    conn = get_db()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute('''
+            UPDATE orders
+            SET pay_status = ?, pay_trade_no = ?, pay_time = ?
+            WHERE order_no = ?
+        ''', (pay_status, trade_no, int(time.time()), order_no))
+        conn.commit()
+        # rowcount = 上一条语句影响了几行：0 行说明订单号在库里不存在
+        if cursor.rowcount == 0:
+            return False, "订单不存在"
+        return True, "订单状态已更新"
+    except Exception as e:
+        conn.rollback()
+        return False, f"更新订单状态失败: {str(e)}"
     finally:
         conn.close()
 

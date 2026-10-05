@@ -23,12 +23,14 @@ logger = logging.getLogger(__name__)
 router = APIRouter(tags=["用户认证"])
 
 # 导入付费模块
-# 注册/登录/配额依赖 payment_module（它还要依赖数据库表），但该模块在 python -m 启动方式下
-# 找不到（已知遗留问题），所以用 try/except 探测：能加载就开真功能，加载失败就降级——
-# PAYMENT_ENABLED 是后面的"功能开关"，接口里据此返回 503（服务不可用）或假数据
+# payment_module 已纳入 app 包（app/payment_module.py），用包内路径导入。
+# 旧写法 `import payment_module`（裸导入）在 python -m 启动方式下找不到模块，
+# 导致注册/登录/配额一直走 503 兜底（2026-10-01 测试报告待办 #3，已修复）。
+# 保留 try/except 探测：加载失败时降级——PAYMENT_ENABLED 是后面的"功能开关"，
+# 接口里据此返回 503（服务不可用）或假数据，模块缺失不至于拖垮整个服务启动
 PAYMENT_ENABLED = False
 try:
-    import payment_module
+    from app import payment_module
     PAYMENT_ENABLED = True
     logger.info("[INFO] 付费功能模块已加载")
 # except ImportError as e：把捕获的异常对象起名叫 e，才能在下面 f-string 里打印它

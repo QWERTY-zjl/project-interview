@@ -3,6 +3,7 @@
 """
 
 import logging
+import os  # init_alipay 里用了 os.getenv 读 BASE_URL，顶部不导入会在启用支付宝时报 NameError
 from fastapi import APIRouter, Path, Body, Query, HTTPException
 from fastapi.responses import JSONResponse
 
@@ -11,11 +12,11 @@ logger = logging.getLogger(__name__)
 # 订单路由：本文件所有订单接口共用
 router = APIRouter(tags=["订单"])
 
-# 导入付费模块
+# 导入付费模块（包内路径，裸导入在 python -m 启动下找不到，见 auth_api.py 说明）
 PAYMENT_ENABLED = False
 try:
-    import payment_module
-    from alipay_module import AlipayManager, mock_payment, format_amount, generate_order_subject
+    from app import payment_module
+    from app.alipay_module import AlipayManager, mock_payment, format_amount, generate_order_subject
     PAYMENT_ENABLED = True
     logger.info("[INFO] 付费功能模块已加载")
 except ImportError as e:
@@ -89,7 +90,7 @@ async def api_create_order(user_id: int = Body(...), plan_id: int = Body(...)):
 
 
 @router.post("/api/orders/pay", summary="支付订单")
-async def api_pay_order(order_no: str = Body(...)):
+async def api_pay_order(order_no: str = Body(..., embed=True)):
     """支付订单，返回支付宝支付链接（未启用支付宝时走模拟支付）
 
     Args:
