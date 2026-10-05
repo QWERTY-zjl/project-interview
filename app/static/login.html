@@ -183,10 +183,7 @@
       // data()：选项式的"变量仓库"——这里 return 的所有数据，模板里直接用、methods 里用 this. 访问
       data() {
         return {
-          // 三目表达式选 baseURL：本机开发(localhost/127.0.0.1)连本地端口，线上连正式域名
-          baseURL: (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
-            ? 'http://localhost:10008/'   // dev
-            : 'https://www.en9.cn/', // prd
+          // 接口地址用相对路径（/api/...）：页面从哪打开，请求就发到哪，开发和部署一套代码通用
           // 嵌套对象：两个输入框的内容通过 v-model="form.username" 实时存到这里
           form: {
             username: '',
@@ -203,7 +200,7 @@
           try {
             // fetch：浏览器原生的 HTTP 请求函数（axios 是封装过的第三方库，fetch 免安装）
             // JSON.stringify：把 JS 对象变成 JSON 字符串（Python 的 json.dumps）
-            const response = await fetch(`${this.baseURL}/api/auth/login`, {
+            const response = await fetch(`/api/auth/login`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },   // 告诉后端：请求体是 JSON 格式
               body: JSON.stringify(this.form)                    // 请求体：用户名+密码打包成 JSON

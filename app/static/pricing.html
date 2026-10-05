@@ -403,9 +403,7 @@
     createApp({
       data() {
         return {
-          baseURL: (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
-            ? 'http://localhost:10008/'   // dev
-            : 'https://www.en9.cn/', // prd
+          // 接口地址用相对路径（/api/...）：页面从哪打开，请求就发到哪，开发和部署一套代码通用
           currentUser: null,
           userQuota: {},
           plans: [],
@@ -445,7 +443,7 @@
           if (!this.currentUser) return;
           
           try {
-            const response = await fetch(`${this.baseURL}/api/user/quota?user_id=${this.currentUser.id}`);
+            const response = await fetch(`/api/user/quota?user_id=${this.currentUser.id}`);
             const data = await response.json();
             if (data.status === 'success') {
               this.userQuota = data.quota;
@@ -458,7 +456,7 @@
         // 加载套餐列表
         async loadPlans() {
           try {
-            const response = await fetch(`${this.baseURL}/api/pricing/plans`);
+            const response = await fetch(`/api/pricing/plans`);
             const data = await response.json();
             if (data.status === 'success') {
               this.plans = data.plans;
@@ -492,7 +490,7 @@
 
           try {
             // 1. 创建订单
-            const createResponse = await fetch(`${this.baseURL}/api/orders/create`, {
+            const createResponse = await fetch(`/api/orders/create`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
@@ -513,7 +511,7 @@
               }
 
               // 3. 创建支付
-              const payResponse = await fetch(`${this.baseURL}/api/orders/pay`, {
+              const payResponse = await fetch(`/api/orders/pay`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -544,7 +542,7 @@
         // 确认模拟支付
         async confirmMockPayment() {
           try {
-            const response = await fetch(`${this.baseURL}/api/payment/mock/confirm`, {
+            const response = await fetch(`/api/payment/mock/confirm`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
