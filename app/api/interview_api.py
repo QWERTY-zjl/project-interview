@@ -36,6 +36,9 @@ interviews.user_id 对 users.id；interview_questions.interview_id 对 interview
 # logging：Python 标准库日志模块。logger.error()/info() 输出带时间、模块名的
 # 结构化日志，比 print 规范，且可按级别统一开关
 import logging
+# json：标准库 JSON 模块。my_records / detail 接口用它解析 interviews 表里的
+# report_content 字段——那是一个"存进数据库的 JSON 字符串"，要还原成字典才能取字段
+import json
 # time：标准库时间模块。本文件只用 time.time()——返回当前 Unix 时间戳
 # （从 1970-01-01 起的秒数，浮点数），数据库里 start_time/answered_at 存的就是它
 import time
@@ -46,17 +49,18 @@ import time
 #   Query(...)      —— 取值器：从 URL 问号后的查询串（?current_id=5）取值
 #   Body(...)       —— 取值器：从请求体 JSON 里取值
 #   HTTPException   —— 抛出后由 FastAPI 统一转成带状态码的错误响应
-#   BackgroundTasks —— 后台任务登记器：响应返回后再执行的任务（见 create_and_redirect）
-from fastapi import APIRouter, Path, Query, Body, HTTPException, BackgroundTasks
-# 两种特殊响应对象：
-#   JSONResponse     —— 手工指定状态码 + JSON 内容（项目主流返回写法）
-#   RedirectResponse —— 302 跳转响应，让浏览器转到另一个 URL
-from fastapi.responses import JSONResponse, RedirectResponse
+from fastapi import APIRouter, Path, Query, Body, HTTPException, Request
+# JSONResponse —— 手工指定状态码 + JSON 内容（项目主流返回写法）。
+# （RedirectResponse 已随 2026-10-06 删除 create_and_redirect 接口一并移除）
+from fastapi.responses import JSONResponse
 
 # 数据库连接池的两个入口（实现在 app/db/db.py，线程本地连接模式）：
 #   get_db()    —— 借一个连接（每个线程拿到自己专属的那份）
 #   return_db() —— 还回去；借了必须还，否则连接越借越少最终耗尽
 from app.db.db import get_db, return_db
+# get_auth_user：从请求头 Authorization: Bearer <token> 解析当前登录用户
+# （my_records 接口鉴权用，见 app/api/deps.py）
+from app.api.deps import get_auth_user
 # 生成 32 位随机 token 的工具函数（app/utils/utils.py），底层用 secrets 模块
 # 保证密码学安全——面试链接全靠它防遍历猜解（防 IDOR 漏洞）
 from app.utils.utils import generate_token
@@ -484,81 +488,19 @@ async def set_interview_voice(token: str = Path(...), voice_type: str = Body(...
         raise HTTPException(status_code=500, detail=str(e))
 
 
-# ==================== 创建面试API ====================
-# 以下接口从 server.py 平移（Flask→FastAPI），业务逻辑与响应格式保持一字不差
-
-# 注意 5 个参数全部是 Body(...)，各对应请求体 JSON 里的一个键。
-# Body(None)/Body(5)/Body('professional_male') 是"带默认值的可选参数"——
-# 前端不传就用默认值；对比 (...) 表示必填。本接口用 JSONResponse 手动返回
-# 错误（而不是 raise HTTPException），是从 Flask 平移保留的两种风格之一
-@router.post("/api/interview/create", summary="创建面试")
-async def create_interview(user_id: int = Body(None), interview_type_id: int = Body(None),
-                           question_count: int = Body(5), voice_reading: int = Body(1),
-                           voice_type: str = Body('professional_male')):
-    """创建新面试（个人用户版）
-
-    Args:
-        user_id: 用户ID
-        interview_type_id: 面试类型ID
-        question_count: 问题数量（默认 5）
-        voice_reading: 是否开启语音朗读（默认 1）
-        voice_type: 音色类型（默认 professional_male）
-
-    Returns:
-        JSONResponse: {"status": "success", "interview_id": 面试ID, "token": 面试token}
-    """
-    try:
-        # 先校验再动数据库——user_id/interview_type_id 是建表时的 NOT NULL 外键，缺了必失败
-        if not user_id or not interview_type_id:
-            return JSONResponse(status_code=400, content={"error": "缺少必要参数"})
-
-        # 生成token：32 位密码学安全随机串（大小写字母+数字），不可预测——
-        # 这场面试的所有接口都靠它定位，外人猜不出来就进不来（防 IDOR）
-        token = generate_token()
-        logger.info(f"[Interview] 生成面试token: {token}")
-
-        # 插入数据库
-        conn = get_db()
-        cursor = conn.cursor()   # 显式游标：下面要用 cursor.lastrowid，得起个名字拿住
-
-        # 插入面试记录（status=0 表示"待出题"）
-        # 【SQL 怎么读】INSERT INTO 表名 (列清单) VALUES (值清单)：
-        # 列清单和值清单按位置一一对应——第 1 个 ? 填 user_id、第 2 个填
-        # interview_type_id……第 8 个填 token，一个不多一个不少。
-        # 注意列清单里没有 id：id 是 AUTOINCREMENT 自增列，数据库自动分配编号
-        # （从 1 开始、只增不复用）——所以插入后要用 lastrowid"问数据库要编号"
-        cursor.execute('''
-            INSERT INTO interviews (user_id, interview_type_id, start_time, status, question_count, voice_reading, voice_type, token)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        ''', (user_id, interview_type_id, int(time.time()), 0, question_count, voice_reading, voice_type, token))
-
-        # lastrowid：游标属性——"刚 INSERT 的那行，数据库分配的自增 id 是多少"。
-        # 插入后立刻读，零成本；不读的话得再发一条 SELECT 去查，多一次往返
-        interview_id = cursor.lastrowid
-        logger.info(f"[Interview] 创建面试成功，ID: {interview_id}")
-
-        # 提交事务：INSERT 到此才真正写入磁盘文件
-        conn.commit()
-        return_db(conn)   # 写完还连接
-
-        return JSONResponse(
-            status_code=200,
-            content={"status": "success", "interview_id": interview_id, "token": token}
-        )
-    except Exception as e:
-        logger.error(f"[Interview] 创建面试失败: {e}")
-        import traceback
-        traceback.print_exc()
-        return JSONResponse(status_code=500, content={"error": str(e)})
+# 【2026-10-06 删除】/api/interview/create 与 /api/interview/create_and_redirect
+# 两个接口已移除：它们允许匿名（create_and_redirect 甚至写死 user_id=1）凭空
+# 创建面试，是"未登录也能面试"的后门；且绕过简历上传，出题没有简历依据。
+# 个人版开始面试的唯一入口 = 登录后在工作台上传简历（/api/resume/upload，已鉴权）
 
 
 def _generate_questions_business(token: str):
     """
-    生成面试问题的业务实现（同步函数，供路由和后台任务共用）
+    生成面试问题的业务实现（同步函数，供路由共用）
 
-    【为什么拆出来】create_and_redirect 要在"响应返回之后"后台出题，
-    路由 POST .../generate_questions 又要在"前端请求时"出题——
-    两条路径走同一份业务逻辑，避免复制粘贴两份。
+    【为什么拆出来】出题要调大模型（耗时几十秒），把业务逻辑和路由函数
+    分开写：路由函数只负责接请求、调业务、包响应，逻辑清晰也方便复用。
+    （2026-10-06 前 create_and_redirect 也复用它做后台出题，该接口已删除）
 
     参数:
         token: 面试token
@@ -700,54 +642,6 @@ def generate_questions(token: str = Path(...)):
     return JSONResponse(status_code=code, content=result)
 
 
-# background_tasks: BackgroundTasks —— FastAPI 的依赖注入：参数声明了类型，
-# 框架自动把实例传进来。add_task(函数, 参数) 登记"响应返回之后"执行的任务。
-# 本接口借此实现"先让用户进面试页，出题在后台慢慢跑"——出题要调大模型几十秒，
-# 若同步等待，用户点"快速开始"会白屏几十秒
-@router.get("/api/interview/create_and_redirect", summary="快速开始面试")
-async def create_and_redirect(background_tasks: BackgroundTasks):
-    """创建面试并重定向到面试页（管理后台"快速开始"入口，出题放到后台任务执行）
-
-    Args:
-        background_tasks: FastAPI 后台任务，用于响应返回后异步出题
-
-    Returns:
-        RedirectResponse: 302 跳转到 /static/interview.html?token=xxx
-    """
-    try:
-        # 生成token
-        token = generate_token()
-        logger.info(f"[Interview] 生成面试token: {token}")
-
-        # 插入数据库（默认参数：用户1、类型1、5题、开朗读、专业男面试官）
-        # INSERT 写法与 create_interview 完全相同（列清单↔值清单一一对应、
-        # id 由 AUTOINCREMENT 自动分配），只是参数写死、不来自前端
-        conn = get_db()
-        cursor = conn.cursor()
-
-        cursor.execute('''
-            INSERT INTO interviews (user_id, interview_type_id, start_time, status, question_count, voice_reading, voice_type, token)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        ''', (1, 1, int(time.time()), 0, 5, 1, 'professional_male', token))
-
-        # lastrowid：刚插入那行的自增 id
-        interview_id = cursor.lastrowid
-        logger.info(f"[Interview] 创建面试成功，ID: {interview_id}")
-
-        conn.commit()
-        return_db(conn)
-
-        # 先登记后台任务（响应返回后框架自动执行出题），再立即重定向。
-        # add_task(要调的函数, 传给它的参数)：把 token 传给出题业务函数
-        background_tasks.add_task(_generate_questions_business, token)
-
-        # 302 重定向：告诉浏览器"改去访问这个新地址"——面试页 URL + token 查询参数，
-        # 面试页再拿这个 token 调上面各接口取题、交答案
-        return RedirectResponse(url=f"/static/interview.html?token={token}", status_code=302)
-    except Exception as e:
-        logger.error(f"[Interview] 创建面试失败: {str(e)}")
-        return JSONResponse(status_code=500, content={"error": str(e)})
-    
 # ==================== 面试统计（只读练手接口） ====================
 # 练习目标：新建路由 + GROUP BY 统计 SQL + 组装返回值
 # status 状态机（见建表脚本注释）：0=未开始 1=试题已备好 2=面试进行中(预留)
@@ -798,3 +692,260 @@ def get_interview_stats(days: int = Query(None)):
             },
         },
     )
+
+
+@router.get("/api/interview/my_records", summary="查询某用户的面试记录列表（工作台用）")
+async def get_my_records(request: Request):
+    """查询某用户的最近面试记录 + 汇总统计
+
+    【为什么需要这个接口】admin.html 工作台原来展示的是企业版遗留的假数据
+    （写死的 78 分 / 12 次 / 3 条编造记录），本接口用 interviews 表的真实场次
+    替换它们。岗位名和得分不单独存表，而是从 interviews.report_content 这个
+    JSON 字符串里解析出来（报告生成时写进去的）。
+
+    【2026-10-06 越权修复】原来 ?user_id=N 谁都能传、想看谁的记录看谁的——
+    改成从请求头 Authorization: Bearer <token> 解析当前登录用户（见 deps.py），
+    未登录或 token 无效一律 401，不再有 user_id 参数。
+
+    Args:
+        request: FastAPI 请求对象（用于从请求头取 token）
+
+    Returns:
+        JSONResponse: {
+            "status": "success",
+            "records": [  # 最近 10 场，新的在前
+                {"token": ..., "start_time": ...秒级时间戳, "status": ...,
+                 "position_name": 岗位名或None, "score": 得分或None}
+            ],
+            "stats": {"total_count": 累计场数, "average_score": 平均分或None}
+        }
+        平均分只统计已生成报告的场次（status=4 且 report_content 能解析出分数）；
+        一场都没有时 records 为空列表、average_score 为 None
+    """
+    # 身份鉴权：token 反查用户，查不到（未登录/凭证失效）直接 401 拦截
+    user = get_auth_user(request)
+    if user is None:
+        return JSONResponse(
+            status_code=401,
+            content={"error": "请先登录"}
+        )
+    try:
+        conn = get_db()
+
+        # 最近 10 场的真实记录。ORDER BY id DESC：id 自增，倒序即"新的在前"；
+        # LIMIT 10：个人版展示用，取最近 10 场足够，不做分页
+        rows = conn.execute('''
+            SELECT token, start_time, status, report_content
+            FROM interviews
+            WHERE user_id = ?
+            ORDER BY id DESC
+            LIMIT 10
+        ''', (user['id'],)).fetchall()
+
+        # 累计场数：COUNT(*) 只数该用户的全部行（不只最近 10 场），
+        # 作为"累计 X 场"指标——fetchone()[0] 取第一行第一列（COUNT 结果）
+        total_count = conn.execute(
+            'SELECT COUNT(*) FROM interviews WHERE user_id = ?', (user['id'],)
+        ).fetchone()[0]
+
+        # 逐场解析 report_content，抽出岗位名和得分
+        records = []
+        scores = []  # 收集所有有效得分，最后算平均
+        for row in rows:
+            position_name = None
+            score = None
+            # report_content 可能是 NULL（没走到报告环节的场次），
+            # row['report_content'] 取出 None 时跳过解析，两字段保持 None
+            if row['report_content']:
+                try:
+                    report = json.loads(row['report_content'])
+                    # 顶层 position_name 由 report_service 写入（如"AI应用经理"）
+                    position_name = report.get('position_name')
+                    # 得分在 evaluation 子对象里；解析出的值必须是数字才算有效，
+                    # 防御报告 JSON 结构异常（如 score 是字符串"44"）污染统计
+                    ev = report.get('evaluation') or {}
+                    raw_score = ev.get('averageScore')
+                    if isinstance(raw_score, (int, float)):
+                        score = raw_score
+                        scores.append(score)
+                except (json.JSONDecodeError, TypeError) as e:
+                    # JSON 解析失败只影响这一场的岗位/得分展示，不让整个接口挂掉
+                    logger.error(f"[MY_RECORDS] 解析 report_content 失败: {e}")
+
+            records.append({
+                "token": row['token'],
+                "start_time": row['start_time'],  # 秒级时间戳，前端负责格式化
+                "status": row['status'],
+                "position_name": position_name,
+                "score": score,
+            })
+
+        return_db(conn)
+
+        # 平均分：round(x, 1) 保留 1 位小数；没有任何已出报告的场次时返回 None
+        average_score = round(sum(scores) / len(scores), 1) if scores else None
+
+        return JSONResponse(
+            status_code=200,
+            content={
+                "status": "success",
+                "records": records,
+                "stats": {"total_count": total_count, "average_score": average_score},
+            },
+        )
+    except Exception as e:
+        logger.error(f"[MY_RECORDS] 查询面试记录失败: {e}")
+        return JSONResponse(status_code=500, content={"detail": f"查询失败: {str(e)}"})
+
+
+@router.get("/api/interview/{token}/detail", summary="查询某场面试的完整详情（题目+回答+报告）")
+async def get_interview_detail(token: str = Path(...)):
+    """查询某场面试的完整详情，供独立的记录详情页展示
+
+    【返回什么】一场面试的三大块内容：
+    1. questions：题目列表（题目原文 + 评分标准 + 考生的回答文本）
+    2. report：完整评价报告（总分 / 三维小分 / 优势 / 改进 / 建议 / 逐题点评）
+    3. interview：基本信息（岗位名、时间、状态）
+    报告数据全部来自 interviews.report_content（生成报告时一次性写入的 JSON）；
+    未生成报告的场次 report 为 null，前端据此显示"报告未生成"。
+
+    Args:
+        token: 面试token（路径参数），一场面试的对外门牌号
+
+    Returns:
+        JSONResponse: {"interview": {...}, "questions": [...], "report": {...}或None}
+    """
+    try:
+        conn = get_db()
+
+        # 基本信息：一场面试一行。id 列必须查——下面查题目时要用它当 interview_id
+        interview = conn.execute('''
+            SELECT id, token, start_time, status, question_count, report_content
+            FROM interviews
+            WHERE token = ?
+        ''', (token,)).fetchone()
+
+        if not interview:
+            return_db(conn)
+            raise HTTPException(status_code=404, detail="面试不存在")
+
+        # 题目列表：一场面试对多道题（一对多），按 id 正序 = 出题顺序。
+        # answer_text：考生交答案时写入，未答的题为 NULL——前端显示"未回答"
+        question_rows = conn.execute('''
+            SELECT id, question, score_standard, answer_text
+            FROM interview_questions
+            WHERE interview_id = ?
+            ORDER BY id ASC
+        ''', (interview['id'],)).fetchall()
+
+        questions = [
+            {
+                "id": q['id'],
+                "question": q['question'],
+                "score_standard": q['score_standard'],
+                # None 不能直接给前端当"没答"，转成 None 是可以的（JSON null），
+                # 这里原样透传，前端自己判空展示"未回答"
+                "answer_text": q['answer_text'],
+            }
+            for q in question_rows
+        ]
+
+        # 解析报告 JSON：未生成（NULL）或解析失败时 report 保持 None
+        report = None
+        if interview['report_content']:
+            try:
+                report = json.loads(interview['report_content'])
+            except (json.JSONDecodeError, TypeError) as e:
+                logger.error(f"[DETAIL] 解析 report_content 失败: {e}")
+
+        return_db(conn)
+
+        return JSONResponse(
+            status_code=200,
+            content={
+                "interview": {
+                    "token": interview['token'],
+                    "start_time": interview['start_time'],
+                    "status": interview['status'],
+                    "question_count": interview['question_count'],
+                },
+                "questions": questions,
+                "report": report,
+            },
+        )
+    except HTTPException:
+        # 主动抛的 404 原样放行（见文件头"错误处理两段式"），不被兜底改写成 500
+        raise
+    except Exception as e:
+        logger.error(f"[DETAIL] 查询面试详情失败: {e}")
+        return JSONResponse(status_code=500, content={"detail": f"查询失败: {str(e)}"})
+
+
+@router.post("/api/interview/{token}/hint", summary="AI辅助：针对当前题目生成答题思路提示")
+async def get_ai_hint(token: str, body: dict = Body(...)):
+    """生成当前题目的答题思路提示（前端"AI辅助"按钮）
+
+    【历史背景】这个按钮原来是纯前端假功能：弹 2 秒假 loading 后显示一段写死的
+    万能文案（不管什么题都是那 4 条建议），从不调大模型。2026-10-06 起改为真调用
+    大模型（qwen-flash），针对题目原文生成个性化提示；失败时诚实降级为通用建议
+    并在前端标注"AI暂不可用"，不装成 AI 生成的。
+
+    【安全设计】题号必须属于当前 token 对应的那场面试（WHERE 同时校验两列），
+    防止拿别场的题目 id 来接口白嫖提示。
+
+    Args:
+        token: 面试token（路径参数）
+        body: JSON 对象 {"question_id": 题目id}（dict 整体接收，无单标量 422 问题）
+
+    Returns:
+        JSONResponse: {"hint": 提示文本, "degraded": 是否为降级通用建议}
+    """
+    # 函数内延迟 import：与 generate_questions 的引用方式保持一致（631 行同款惯例）
+    from app.ai_services.question_service import generate_question_hint
+
+    question_id = body.get("question_id")
+    if not question_id:
+        raise HTTPException(status_code=422, detail="缺少 question_id")
+
+    try:
+        conn = get_db()
+
+        # 验证 token 对应的面试存在
+        interview = conn.execute(
+            'SELECT id FROM interviews WHERE token = ?', (token,)
+        ).fetchone()
+        if not interview:
+            return_db(conn)
+            raise HTTPException(status_code=404, detail="面试不存在")
+
+        # 查题目原文：id 和 interview_id 双条件——题目既要存在又要属于这场面试
+        q = conn.execute('''
+            SELECT question FROM interview_questions
+            WHERE id = ? AND interview_id = ?
+        ''', (question_id, interview['id'])).fetchone()
+        return_db(conn)
+
+        if not q:
+            raise HTTPException(status_code=404, detail="题目不存在")
+
+        # 调大模型生成提示；失败走"诚实降级"：文案明确说 AI 不可用，给通用建议
+        hint, err = generate_question_hint(q['question'])
+        if err or not hint:
+            logger.error(f"[HINT] 生成提示失败，降级为通用建议: {err}")
+            return JSONResponse(
+                status_code=200,
+                content={
+                    "hint": "AI提示生成失败，先给你几条通用建议：\n"
+                            "1. 结合自己的真实项目经验作答\n"
+                            "2. 先讲结论再展开细节\n"
+                            "3. 适当提及踩过的坑和解决过程",
+                    "degraded": True,
+                },
+            )
+
+        return JSONResponse(status_code=200, content={"hint": hint, "degraded": False})
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"[HINT] AI辅助接口异常: {e}")
+        return JSONResponse(status_code=500, content={"detail": f"生成失败: {str(e)}"})

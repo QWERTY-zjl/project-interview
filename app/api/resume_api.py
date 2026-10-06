@@ -12,6 +12,9 @@ from app.utils.utils import generate_token
 from app.ai_services.resume_service import analyze_resume
 from app.ai_services.question_service import generate_questions
 from app.db.db import get_db, return_db
+# get_auth_user：从请求头 Authorization: Bearer <token> 解析当前登录用户
+# （上传接口鉴权用：未登录不允许开始面试，见 app/api/deps.py）
+from app.api.deps import get_auth_user
 
 logger = logging.getLogger(__name__)
 
@@ -29,6 +32,7 @@ async def upload_resume(
     """上传简历并分析，返回面试token
 
     Args:
+        request: FastAPI 请求对象（从请求头 Authorization: Bearer <token> 鉴权）
         resume: 上传的简历文件（仅接受 PDF，内容级校验）
         work_experience: 工作经验年限
         target_position: 目标岗位名称
@@ -37,6 +41,33 @@ async def upload_resume(
         JSONResponse: {"status": "success", "token": "面试令牌", "interview_id": 面试ID}
     """
     logger.info("[Resume] 开始处理上传简历请求")
+
+    # 【2026-10-06 越权修复】开始面试必须登录：原来前端传 user_id 就采纳、
+    # 不传兜底 default_user——等于没登录也能面试且记录全混在一起。
+    # 现在身份只认请求头里的登录 token，未登录/凭证无效一律 401
+    user = get_auth_user(request)
+    if user is None:
+        return JSONResponse(
+            status_code=401,
+            content={"status": "error", "message": "请先登录后再开始面试"}
+        )
+
+    # 【2026-10-06 配额闸门】面试剩余次数为 0 不允许开新面试。
+    # 之前配额只在出题成功后扣减（question_service），纯展示——显示 0 也照样
+    # 能一直面试。闸门放在最前面：简历分析本身就调大模型花钱，配额用尽的
+    # 请求连分析都不该开始。or 0 兜底 interview_quota 为 NULL 的老数据
+    conn = get_db()
+    quota_row = conn.execute(
+        'SELECT interview_quota FROM users WHERE id = ?', (user['id'],)
+    ).fetchone()
+    return_db(conn)
+    remaining = (quota_row['interview_quota'] or 0) if quota_row else 0
+    if remaining <= 0:
+        logger.warning(f"[Resume] 用户 {user['username']}(id={user['id']}) 配额已用尽，拒绝开始面试")
+        return JSONResponse(
+            status_code=422,
+            content={"detail": "面试剩余次数已用完，无法开始新面试。可在主页查看剩余次数"}
+        )
 
     try:
         # 目标岗位必填校验：岗位是出题方向的主要依据，为空会触发后端"前端开发"兜底，
@@ -130,25 +161,11 @@ async def upload_resume(
                 content={"status": "error", "message": f"连接数据库失败: {str(e)}", "error_code": "DATABASE_CONNECTION_ERROR"}
             )
         
-        # 插入用户记录（如果不存在）
-        user_id = 1  # 默认为第一个用户
-        try:
-            existing_user = conn.execute('SELECT id FROM users WHERE id = ?', (user_id,)).fetchone()
-            if not existing_user:
-                conn.execute('INSERT INTO users (username, email, created_at, last_login_at) VALUES (?, ?, ?, ?)',
-                           ('default_user', 'default@example.com', int(time.time()), int(time.time())))
-                logger.info("[Resume] 创建用户成功")
-            else:
-                logger.info("[Resume] 用户已存在，跳过创建")
-        except Exception as e:
-            logger.error(f"[Resume] 错误: 创建用户失败: {e}")
-            import traceback
-            traceback.print_exc()
-            return_db(conn)
-            return JSONResponse(
-                status_code=500,
-                content={"status": "error", "message": f"创建用户失败: {str(e)}", "error_code": "USER_CREATION_ERROR"}
-            )
+        # 面试归属用户：登录态已在函数开头校验，这里直接取登录用户的 id。
+        # 【2026-10-06 修复】原来写死 user_id = 1 → 后改为信任前端传参 →
+        # 现在只认服务端会话：请求头 token 反查出的 user 才是真正的归属人
+        user_id = user['id']
+        logger.info(f"[Resume] 面试归属用户: {user_id} ({user['username']})")
         
         # 插入面试记录
         try:

@@ -7,14 +7,21 @@
 # logging：和 main.py 同一套日志系统；本文件用 getLogger 领取自己的日志器，
 # 打出的日志里 name 显示为 app.api.auth_api，方便按文件定位日志来源
 import logging
+import secrets
 # APIRouter：路由"登记本"——本文件所有接口先登记到 router 上，再由 main.py
 # include_router 合并进 app 的总路由表（不合并就不生效，/docs 里也看不到）
 # Body/Query：参数来源声明——Body(...) 从请求体 JSON 取值，Query(None) 从 URL 问号后取值
 #   第一个参数是默认值：... 是必填，None 是可选；类型校验不过 FastAPI 自动回 422
 # HTTPException：手动抛 HTTP 错误（如 404/400），FastAPI 捕获后转成错误响应
-from fastapi import APIRouter, Body, Query, HTTPException
+# Request：FastAPI 请求对象，登出接口要从请求头里取 token
+from fastapi import APIRouter, Body, HTTPException, Request
 # JSONResponse：手动构造响应——能同时指定状态码和响应体；return 一个 dict 则固定是 200
 from fastapi.responses import JSONResponse
+# 数据库连接池入口：quota 接口个人版真查 users.interview_quota 用
+# get_db() 借连接 / return_db() 还连接（借了必须还，见 app/db/db.py）
+from app.db.db import get_db, return_db
+# get_auth_user：从请求头 Authorization: Bearer <token> 解析当前登录用户（见 deps.py）
+from app.api.deps import get_auth_user
 
 logger = logging.getLogger(__name__)
 
@@ -118,14 +125,29 @@ async def api_login(username: str = Body(None), email: str = Body(None), passwor
         )
     
     success, message, user_data = payment_module.login_user(username_or_email, password)
-    
+
     if success:
+        # 【2026-10-06 越权修复】登录成功 = 服务端发一张"身份证"：
+        # 生成密码学安全的随机 token（token_urlsafe 返回 43 位不可预测字符串），
+        # 写进 users.auth_token 覆盖旧值（同一账号重复登录，旧的自动失效），
+        # 并随响应下发给前端——之后所有需要身份的接口都凭它反查用户，
+        # 不再信任前端传来的 user_id 明文参数
+        auth_token = secrets.token_urlsafe(32)
+        conn = get_db()
+        try:
+            conn.execute('UPDATE users SET auth_token = ? WHERE id = ?',
+                         (auth_token, user_data['id']))
+            conn.commit()
+        finally:
+            return_db(conn)
+
         return JSONResponse(
             status_code=200,
             content={
-                "status": "success", 
-                "message": message, 
-                "user": user_data
+                "status": "success",
+                "message": message,
+                "user": user_data,
+                "auth_token": auth_token  # 前端存 localStorage，之后放进请求头
             }
         )
     else:
@@ -137,89 +159,62 @@ async def api_login(username: str = Body(None), email: str = Body(None), passwor
 
 
 # GET 接口：查询类操作用 GET，参数挂在 URL 问号后面，浏览器直接输入地址就能调
-@router.get("/api/user/quota", summary="查询用户配额")
-# user_id: int = Query(None)：从 URL 取值（如 ?user_id=5），类型是 int，可选；
-# 传 ?user_id=abc 时 FastAPI 自动转 int 失败 → 422，函数不执行
-async def api_get_quota(user_id: int = Query(None)):
-    
-    """查询用户配额余量
+@router.post("/api/auth/logout", summary="退出登录")
+async def api_logout(request: Request):
+    """退出登录：把 users 表里的 auth_token 置 NULL 作废会话
 
-    Args:
-        user_id: 用户ID
+    就算前端忘了清 localStorage，服务端的 token 也已失效，
+    下次请求带旧 token 会被 get_auth_user 判为未登录（401）。
+    幂等设计：token 无效/没带 token 也返回成功（登出永远"成功"才符合直觉）。
+    """
+    header = request.headers.get('Authorization') or ''
+    token = header[7:] if header.startswith('Bearer ') else header
+    if token:
+        conn = get_db()
+        try:
+            conn.execute('UPDATE users SET auth_token = NULL WHERE auth_token = ?', (token,))
+            conn.commit()
+        finally:
+            return_db(conn)
+    return JSONResponse(status_code=200, content={"status": "success", "message": "已退出登录"})
+
+
+# GET 接口：查询类操作用 GET，参数挂在 URL 问号后面，浏览器直接输入地址就能调
+@router.get("/api/user/quota", summary="查询用户配额")
+async def api_get_quota(request: Request):
+    """查询当前登录用户的配额余量
+
+    【2026-10-06 越权修复】原来 ?user_id=N 谁都能传——改成从请求头 token
+    解析身份，未登录（没带 token / token 无效）直接 401，不再有 user_id 参数。
 
     Returns:
-        JSONResponse: {"status": "success", "quota": 配额信息（免费额度/已用/可用总量/订阅记录）}
+        JSONResponse: {"status": "success", "quota": {"total_available": {"interviews": 剩余次数}}}
     """
-    # 付费模块不可用时返回一份"写死的假配额"——这是有意的降级设计：
-    # 前端页面不至于报错白屏，只是配额永远显示免费额度（3次面试/10分钟语音/5次分析）
-    if not PAYMENT_ENABLED:
-        # 返回默认配额信息
+    user = get_auth_user(request)
+    if user is None:
+        return JSONResponse(
+            status_code=401,
+            content={"error": "请先登录"}
+        )
+    try:
+        conn = get_db()
+        row = conn.execute(
+            'SELECT interview_quota FROM users WHERE id = ?', (user['id'],)
+        ).fetchone()
+        return_db(conn)
+        # 用户不存在 / 字段为 NULL 时兜底 0，接口永远成功（前端稳定不白屏）
+        remaining = row['interview_quota'] if row and row['interview_quota'] is not None else 0
         return JSONResponse(
             status_code=200,
             content={
                 "status": "success",
-                "quota": {
-                    "free_quota": {
-                        "interviews": 3,
-                        "tts_minutes": 10,
-                        "ai_analysis": 5
-                    },
-                    "used": {
-                        "interviews": 0,
-                        "tts_minutes": 0,
-                        "ai_analysis": 0
-                    },
-                    "total_available": {
-                        "interviews": 3,
-                        "tts_minutes": 10,
-                        "ai_analysis": 5
-                    },
-                    "subscriptions": [],
-                    "reset_date": 0
-                }
-            }
-        )
-    
-    # Optional 参数的业务检查：user_id 是可选的，但真查配额时又必须有 → 手动回 400
-    if not user_id:
-        return JSONResponse(
-            status_code=400,
-            content={"error": "缺少用户ID"}
-        )
-    
-    # try/except：真查库时可能出意外（表不存在、payment_module 半死不活），
-    # 捕获后不走 500，而是落到下面的降级分支返回假配额——保证接口"永远成功"，前端稳定
-    try:
-        quota = payment_module.get_user_quota(user_id)
-        return JSONResponse(
-            status_code=200,
-            content={"status": "success", "quota": quota}
+                "quota": {"total_available": {"interviews": remaining}}
+            },
         )
     except Exception as e:
-        # 如果数据库操作失败，返回默认配额信息
-        logger.error(f"[Quota] 获取配额失败: {e}")
+        logger.error(f"[Quota] 查询个人版配额失败: {e}")
+        # 查库失败返回 0 而不是 500：配额展示是辅助功能，别让页面挂掉
         return JSONResponse(
             status_code=200,
-            content={
-                "status": "success",
-                "quota": {
-                    "free_quota": {
-                        "interviews": 3,
-                        "tts_minutes": 10,
-                        "ai_analysis": 5
-                    },
-                    "used": {
-                        "interviews": 0,
-                        "tts_minutes": 0,
-                        "ai_analysis": 0
-                    },
-                    "total_available": {
-                        "interviews": 3,
-                        "tts_minutes": 10,
-                        "ai_analysis": 5
-                    },
-                    "subscriptions": [],
-                    "reset_date": 0
-                }
-            }
+            content={"status": "success", "quota": {"total_available": {"interviews": 0}}},
         )

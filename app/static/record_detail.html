@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>面试详情 - AI面试官</title>
+  <!--
+    面试记录详情页：展示某一场面试的题目、考生回答和 AI 评价报告
+    数据来源：GET /api/interview/{token}/detail（token 从地址栏 ?token= 取）
+    版权声明：仅供学习参考，禁止商用/二次分发/他用本代码申请软著
+  -->
+  <style>
+    /* 全局：暗色主题，与 admin.html / interview.html 风格一致 */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #0f172a;
+      color: #e2e8f0;
+      font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+      min-height: 100vh;
+      padding: 24px 16px;
+    }
+    .container { max-width: 860px; margin: 0 auto; }
+    a { color: #60a5fa; text-decoration: none; }
+    a:hover { color: #93c5fd; }
+
+    /* 卡片通用样式 */
+    .card {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+    .card-title { font-size: 15px; font-weight: 600; color: #94a3b8; margin-bottom: 14px; }
+
+    /* 头部：岗位名 + 时间 + 状态 + 总分 */
+    .header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
+    .position-name { font-size: 22px; font-weight: 700; }
+    .meta { color: #64748b; font-size: 13px; margin-top: 6px; }
+    .badge {
+      display: inline-block; padding: 3px 10px; border-radius: 9999px;
+      font-size: 12px; margin-left: 10px; vertical-align: middle;
+    }
+    .badge-done   { background: rgba(34,197,94,.15);  color: #4ade80; }
+    .badge-doing  { background: rgba(250,204,21,.15); color: #facc15; }
+    .badge-early  { background: rgba(148,163,184,.15); color: #94a3b8; }
+    .total-score { text-align: center; }
+    .total-score .num { font-size: 42px; font-weight: 800; color: #60a5fa; line-height: 1; }
+    .total-score .unit { font-size: 14px; color: #64748b; }
+    /* 下载报告按钮 */
+    .dl-btn {
+      margin-top: 12px; padding: 8px 20px; background: #3b82f6; color: #fff;
+      border: none; border-radius: 8px; font-size: 13px; cursor: pointer;
+    }
+    .dl-btn:hover { background: #2563eb; }
+
+    /* 三维评分条 */
+    .score-row { display: flex; align-items: center; margin-bottom: 10px; }
+    .score-label { width: 80px; font-size: 13px; color: #94a3b8; flex-shrink: 0; }
+    .score-track { flex: 1; height: 8px; background: #334155; border-radius: 9999px; overflow: hidden; }
+    .score-fill { height: 100%; background: #3b82f6; border-radius: 9999px; transition: width .4s ease; }
+    .score-value { width: 44px; text-align: right; font-size: 13px; color: #60a5fa; flex-shrink: 0; }
+
+    /* 优势 / 改进 / 建议三列 */
+    .grid3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+    .grid3 h4 { font-size: 14px; margin-bottom: 8px; }
+    .grid3 ul { padding-left: 18px; color: #cbd5e1; font-size: 13px; line-height: 1.9; }
+    .strengths-title { color: #4ade80; }
+    .improve-title   { color: #fbbf24; }
+    .advice-title    { color: #60a5fa; }
+
+    /* 逐题列表 */
+    .question-item { border-bottom: 1px solid #334155; padding: 16px 0; }
+    .question-item:last-child { border-bottom: none; }
+    .q-index {
+      display: inline-block; width: 22px; height: 22px; line-height: 22px; text-align: center;
+      background: #3b82f6; color: #fff; border-radius: 6px; font-size: 12px; margin-right: 8px;
+    }
+    .q-text { font-weight: 600; line-height: 1.6; }
+    .q-section { margin-top: 10px; }
+    .q-section .label { font-size: 12px; color: #64748b; margin-bottom: 4px; }
+    .q-section .content { font-size: 14px; color: #cbd5e1; line-height: 1.7; white-space: pre-wrap; }
+    .q-score { float: right; color: #4ade80; font-weight: 700; }
+    .no-answer { color: #64748b; font-style: italic; }
+    .q-comment {
+      margin-top: 10px; padding: 10px 12px; background: rgba(59,130,246,.08);
+      border-left: 3px solid #3b82f6; border-radius: 6px; font-size: 13px; color: #93c5fd; line-height: 1.7;
+    }
+
+    .empty-tip { text-align: center; color: #64748b; padding: 40px 0; }
+    .error-box { text-align: center; padding: 60px 20px; }
+    .error-box h2 { color: #f87171; margin-bottom: 12px; }
+
+    /* 顶部返回链接 */
+    .top-bar { margin-bottom: 16px; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <div id="app" class="container">
+    <div class="top-bar"><a href="admin.html">← 返回主页</a></div>
+
+    <!-- 加载失败（token 无效 / 网络错误） -->
+    <div v-if="error" class="card error-box">
+      <h2>加载失败</h2>
+      <p>{{ error }}</p>
+    </div>
+
+    <template v-else-if="detail">
+      <!-- 头部：岗位、时间、状态、总分 -->
+      <div class="card header">
+        <div>
+          <div class="position-name">
+            {{ positionName }}
+            <span class="badge" :class="statusBadgeClass">{{ statusText }}</span>
+          </div>
+          <div class="meta">面试时间：{{ formattedTime }} · 共 {{ detail.questions.length }} 题</div>
+        </div>
+        <div class="total-score" v-if="totalScore !== null">
+          <span class="num">{{ totalScore }}</span><span class="unit"> 分</span>
+          <div class="unit">综合评分</div>
+          <!-- 【2026-10-06 新增】下载报告：渲染成可读的网页文件（与面试页共用工具） -->
+          <button class="dl-btn" @click="downloadReport">下载报告</button>
+        </div>
+      </div>
+
+      <!-- 综合评价：三维小分 + 总评文字 -->
+      <div class="card" v-if="evaluation">
+        <div class="card-title">综合评价</div>
+        <div class="score-row" v-for="dim in dimensionScores" :key="dim.name">
+          <span class="score-label">{{ dim.name }}</span>
+          <div class="score-track"><div class="score-fill" :style="{ width: dim.pct + '%' }"></div></div>
+          <span class="score-value">{{ dim.score }}</span>
+        </div>
+        <p style="margin-top:14px; color:#cbd5e1; font-size:14px; line-height:1.8;" v-if="evaluation.description">
+          {{ evaluation.description }}
+        </p>
+      </div>
+
+      <!-- 优势 / 改进 / 建议 -->
+      <div class="grid3" v-if="evaluation">
+        <div class="card" v-if="evaluation.strengths && evaluation.strengths.length">
+          <h4 class="strengths-title">✓ 优势</h4>
+          <ul><li v-for="(s, i) in evaluation.strengths" :key="'s' + i">{{ s }}</li></ul>
+        </div>
+        <div class="card" v-if="evaluation.improvements && evaluation.improvements.length">
+          <h4 class="improve-title">△ 待改进</h4>
+          <ul><li v-for="(s, i) in evaluation.improvements" :key="'i' + i">{{ s }}</li></ul>
+        </div>
+        <div class="card" v-if="evaluation.recommendations && evaluation.recommendations.length">
+          <!-- 【2026-10-06 修复】报告里的建议每条是 {title, description} 对象，
+               原来直接 {{ s }} 插值会把整个对象显示成 JSON 原文；
+               现在按 adviceOf 拆成标题+正文渲染（兼容历史报告的纯字符串条目） -->
+          <h4 class="advice-title">★ 建议</h4>
+          <ul>
+            <li v-for="(s, i) in evaluation.recommendations" :key="'r' + i">
+              <template v-if="adviceOf(s).title"><b>{{ adviceOf(s).title }}：</b>{{ adviceOf(s).desc }}</template>
+              <template v-else>{{ adviceOf(s).desc }}</template>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- 逐题：题目原文 + 考生回答 + 该题点评 -->
+      <div class="card">
+        <div class="card-title">问答明细</div>
+        <div class="question-item" v-for="(q, idx) in detail.questions" :key="q.id">
+          <div>
+            <span class="q-index">{{ idx + 1 }}</span>
+            <span class="q-text">{{ q.question }}</span>
+            <span class="q-score" v-if="questionScore(idx) !== null">{{ questionScore(idx) }} 分</span>
+          </div>
+          <div class="q-section">
+            <div class="label">你的回答</div>
+            <div class="content" :class="{ 'no-answer': !q.answer_text }">
+              {{ q.answer_text || '未回答' }}
+            </div>
+          </div>
+          <div class="q-comment" v-if="questionComment(idx)">
+            点评：{{ questionComment(idx) }}
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <!-- 加载中占位 -->
+    <div v-else class="card empty-tip">加载中...</div>
+  </div>
+
+  <!-- 【2026-10-06 修复页面挂掉】原来用 unpkg CDN 加载 Vue/axios——CDN 在本机
+       网络环境加载失败时 Vue 未定义，页面无法挂载，模板原样裸露
+      （表现为：内容骨架和"加载失败"提示同时出现）。改为与 admin/interview
+       页面一致的本地文件（app/static/js/ 下），彻底摆脱外网依赖 -->
+  <script src="js/vue.global.prod.js"></script>
+  <script src="js/axios.min.js"></script>
+  <!-- 面试报告下载工具（与 interview.html 共用）：把报告渲染成可读的网页文件下载 -->
+  <script src="js/report_download.js"></script>
+  <script>
+    const { createApp } = Vue;
+
+    createApp({
+      data() {
+        return {
+          token: '',     // 从地址栏取的面试 token
+          detail: null,  // 接口返回的完整详情
+          error: '',     // 加载失败提示
+        };
+      },
+      computed: {
+        // 报告对象快捷引用；未生成报告时为 null
+        evaluation() {
+          return this.detail && this.detail.report ? this.detail.report.evaluation : null;
+        },
+        // 岗位名：优先取报告里存的岗位名，无报告时显示"模拟面试"
+        positionName() {
+          const name = this.detail && this.detail.report ? this.detail.report.position_name : null;
+          return name || '模拟面试';
+        },
+        // 总分：报告未生成或解析不到时返回 null，模板据此隐藏分数区
+        totalScore() {
+          return this.evaluation ? this.evaluation.averageScore : null;
+        },
+        // 三维小分转成评分条数据；报告缺某维度字段时跳过该维度
+        dimensionScores() {
+          if (!this.evaluation || !this.evaluation.scores) return [];
+          const names = { professional: '专业知识', communication: '表达能力', comprehensive: '综合素养' };
+          return Object.entries(names)
+            .filter(([key]) => this.evaluation.scores[key] !== undefined)
+            .map(([key, name]) => ({
+              name,
+              score: this.evaluation.scores[key],
+              pct: this.evaluation.scores[key],
+            }));
+        },
+        // 状态 → 中文文案
+        statusText() {
+          const map = { 0: '待出题', 1: '试题已备好', 2: '面试进行中', 3: '已答完', 4: '报告已生成' };
+          return map[this.detail.interview.status] || '未知状态';
+        },
+        statusBadgeClass() {
+          const map = { 4: 'badge-done', 3: 'badge-doing', 2: 'badge-doing' };
+          return map[this.detail.interview.status] || 'badge-early';
+        },
+        // 秒级时间戳 → "2026-10-05 22:05"
+        formattedTime() {
+          const t = this.detail.interview.start_time;
+          if (!t || t <= 0) return '未设置时间';
+          const d = new Date(t * 1000);
+          const pad = n => String(n).padStart(2, '0');
+          return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+        },
+      },
+      methods: {
+        // 逐题点评：报告的 question_evaluations 数组按出题顺序与题目一一对应，
+        // 按下标取；报告未生成或数组越界时返回 null（模板隐藏点评块）
+        questionEval(idx) {
+          if (!this.evaluation || !Array.isArray(this.evaluation.question_evaluations)) return null;
+          return this.evaluation.question_evaluations[idx] || null;
+        },
+        questionScore(idx) {
+          const qe = this.questionEval(idx);
+          return qe && typeof qe.score === 'number' ? qe.score : null;
+        },
+        questionComment(idx) {
+          const qe = this.questionEval(idx);
+          return qe ? (qe.comments || '') : '';
+        },
+        // 建议条目拆解：报告里每条建议是 {title, description} 对象，
+        // 模板按"标题：正文"渲染；历史报告可能是纯字符串，这里统一兼容
+        adviceOf(s) {
+          if (s && typeof s === 'object') {
+            return { title: s.title || '', desc: s.description || s.desc || '' };
+          }
+          return { title: '', desc: String(s || '') };
+        },
+        // 下载报告：把本页数据组装成共享工具要求的结构，
+        // 调 js/report_download.js 的 downloadInterviewReport 生成网页文件
+        downloadReport() {
+          if (!this.evaluation) return;
+          downloadInterviewReport({
+            position: this.positionName,
+            time: this.formattedTime,
+            totalScore: this.evaluation.averageScore,
+            recommendation: this.evaluation.recommendation || '',
+            scores: this.evaluation.scores || {},
+            detailedScores: this.evaluation.detailedScores || [],
+            description: this.evaluation.description || '',
+            strengths: this.evaluation.strengths || [],
+            improvements: this.evaluation.improvements || [],
+            recommendations: this.evaluation.recommendations || [],
+            // 逐题明细：本页 questions 数组按顺序对应报告的 question_evaluations，
+            // 按下标配对取每题得分和点评
+            questions: this.detail.questions.map((q, i) => {
+              const qe = this.questionEval(i);
+              return {
+                text: q.question,
+                answer: q.answer_text,
+                score: qe ? qe.score : null,
+                comment: qe ? (qe.comments || '') : ''
+              };
+            })
+          });
+        },
+        async loadDetail() {
+          try {
+            const response = await axios.get(`/api/interview/${this.token}/detail`);
+            this.detail = response.data;
+          } catch (err) {
+            // 404 = token 无效；其他 = 网络/服务器错误
+            this.error = err.response && err.response.status === 404
+              ? '面试记录不存在，token 可能有误'
+              : '服务器连接失败，请稍后重试';
+          }
+        },
+      },
+      mounted() {
+        // 从地址栏取 token：record_detail.html?token=xxxxxxxx
+        this.token = new URLSearchParams(window.location.search).get('token') || '';
+        if (!this.token) {
+          this.error = '缺少 token 参数，请从主页的面试记录进入';
+          return;
+        }
+        this.loadDetail();
+      },
+    }).mount('#app');
+  </script>
+</body>
+</html>

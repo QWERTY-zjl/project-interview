@@ -165,6 +165,50 @@ def call_llm_api(messages, max_tokens=2000):
         return None
 
 
+def generate_question_hint(question_text):
+    """
+    针对单道面试题生成答题思路提示（前端"AI辅助"按钮的支撑）
+
+    与出题/报告同用 LLM_MODEL（qwen-flash）+ 兼容端点，成本可忽略：
+    一次提示约几百 token，按 2026-10 价格折算不到 0.001 元。
+
+    Args:
+        question_text: 题目原文。来源 interview_questions.question 列
+
+    Returns:
+        (提示文本, 错误信息) 元组：成功时错误为 None；失败时文本为 None
+        （与 transcribe_audio_with_openai 同款约定：(结果, error)，上层据此降级）
+    """
+    # 快速失败：没配密钥就不发请求，省一次注定失败的调用（与 call_llm_api 一致）
+    if not (os.getenv("DASHSCOPE_API_KEY") or DASHSCOPE_API_KEY):
+        return None, "未配置DASHSCOPE_API_KEY"
+
+    try:
+        # 不复用 call_llm_api 的原因：它强制 response_format=json_object（出题专用，
+        # 返回 {"questions": [...]} 结构），而提示是给人看的自然语言，要纯文本输出。
+        # 所以直接用 _get_client() 单例客户端自己调一次。
+        response = _get_client().chat.completions.create(
+            model=LLM_MODEL,           # 同一个便宜模型：出题/报告/提示三处统一
+            messages=[
+                {"role": "system", "content": (
+                    "你是一位友善的面试教练。候选人正在模拟面试练习，遇到一道题想获取提示。"
+                    "请给出3-4条答题思路提示（是思考方向，不是完整答案），每条一行、"
+                    "以数字序号开头，总长度不超过120字，中文输出。"
+                )},
+                {"role": "user", "content": f"面试题目：{question_text}"}
+            ],
+            max_tokens=300,   # 提示文案很短，300 上限足够：响应快、费用低
+            temperature=0.5,  # 提示要稳不要飘：比出题(0.7)略低
+        )
+        content = response.choices[0].message.content
+        if not content:
+            return None, "模型返回为空"
+        return content.strip(), None
+    except Exception as e:
+        logger.error(f"[Hint] 生成提示失败: {e}")
+        return None, str(e)
+
+
 def validate_questions(questions):
     """
     验证并格式化问题列表
@@ -287,8 +331,11 @@ def generate_questions(interview_id, candidate, position, interview, latest_tech
 
         # 2. 获取并验证问题列表
         questions = None
+        llm_success = False  # 标记：题目是否真的来自大模型（决定要不要扣配额）
         if llm_result and 'questions' in llm_result:
             questions = validate_questions(llm_result['questions'])
+            if questions:
+                llm_success = True
 
         # 3. 如果没有有效问题，使用默认问题
         #    （大模型失败/返回空/格式全错，都会落到这里）
@@ -300,6 +347,27 @@ def generate_questions(interview_id, candidate, position, interview, latest_tech
         voice_type = interview.get('voice_type', 'professional_male')
         # ↑ 音色缺失时给默认男声，保证流程不因配置缺失而中断
         saved_count = save_questions_to_db(cursor, interview_id, questions, voice_type)
+
+        # 4.5 扣减用户面试配额：只有大模型真正出题成功才扣 1 次
+        # 【为什么放这里】配额语义 = "调用大模型才消耗"——大模型挂了走默认题库兜底，
+        # 用户没得到 AI 服务就不该扣；所以挂在 llm_success 分支而不是创建面试时。
+        # 【为什么不用 interview.get('user_id')】不信任调用方传的 dict 结构是否带
+        # user_id，直接用 interview_id 反查 interviews 表最稳（同库一次主键查询）。
+        if llm_success:
+            try:
+                cursor.execute('SELECT user_id FROM interviews WHERE id = ?', (interview_id,))
+                owner = cursor.fetchone()
+                if owner and owner['user_id']:
+                    # 扣 1 次但不下限到负数：MAX(配额-1, 0)——配额为 0 时不再变负
+                    cursor.execute('''
+                        UPDATE users
+                        SET interview_quota = MAX(interview_quota - 1, 0)
+                        WHERE id = ?
+                    ''', (owner['user_id'],))
+                    logger.info(f"[Question] 已扣减用户 {owner['user_id']} 的面试配额")
+            except Exception as quota_err:
+                # 扣减失败不阻断出题：配额系统是辅助功能，面试主流程优先
+                logger.error(f"[Question] 扣减配额失败（不影响出题）: {quota_err}")
 
         # 5. 更新面试状态
         #    status=1 表示"已出题/面试进行中"；question_count 记录实际保存的题数

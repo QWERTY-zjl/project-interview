@@ -17,6 +17,8 @@
     <!-- SweetAlert2：替代浏览器原生 alert 的精美弹窗库（"确认跳过"、"AI辅助提示"等用它实现） -->
     <!-- SweetAlert2 -->
     <script src="js/sweetalert2.js"></script>
+    <!-- 面试报告下载工具（与 record_detail.html 共用）：把报告渲染成可读的网页文件下载 -->
+    <script src="js/report_download.js"></script>
     <style>
         /* <style> 标签内是 CSS（层叠样式表），负责页面"外观"：颜色、布局、动画。
            基本语法固定为 "选择器 { 属性: 值; }"——选择器指定"改谁"（.类名 / 标签名），花括号里是"改成什么样"。
@@ -411,12 +413,7 @@
             color: #e2e8f0;
             margin-bottom: 4px;
         }
-        
-        .ai-title {
-            font-size: 0.875rem;
-            color: #94a3b8;
-        }
-        
+
         .ai-status {
             display: flex;
             align-items: center;
@@ -992,12 +989,12 @@
         
         .skills-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            /* 原 1fr 1fr 双栏是为"六维图谱 + 评分详情"设计的，图谱删除后改单栏占满 */
+            grid-template-columns: 1fr;
             gap: 24px;
             margin-bottom: 24px;
         }
         
-        .skills-left,
         .skills-right {
             background: rgba(30, 41, 59, 0.6);
             border: 1px solid rgba(59, 130, 246, 0.2);
@@ -1180,7 +1177,6 @@
                 <a class="navbar-brand" href="#">AI面试系统</a>
                 <div class="navbar-nav ms-auto">
                     <a class="nav-link" href="admin.html">管理后台</a>
-                    <a class="nav-link" href="pricing.html">购买套餐</a>
                     <a class="nav-link" href="login.html">退出</a>
                 </div>
             </div>
@@ -1223,8 +1219,10 @@
                 <i class="bi bi-exclamation-circle"></i>
             </div>
             <div class="error-text">{{ error }}</div>
-            <div v-if="error === 'token无效，请创建新的面试'" class="error-actions">
-                <button class="btn btn-primary" @click="createNewInterview">创建新面试</button>
+            <!-- 【2026-10-06 越权修复】token 无效不再提供"创建新面试"按钮（那个入口匿名建面试），
+                 改为引导回主页上传简历开始面试；error 文案含"主页"时显示 -->
+            <div v-if="error && error.includes('主页')" class="error-actions">
+                <a href="admin.html" class="btn btn-primary">回到主页</a>
             </div>
         </div>
 
@@ -1276,7 +1274,7 @@
             <div class="completed-card">
                 <div class="completed-header">
                     <div class="completed-title">面试评分报告</div>
-                    <div class="completed-subtitle">面试时间: 2026-04-13 10:30-10:45</div>
+                    <div class="completed-subtitle">面试时间: {{ interviewInfo.time || '--' }}</div>
                 </div>
                 
                 <div class="completed-content">
@@ -1291,14 +1289,15 @@
                         <div class="score-card">
                             <div class="score-circle">
                                 <div class="score-number">{{ interviewEvaluation.averageScore }}</div>
-                                <div class="score-label">平均分</div>
+                                <!-- 单场面试的综合得分（大模型打的总分），不是多次面试的平均值 -->
+                                <div class="score-label">得分</div>
                             </div>
                             <div class="score-text">
                                 <div class="score-title">面试完成！</div>
                                 <div class="score-description">{{ interviewEvaluation.description }}</div>
                             </div>
                             <div class="score-buttons">
-                                <button class="control-btn secondary">
+                                <button class="control-btn secondary" @click="downloadReport">
                                     <i class="bi bi-download me-1"></i>下载报告
                                 </button>
                             </div>
@@ -1319,14 +1318,9 @@
                             </div>
                         </div>
                         
+                        <!-- 原左侧「六维能力图谱」是纯占位假功能（HTML 注释自己写着"这里可以添加"，
+                             后端从来没有六维数据源），2026-10-06 删除；各项评分详情独占整行 -->
                         <div class="skills-grid">
-                            <div class="skills-left">
-                                <div class="skills-title">六维能力图谱</div>
-                                <div class="skills-chart">
-                                    <!-- 这里可以添加六维能力图谱 -->
-                                    <div class="skills-placeholder">六维能力图谱</div>
-                                </div>
-                            </div>
                             <div class="skills-right">
                                 <div class="skills-title">各项评分详情</div>
                                 <!-- v-for 循环渲染每项技能；:style 动态绑定行内样式，
@@ -1430,26 +1424,14 @@
                         <span class="expression-label">当前表情</span>
                         <span class="expression-value">{{ expressionData.expression_cn || '检测中...' }}</span>
                     </div>
-                    <div class="expression-item">
+                    <!-- 只保留情绪分析两项：语言表达/综合评分是企业版遗留指标，
+                         后端从未返回过这两个字段（永远显示'--'），2026-10-06 删除 -->
+                    <div class="expression-item mt-4">
                         <span class="expression-label">情绪状态</span>
                         <span class="expression-value" :class="getScoreClass(expressionData.emotion_score)">{{ expressionData.emotion_status || '--' }}</span>
                     </div>
                     <div class="expression-progress">
                         <div class="expression-progress-bar" :class="getScoreClass(expressionData.emotion_score)" :style="{ width: (expressionData.emotion_score || 0) + '%' }"></div>
-                    </div>
-                    <div class="expression-item mt-4">
-                        <span class="expression-label">语言表达</span>
-                        <span class="expression-value" :class="getScoreClass(expressionData.language_score)">{{ expressionData.language_score || '--' }}</span>
-                    </div>
-                    <div class="expression-progress">
-                        <div class="expression-progress-bar" :class="getScoreClass(expressionData.language_score)" :style="{ width: (expressionData.language_score || 0) + '%' }"></div>
-                    </div>
-                    <div class="expression-item mt-4">
-                        <span class="expression-label">综合评分</span>
-                        <span class="expression-value" :class="getScoreClass(expressionData.final_score)">{{ expressionData.final_score || '--' }}</span>
-                    </div>
-                    <div class="expression-progress">
-                        <div class="expression-progress-bar" :class="getScoreClass(expressionData.final_score)" :style="{ width: (expressionData.final_score || 0) + '%' }"></div>
                     </div>
                     <div v-if="expressionData.suggestions && expressionData.suggestions.length > 0" class="mt-4">
                         <small class="text-muted"><i class="bi bi-lightbulb me-1"></i>{{ expressionData.suggestions[0] }}</small>
@@ -1467,7 +1449,6 @@
                         </div>
                         <div class="ai-info">
                             <div class="ai-name">AI面试官</div>
-                            <div class="ai-title">前端开发专家</div>
                         </div>
                         <div class="ai-status">
                             <div class="ai-status-indicator"></div>
@@ -1717,45 +1698,9 @@
                 // 创建新面试
 
 
-                // 创建新面试
-
-
-                // ============ 函数：validateToken（校验 URL 里的 token 是否有效）============
-                // 作用：拿 token 去后端查一次面试信息，无效就自动创建新面试
-                // 输入：无；输出：无（副作用：error 变量、创建新面试）
-                // 调用时机：本版本里 onMounted 内联了同样的校验逻辑，此函数保留备用
-                // 语法点：async/await —— await 会"暂停"本函数直到后端返回（类似 time.sleep，但不卡界面）；
-                //        try/catch 捕获异常，等价 Python 的 try/except；请求失败会抛异常走进 catch。
-                // 验证token是否有效，如果无效则创建新面试
-                const validateToken = async () => {
-                    console.log('开始验证token:', token.value);
-                    if (!token.value) {
-                        console.log('没有token，创建新面试...');
-                        try {
-                            const result = await createNewInterview();
-                            console.log('创建新面试结果:', result);
-                        } catch (err) {
-                            console.error('创建新面试失败:', err);
-                        }
-                        return;
-                    }
-                    
-                    try {
-                        console.log('验证token是否有效...');
-                        console.log('调用 /api/interview/${token.value}/info 端点...');
-                        const response = await axios.get(`/api/interview/${token.value}/info`);
-                        console.log('token有效:', response.data);
-                    } catch (err) {
-                        console.error('token无效:', err);
-                        console.log('创建新面试...');
-                        try {
-                            const result = await createNewInterview();
-                            console.log('创建新面试结果:', result);
-                        } catch (err) {
-                            console.error('创建新面试失败:', err);
-                        }
-                    }
-                };
+                // 【2026-10-06 删除】validateToken 与 createNewInterview 两个函数已移除：
+                // 它们在 token 无效时自动匿名创建新面试（调 /api/interview/create，写死 user_id=1），
+                // 是"未登录也能面试"的后门。现在 token 无效统一提示回主页重新上传简历。
 
                 // 面试信息（时间、岗位、候选人等），初始为空，由 fetchInterviewInfo 从后端拉取后填充
                 // 面试信息
@@ -1778,43 +1723,10 @@
 
            
 
-                // ============ 函数：createNewInterview（让后端创建一场新面试）============
-                // 作用：POST 请求后端，生成新面试并返回新 token
-                // 输入：无；输出：成功返回新 token 字符串，失败返回 null
-                // 调用时机：URL 没有 token / token 校验失败 / 获取面试信息失败时
-                // 语法点：axios.post(网址, {对象}) 发 POST 请求，第二个参数会转成 JSON 发给后端，
-                //        类似 Python 的 requests.post(url, json={...})；response.data 是后端返回的内容。
-                // 创建新面试
-                const createNewInterview = async () => {
-                    try {
-                        console.log('创建新面试...');
-                        const response = await axios.post(`/api/interview/create`, {
-                            user_id: 1,
-                            interview_type_id: 1,
-                            question_count: 5,
-                            voice_reading: 1,
-                            voice_type: 'professional_male'
-                        });
-                        
-                        if (response.data.status === 'success') {
-                            console.log('创建面试成功，新token:', response.data.token);
-                            return response.data.token;
-                        } else {
-                            console.error('创建面试失败:', response.data.message);
-                            error.value = '创建面试失败，请刷新页面重试';
-                            return null;
-                        }
-                    } catch (err) {
-                        console.error('创建面试失败:', err);
-                        error.value = '创建面试失败，请刷新页面重试';
-                        return null;
-                    }
-                };
-
                 // ============ onMounted：页面加载完成后的自动入口 ============
                 // onMounted 是 Vue 的"生命周期钩子"：DOM 渲染完成后自动执行一次。
                 // 心智上对应 Python 的 if __name__ == "__main__"——程序从这里开始跑。
-                // 流程：校验 token → 无效则跳转后端接口换新 token → 拉面试信息与音色列表 → 状态允许时自动开始面试。
+                // 流程：校验 token → 无效则提示回主页 → 拉面试信息与音色列表 → 状态允许时自动开始面试。
                 // 页面加载时获取面试信息
                 onMounted(async () => {
                     console.log('页面加载开始...');
@@ -1833,13 +1745,14 @@
                                 tokenValid = false;
                             }
                         }
-                        
-                        // 如果token无效，创建新面试
+
+                        // 【2026-10-06 越权修复】token 无效不再自动匿名开新面试
+                        //（原来跳 /api/interview/create_and_redirect 写死 user_id=1），
+                        // 改为提示回主页重新上传简历开始面试
                         if (!tokenValid) {
-                            console.log('创建新面试...');
-                            // 直接重定向到创建面试的API，然后重定向回面试页面
-                            // 让浏览器整页跳转到该网址（后端会创建新面试，并带着新 token 重定向回本页面）
-                            window.location.href = `/api/interview/create_and_redirect`;
+                            console.log('token无效，提示回主页...');
+                            error.value = '面试链接无效或已过期，请回到主页重新上传简历开始面试';
+                            loading.value = false;
                             return;
                         }
                         
@@ -1943,23 +1856,10 @@
                         console.error('错误类型:', err.type);
                         console.error('错误消息:', err.message);
                         console.error('错误堆栈:', err.stack);
-                        // 尝试创建新面试
-                        console.log('尝试创建新面试...');
-                        // (async () => {...})() 叫"立即执行函数"（IIFE）：定义完马上运行。
-                        // 为什么要包一层？因为 await 只能写在 async 函数里，而 catch 块本身是同步代码。
-                        (async () => {
-                            try {
-                                const success = await createNewInterview();
-                                console.log('创建新面试结果:', success);
-                                if (success) {
-                                    // 重新获取面试信息
-                                    console.log('重新获取面试信息...');
-                                    await fetchInterviewInfo();
-                                }
-                            } catch (err) {
-                                console.error('调用 createNewInterview 失败:', err);
-                            }
-                        })();
+                        // 【2026-10-06 越权修复】原来这里会自动匿名创建新面试重试，
+                        // 现在改为明确提示（新面试只能从主页上传简历产生）
+                        error.value = '面试信息获取失败，请回到主页重新上传简历开始面试';
+                        loading.value = false;
                         // 下面这份 mock 数据与真实接口返回结构一致，保证页面每个字段都有值可显示
                         // 后端服务器不可用时，使用模拟数据
                         interviewInfo.value = {
@@ -2849,22 +2749,53 @@
                     });
                 };
                 
-                // 使用AI辅助
-                const useAIAssist = () => {
+                // 使用AI辅助：调真大模型，针对当前题目生成答题思路提示
+                // （2026-10-06 前这里弹 2 秒假 loading 后显示写死的万能文案，从不调大模型）
+                const useAIAssist = async () => {
+                    // 题目还没加载出来时没有可提示的对象，先拦一道
+                    if (!currentQuestion.value || !currentQuestion.value.id) {
+                        Swal.fire({
+                            title: '提示',
+                            text: '请先等待题目加载完成',
+                            icon: 'warning',
+                            confirmButtonText: '好的'
+                        });
+                        return;
+                    }
+                    // 转圈弹窗：didOpen 里开启加载动画，请求回来后才被下一帧 Swal 替换
                     Swal.fire({
                         title: 'AI辅助',
-                        text: 'AI正在为您分析问题...',
-                        icon: 'info',
+                        text: '正在针对当前题目生成思路提示...',
                         showConfirmButton: false,
-                        timer: 2000
-                    }).then(() => {
+                        allowOutsideClick: false,
+                        didOpen: () => Swal.showLoading()
+                    });
+                    try {
+                        // POST 当前题 id；后端校验题目属于本场面试后调 qwen-flash 生成提示
+                        const response = await axios.post(`/api/interview/${token.value}/hint`, {
+                            question_id: currentQuestion.value.id
+                        });
                         Swal.fire({
-                            title: 'AI辅助提示',
-                            text: '建议您从以下几个方面回答：\n1. 介绍您的专业背景\n2. 分享相关项目经验\n3. 突出您的技术优势\n4. 表达对该岗位的兴趣',
-                            icon: 'success',
+                            // degraded=true = AI 挂了走降级通用建议，标题如实标注不冒充 AI
+                            title: response.data.degraded ? '通用建议（AI暂不可用）' : 'AI辅助提示',
+                            // 模型返回的提示含换行符（\n），Swal 的 text 模式不渲染换行，
+                            // 用 html 模式 + pre-line 才能逐条分行；hint 来自模型输出，
+                            // 先做 HTML 转义（& < > 三个字符）防止意外标签注入
+                            html: `<div style="white-space: pre-line">${
+                                response.data.hint.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                            }</div>`,
+                            icon: response.data.degraded ? 'warning' : 'success',
                             confirmButtonText: '明白了'
                         });
-                    });
+                    } catch (error) {
+                        console.error('AI辅助请求失败:', error);
+                        Swal.fire({
+                            title: '请求失败',
+                            text: '网络异常，请稍后再试',
+                            icon: 'error',
+                            confirmButtonText: '好的'
+                        });
+                    }
                 };
                 
                 // 停止摄像头
@@ -2943,6 +2874,25 @@
                             saveExpressionRecord(expressionData.value, imageBase64);
                         }
                     } catch (err) {
+                        // 400 = "未检测到人脸"（用户离开座位/画面里没脸），是正常业务现象：
+                        // 更新面板文案即可，不刷 console.error（否则每 5 秒刷屏一次）
+                        if (err.response && err.response.status === 400) {
+                            expressionData.value = {
+                                expression_cn: (err.response.data && err.response.data.error) || '未检测到人脸'
+                            };
+                            return;
+                        }
+                        // 500 = 模型调用失败（如表情模型在业务空间不可用）：这类错误不会自愈，
+                        // 面板如实显示状态并停止定时抓拍，避免每 5 秒白打一次注定失败的请求
+                        if (err.response && err.response.status === 500) {
+                            expressionData.value = { expression_cn: '表情分析暂不可用' };
+                            if (expressionInterval.value) {
+                                clearInterval(expressionInterval.value);
+                                expressionInterval.value = null;
+                            }
+                            console.error('表情分析模型不可用，已停止自动抓拍:', (err.response.data && err.response.data.error) || err.message);
+                            return;
+                        }
                         console.error('表情分析失败:', err);
                     }
                 };
@@ -2976,6 +2926,45 @@
                     cameraActive.value = false;
                 };
                 
+                // 下载报告：把当前评价数据渲染成一份排版好的网页文件（.html）
+                // 【2026-10-06 改版】原来下载的是 JSON 文件——那是给程序读的格式，
+                // 用户反馈"看不懂"；现在改调共享工具 js/report_download.js，
+                // 生成人能直接读的报告（双击浏览器打开，还能 Ctrl+P 存成 PDF）
+                const downloadReport = () => {
+                    // 报告还没生成时（isLoading 为 true 或没有得分）不给下载
+                    if (interviewEvaluation.value.isLoading || interviewEvaluation.value.averageScore === undefined) {
+                        Swal.fire({
+                            title: '提示',
+                            text: '报告还未生成完成，请稍后再试',
+                            icon: 'warning',
+                            confirmButtonText: '好的'
+                        });
+                        return;
+                    }
+                    const e = interviewEvaluation.value;
+                    // 组装共享工具要求的统一数据结构（字段含义见 report_download.js 文件头）
+                    // 逐题明细来自 report.question_evaluations（模型返回的存档字段），
+                    // 本地兜底假数据没有该字段时 questions 为空，报告自动省略逐题区
+                    downloadInterviewReport({
+                        position: interviewInfo.value.position || '模拟面试',
+                        time: interviewInfo.value.time || '',
+                        totalScore: e.averageScore,
+                        recommendation: e.recommendation || '',
+                        scores: e.scores || {},
+                        detailedScores: e.detailedScores || [],
+                        description: e.description || '',
+                        strengths: e.strengths || [],
+                        improvements: e.improvements || [],
+                        recommendations: e.recommendations || [],
+                        questions: (e.question_evaluations || []).map(q => ({
+                            text: q.question,
+                            answer: q.answer,
+                            score: q.score,
+                            comment: q.comments
+                        }))
+                    });
+                };
+
                 // 调用大模型API生成面试评价
                 const generateInterviewEvaluation = async () => {
                     interviewEvaluation.value.isLoading = true;
@@ -3107,6 +3096,7 @@
                     stopCamera,
                     skipQuestion,
                     useAIAssist,
+                    downloadReport,
                     getExpressionIcon,
                     getScoreClass,
                     speechRecognition,

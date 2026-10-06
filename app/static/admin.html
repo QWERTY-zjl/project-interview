@@ -347,26 +347,6 @@
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     }
     
-    .btn-tag {
-      background: rgba(99, 102, 241, 0.15);
-      border: 1px solid rgba(99, 102, 241, 0.25);
-      color: #a5b4fc;
-      border-radius: 9999px;
-      padding: 6px 16px;
-      font-size: var(--font-size-sm);
-      font-weight: var(--font-weight-medium);
-      letter-spacing: var(--letter-spacing-normal);
-      transition: all 0.3s ease;
-    }
-    
-    .btn-tag:hover {
-      background: rgba(99, 102, 241, 0.25);
-      border-color: rgba(99, 102, 241, 0.4);
-      color: #c7d2fe;
-      transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
-    }
-    
     .btn-sm {
       padding: 6px 16px;
       font-size: var(--font-size-sm);
@@ -813,14 +793,13 @@
     <!-- 顶部导航栏 -->
     <nav class="navbar navbar-expand-lg navbar-dark mb-4 rounded">
       <div class="container-fluid">
-        <a class="navbar-brand" href="#">🎯 AI面试系统</a>
+        <a class="navbar-brand" href="#">AI面试系统</a>
         <div class="navbar-nav ms-auto align-items-center">
           <template v-if="currentUser">
             <span class="navbar-text me-3">
               👤 {{ currentUser.username }}
               <span class="badge bg-success ms-2">{{ currentUser.user_type === 'premium' ? 'VIP' : '免费版' }}</span>
             </span>
-            <a class="nav-link" href="pricing.html">💎 购买套餐</a>
             <a class="nav-link" href="#" @click.prevent="logout">退出</a>
           </template>
           <template v-else>
@@ -836,9 +815,8 @@
       <div class="d-flex justify-content-between align-items-center">
         <div>
           <strong>📊 我的配额：</strong>
+          <!-- 个人版唯一配额：可用 AI 面试次数（大模型出题成功一场扣 1，见 question_service） -->
           <span class="badge bg-primary me-2">面试 {{ userQuota.total_available.interviews }} 次</span>
-          <span class="badge bg-success me-2">语音 {{ userQuota.total_available.tts_minutes }} 分钟</span>
-          <span class="badge bg-warning text-dark">AI分析 {{ userQuota.total_available.ai_analysis }} 次</span>
         </div>
         <a href="pricing.html" class="btn btn-sm btn-primary">购买更多</a>
       </div>
@@ -857,47 +835,14 @@
 
     <h1 class="mb-4">面试系统管理</h1>
 
-    <!-- BaseURL配置 -->
-    <div class="mb-3 alert alert-secondary">
-      <div class="row align-items-center">
-        <div class="col-auto">
-          <label class="mb-0">API 基础URL:</label>
-        </div>
-        <div class="col">
-          <input type="text" class="form-control" v-model="baseURL" placeholder="例如: https://api.example.com/">
-        </div>
-        <div class="col-auto">
-          <button class="btn btn-primary" @click="applyBaseURL">应用</button>
-        </div>
-      </div>
-      <div class="mt-2 small">
-        <span>当前API基础路径: {{ baseURL || '(使用相对路径)' }}</span>
-      </div>
-    </div>
-
-    <!-- 工作台 -->
+    <!-- 主页（用户能看懂的叫法，此前叫"工作台"） -->
     <div class="tab-content">
-      <h3 class="mt-3">工作台</h3>
+      <h3 class="mt-3">主页</h3>
       <p class="text-muted mb-4">欢迎回来，今天准备好开始面试训练了吗？</p>
       
       <!-- 新建面试训练卡片 -->
       <div class="card">
         <h4 class="text-lg font-semibold mb-4 text-blue-400">新建面试训练</h4>
-        
-        <div class="mb-4">
-          <p class="text-sm text-gray-400 mb-2">创建入口：简历、职位描述、AI生成简历面试</p>
-          <div class="flex flex-wrap gap-2 mb-4">
-            <button class="btn btn-tag" @click="handleTagClick('frontend')">
-              前端开发
-            </button>
-            <button class="btn btn-tag" @click="handleTagClick('product')">
-              产品经理
-            </button>
-            <button class="btn btn-tag" @click="handleTagClick('data')">
-              数据分析
-            </button>
-          </div>
-        </div>
         
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
           <div>
@@ -913,7 +858,10 @@
         <div class="mb-4">
           <label class="block text-sm font-medium text-gray-400 mb-1">上传简历</label>
           <input type="file" class="form-control" @change="handleResumeUpload" accept=".pdf,.doc,.docx">
+          <!-- 【2026-10-06 修复】原来 mounted 时自动塞一份假的 resume.md 导致一打开
+               就显示"已上传"；现在初始为空——没选文件时提示"请上传面试简历" -->
           <p v-if="resumeFile" class="text-xs text-green-400 mt-1">{{ resumeFile.name }} 已上传</p>
+          <p v-else class="text-xs text-gray-500 mt-1">请上传面试简历（支持 PDF / Word）</p>
         </div>
         
         <button class="btn btn-primary w-full py-3" @click="handleStartTraining">
@@ -921,57 +869,37 @@
         </button>
       </div>
       
-      <!-- 统计信息 -->
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-        <div class="card">
-          <div class="flex justify-between items-center mb-2">
-            <h5 class="text-sm font-medium text-gray-400">平均得分</h5>
-            <span class="text-xs text-gray-500">近10次训练</span>
-          </div>
-          <div class="flex items-end">
-            <span class="text-2xl font-bold text-blue-400">78</span>
-            <span class="text-sm text-gray-400 ml-1 mb-1">分</span>
-          </div>
-          <div class="mt-2 w-full bg-slate-700 rounded-full h-2">
-            <div class="bg-blue-500 h-2 rounded-full" style="width: 78%"></div>
-          </div>
-        </div>
-        
-        <div class="card">
-          <div class="flex justify-between items-center mb-2">
-            <h5 class="text-sm font-medium text-gray-400">剩余次数</h5>
-            <span class="text-xs text-gray-500">本月</span>
-          </div>
-          <div class="flex items-end">
-            <span class="text-2xl font-bold text-blue-400">12</span>
-            <span class="text-sm text-gray-400 ml-1 mb-1">次</span>
-          </div>
-          <div class="mt-2 flex justify-between items-center">
-            <span class="text-xs text-gray-500">总计训练: 32次</span>
-            <button class="text-xs text-blue-400 hover:text-blue-300" @click="handleBuyCredits">购买次数</button>
-          </div>
-        </div>
-      </div>
-      
-      <!-- 最近训练记录 -->
+      <!-- 我的面试记录（真实数据：GET /api/interview/my_records，替换原企业版遗留假数据） -->
       <div class="card">
         <div class="flex justify-between items-center mb-4">
-          <h4 class="text-lg font-semibold text-blue-400">最近训练记录</h4>
-          <button class="text-sm text-blue-400 hover:text-blue-300" @click="handleViewAll">查看全部</button>
+          <h4 class="text-lg font-semibold text-blue-400">我的面试记录</h4>
+          <span class="text-sm text-gray-400" v-if="myStats">
+            累计 {{ myStats.total_count }} 场
+            <template v-if="myStats.average_score !== null"> · 平均 {{ myStats.average_score }} 分</template>
+          </span>
         </div>
-        
-        <div class="space-y-3">
-          <div v-for="record in trainingRecords" :key="record.id" class="flex justify-between items-center p-3 bg-slate-700/50 rounded-lg hover:bg-slate-700/80 transition">
+
+        <!-- 空状态：一场面试都没有 -->
+        <div v-if="myRecords.length === 0" class="text-center text-gray-500 py-8">
+          暂无面试记录，上传简历创建第一场面试吧
+        </div>
+
+        <div class="space-y-3" v-else>
+          <div v-for="record in myRecords" :key="record.token" class="flex justify-between items-center p-3 bg-slate-700/50 rounded-lg hover:bg-slate-700/80 transition">
             <div>
               <div class="flex items-center">
-                <span class="w-2 h-2 rounded-full bg-green-500 mr-2"></span>
-                <span class="font-medium">{{ record.title }}</span>
+                <!-- 绿点 = 已出分；黄点 = 还没走到报告环节 -->
+                <span class="w-2 h-2 rounded-full mr-2" :class="record.score !== null ? 'bg-green-500' : 'bg-yellow-500'"></span>
+                <span class="font-medium">{{ record.position_name || '模拟面试' }}</span>
               </div>
-              <div class="text-xs text-gray-400 mt-1">{{ record.date }}</div>
+              <div class="text-xs text-gray-400 mt-1">{{ formatRecordTime(record.start_time) }}</div>
             </div>
             <div class="flex items-center gap-3">
-              <span class="text-sm font-medium text-green-400">{{ record.score }}分</span>
-              <button class="text-xs text-blue-400 hover:text-blue-300" @click="handleViewDetails(record.id)">查看详情</button>
+              <span class="text-sm font-medium" :class="record.score !== null ? 'text-green-400' : 'text-gray-500'">
+                {{ record.score !== null ? record.score + '分' : '报告未生成' }}
+              </span>
+              <!-- 跳独立详情页：题目 + 回答 + 报告 -->
+              <a :href="'record_detail.html?token=' + record.token" class="text-xs text-blue-400 hover:text-blue-300">查看详情</a>
             </div>
           </div>
         </div>
@@ -985,56 +913,28 @@
     createApp({
       data() {
         return {
-          // 默认空串 = 相对路径：请求发到"当前页面所在的域名+端口"，开发和部署通吃。
-          // 保留可配置能力：页面上的"API基础路径"输入框或 ?baseURL= 参数仍可覆盖默认值
-          baseURL: '',
-          // 工作台数据
+          // 主页数据
           workExperience: '',
           // 目标岗位默认必须为空：默认值会被直接传给后端当岗位出题（曾因默认 'frontend'
           // 导致丢什么简历都出前端题）；留空时后端 422 拦截，强制用户填写
           targetPosition: '',
           resumeFile: null,
-          trainingRecords: [
-            {
-              id: 1,
-              title: '前端开发面试测试',
-              date: '2026-04-11 15:30',
-              score: 85
-            },
-            {
-              id: 2,
-              title: '产品经理面试测试',
-              date: '2026-04-10 10:15',
-              score: 78
-            },
-            {
-              id: 3,
-              title: '数据分析面试测试',
-              date: '2026-04-09 14:45',
-              score: 92
-            }
-          ],
+          // 我的面试记录（真实数据，loadMyRecords 填充）
+          myRecords: [],
+          // 汇总统计：{ total_count: 累计场数, average_score: 平均分或 null }
+          myStats: null,
           // 用户相关数据
           currentUser: null,
           userQuota: {}
         };
       },
       mounted() {
-        // 从URL参数中获取baseURL（如果有）
-        const urlParams = new URLSearchParams(window.location.search);
-        if (urlParams.has('baseURL')) {
-          this.baseURL = urlParams.get('baseURL');
-          // 确保baseURL以/结尾
-          if (this.baseURL && !this.baseURL.endsWith('/')) {
-            this.baseURL += '/';
-          }
-        }
-        
         // 加载当前用户
         this.loadCurrentUser();
-        
-        // 自动设置测试简历（用于测试）
-        this.setTestResume();
+
+        // 【2026-10-06 删除】原来这里自动调用 setTestResume() 塞一份假的
+        // "resume.md"（张三的 markdown 简历）——页面一打开就显示"已上传"，
+        // 用户误以为已经有默认简历。现在初始状态为空，未选文件时提示上传
       },
       methods: {
         // 加载当前用户
@@ -1043,15 +943,42 @@
           if (user) {
             this.currentUser = JSON.parse(user);
             this.loadUserQuota();
+            this.loadMyRecords();
           }
+        },
+
+        // 构造鉴权请求头（2026-10-06 越权修复）：把登录时服务端下发的
+        // authToken 放进 Authorization 请求头，需要身份的接口都带上它。
+        // token 失效时后端回 401，前端各调用点据此提示重新登录
+        getAuthHeaders() {
+          const token = localStorage.getItem('authToken') || '';
+          return token ? { 'Authorization': 'Bearer ' + token } : {};
+        },
+
+        // 401 统一处理：token 失效/没登录 → 清掉本地登录态并提示重新登录
+        handleUnauthorized() {
+          localStorage.removeItem('currentUser');
+          localStorage.removeItem('authToken');
+          this.currentUser = null;
+          Swal.fire({
+            title: '请先登录',
+            text: '登录状态已失效，请重新登录后再操作',
+            icon: 'warning',
+            confirmButtonText: '去登录'
+          }).then(() => { window.location.href = 'login.html'; });
         },
         
         // 加载用户配额
         async loadUserQuota() {
           if (!this.currentUser) return;
-          
+
           try {
-            const response = await fetch(this.getApiUrl(`api/user/quota?user_id=${this.currentUser.id}`));
+            // 身份由请求头 token 决定（后端已不再接受 user_id 参数）
+            const response = await fetch(this.getApiUrl('api/user/quota'), {
+              headers: this.getAuthHeaders()
+            });
+            // token 失效：清登录态并跳登录页
+            if (response.status === 401) { this.handleUnauthorized(); return; }
             const data = await response.json();
             if (data.status === 'success') {
               this.userQuota = data.quota;
@@ -1070,8 +997,18 @@
         },
         
         // 退出登录
-        logout() {
+        async logout() {
+          // 通知服务端作废 token（就算这一步失败，本地照常清理）
+          try {
+            await fetch(this.getApiUrl('api/auth/logout'), {
+              method: 'POST',
+              headers: this.getAuthHeaders()
+            });
+          } catch (error) {
+            console.error('登出请求失败:', error);
+          }
           localStorage.removeItem('currentUser');
+          localStorage.removeItem('authToken');
           this.currentUser = null;
           this.userQuota = {};
           Swal.fire({
@@ -1083,15 +1020,13 @@
           });
         },
         
-        // 获取API完整URL
+        // 获取API完整URL（统一走相对路径：页面从哪打开请求就发到哪，开发部署一套代码通用）
         getApiUrl(path) {
           // 如果path已经以/开头，去掉开头的/
           if (path.startsWith('/')) {
             path = path.substring(1);
           }
-          // 确保baseURL末尾有斜杠
-          const baseUrl = this.baseURL.endsWith('/') ? this.baseURL : this.baseURL + '/';
-          const url = `${baseUrl}${path}`;
+          const url = `/${path}`;
           console.log('API URL:', url);
           return url;
         },
@@ -1127,37 +1062,52 @@
           }
         },
         
-        // 自动设置简历文件（用于测试）
-        setTestResume() {
-          // 创建一个模拟的File对象
-          const blob = new Blob(['# 个人简历\n\n## 基本信息\n- **姓名**：张三\n- **性别**：男\n- **年龄**：28岁\n- **电话**：13800138000\n- **邮箱**：zhangsan@example.com\n- **地址**：北京市朝阳区\n\n## 教育背景\n- **2014.09 - 2018.06**：北京大学，计算机科学与技术专业，本科\n- **2018.09 - 2021.06**：清华大学，计算机科学与技术专业，硕士\n\n## 工作经历\n- **2021.07 - 至今**：字节跳动，前端开发工程师\n  - 负责公司核心产品的前端开发，使用 React、Vue 等框架\n  - 参与设计和实现了公司的前端组件库，提高了开发效率\n  - 优化了前端性能，减少了页面加载时间，提升了用户体验\n  - 与后端团队协作，完成了多个重要项目的开发和上线\n\n## 技能特长\n- **前端技术**：HTML5、CSS3、JavaScript、TypeScript、React、Vue、Angular\n- **后端技术**：Node.js、Express、MongoDB\n- **工具**：Git、Webpack、Vite、Docker\n- **其他**：英语（CET-6）、沟通能力强、团队协作能力强\n\n## 项目经验\n- **项目名称**：字节跳动官网重构\n  - **时间**：2022.03 - 2022.06\n  - **职责**：负责前端架构设计和核心模块开发\n  - **成果**：提高了网站的加载速度和用户体验，获得了公司的表彰\n\n- **项目名称**：字节跳动内部管理系统\n  - **时间**：2021.09 - 2022.02\n  - **职责**：负责前端开发和维护\n  - **成果**：提高了内部管理效率，获得了用户的好评\n\n## 获奖情况\n- **2020**：清华大学优秀研究生\n- **2019**：国家奖学金\n- **2018**：北京大学优秀毕业生\n\n## 自我评价\n- 具有扎实的计算机基础知识和丰富的前端开发经验\n- 熟悉前端开发的各种技术和工具，能够快速适应新技术\n- 具有良好的沟通能力和团队协作能力，能够与不同背景的人合作\n- 具有较强的学习能力和解决问题的能力，能够快速学习新技术和解决复杂问题'], { type: 'text/markdown' });
-          this.resumeFile = new File([blob], 'resume.md', { type: 'text/markdown' });
-        },
-        
-        // 应用BaseURL
-        applyBaseURL() {
-          // 更新URL参数
-          const url = new URL(window.location.href);
-          if (this.baseURL) {
-            url.searchParams.set('baseURL', this.baseURL);
-          } else {
-            url.searchParams.delete('baseURL');
-          }
-          window.history.pushState({}, '', url);
-        },
-        
-        // 处理标签点击
-        handleTagClick(tag) {
-          console.log('标签点击:', tag);
-          // 这里可以添加标签点击的逻辑
-        },
-        
+        // 【2026-10-06 删除】setTestResume() 测试方法已移除：它会凭空构造一份
+        // "resume.md" 假简历（张三的 markdown）塞进 resumeFile，配合 mounted
+        // 自动调用导致页面一打开就显示"已上传"。测试应使用真实简历文件上传
+
         // 处理立即训练点击
         async handleStartTraining() {
+          // 【2026-10-06 越权修复】开始面试必须登录：后端已强制校验登录 token，
+          // 未登录在这里就拦下，不给用户填完简历才被 401 打回
+          if (!this.currentUser) {
+            Swal.fire({
+              title: '请先登录',
+              text: '开始 AI 面试前请先登录账号',
+              icon: 'warning',
+              confirmButtonText: '去登录'
+            }).then(() => { window.location.href = 'login.html'; });
+            return;
+          }
+
+          // 【2026-10-06 配额拦截】面试剩余次数为 0 时提前拦截（后端上传接口
+          // 也有同样闸门兜底，这里是省得上传半天才被 422 打回）
+          const remaining = this.userQuota?.total_available?.interviews;
+          if (typeof remaining === 'number' && remaining <= 0) {
+            Swal.fire({
+              title: '次数已用完',
+              text: '面试剩余次数为 0，无法开始新面试',
+              icon: 'warning'
+            });
+            return;
+          }
+
           if (!this.resumeFile) {
             Swal.fire({
               title: '提示',
               text: '请先上传简历',
+              icon: 'warning'
+            });
+            return;
+          }
+
+          // 工作经验必填校验（2026-10-06 补）：经验年限和岗位一样是出题素材，
+          // 空着提交会让 AI 拿不到年限信息；此前未拦截导致报错时被笼统的
+          // "上传简历失败"文案掩盖真实原因
+          if (!this.workExperience || !this.workExperience.trim()) {
+            Swal.fire({
+              title: '提示',
+              text: '请填写工作经验（如：1-3年经验、应届生）',
               icon: 'warning'
             });
             return;
@@ -1182,7 +1132,7 @@
           
           Swal.fire({
             title: '训练开始',
-            text: '正在上传简历并分析，请稍候...',
+            text: '正在上传简历并分析，预计约 2 分钟（含 AI 出题），请耐心等待...',
             icon: 'info',
             showConfirmButton: false,
             allowOutsideClick: false
@@ -1194,19 +1144,32 @@
             formData.append('resume', this.resumeFile);
             formData.append('work_experience', this.workExperience);
             formData.append('target_position', this.targetPosition);
-            
-            // 上传简历并分析，设置超时时间为60秒
+            // 面试归属不再由前端传 user_id（2026-10-06 越权修复）：
+            // 后端从 Authorization 请求头里的登录 token 自己判断"是谁在面试"
+
+            // 上传简历并分析。注意：这个接口是同步等"简历分析+AI出题"全部完成
+            // 才返回（弹窗文案"预计约 2 分钟"说的就是这个），所以超时必须放宽到
+            // 3 分钟——之前 60 秒会掐断一个正在正常执行的请求，用户还以为失败重试
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 60000);
-            
+            const timeoutId = setTimeout(() => controller.abort(), 180000);
+
             const response = await fetch(this.getApiUrl('api/resume/upload'), {
               method: 'POST',
+              headers: this.getAuthHeaders(),
               body: formData,
               signal: controller.signal
             });
-            
+
             clearTimeout(timeoutId);
-            
+
+            // token 失效/未登录：后端 401，清登录态并跳登录页
+            if (response.status === 401) {
+              Swal.close();
+              if (startButton) { startButton.disabled = false; startButton.innerHTML = '开始训练'; }
+              this.handleUnauthorized();
+              return;
+            }
+
             const data = await response.json();
             
             if (data.status === 'success') {
@@ -1221,9 +1184,13 @@
                 window.location.href = `interview.html?token=${data.token}`;
               });
             } else {
+              // FastAPI 校验失败（422）返回的是 {detail: [...]} 结构，没有 message 字段；
+              // 之前一律显示兜底文案"上传简历失败"，把真实原因（如某字段必填）掩盖了，
+              // 用户会误以为是简历本身的问题。现在优先展示后端给出的具体原因
+              const detailMsg = Array.isArray(data.detail) ? data.detail[0].msg : data.detail;
               Swal.fire({
                 title: '错误',
-                text: data.message || '上传简历失败',
+                text: detailMsg || data.message || '上传简历失败',
                 icon: 'error'
               });
               // 重新启用按钮
@@ -1247,23 +1214,33 @@
           }
         },
         
-        // 处理购买次数点击
-        handleBuyCredits() {
-          console.log('购买次数');
-          // 跳转到购买页面
-          window.location.href = 'pricing.html';
+        // 加载我的面试记录（真实数据，替换原企业版假仪表盘）
+        async loadMyRecords() {
+          if (!this.currentUser) return;
+
+          try {
+            // 身份由请求头 token 决定（后端已不再接受 user_id 参数）
+            const response = await fetch(this.getApiUrl('api/interview/my_records'), {
+              headers: this.getAuthHeaders()
+            });
+            // token 失效：清登录态并跳登录页
+            if (response.status === 401) { this.handleUnauthorized(); return; }
+            const data = await response.json();
+            if (data.status === 'success') {
+              this.myRecords = data.records;
+              this.myStats = data.stats;
+            }
+          } catch (error) {
+            console.error('加载面试记录失败:', error);
+          }
         },
-        
-        // 处理查看全部点击
-        handleViewAll() {
-          console.log('查看全部训练记录');
-          // 这里可以添加查看全部训练记录的逻辑
-        },
-        
-        // 处理查看详情点击
-        handleViewDetails(id) {
-          console.log('查看详情:', id);
-          // 这里可以添加查看详情的逻辑
+
+        // 秒级时间戳 → "2026-10-05 22:05" 可读格式（列表展示用）
+        formatRecordTime(ts) {
+          if (!ts || ts <= 0) return '未设置时间';
+          const d = new Date(ts * 1000);
+          const pad = n => String(n).padStart(2, '0');
+          return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
         }
       }
     }).mount('#app');

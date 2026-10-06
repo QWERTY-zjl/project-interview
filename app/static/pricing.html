@@ -245,10 +245,23 @@
     .text-primary {
       color: #3b82f6 !important;
     }
+    /* 返回主页链接（2026-10-06 新增） */
+    .back-bar { margin-bottom: 16px; }
+    .back-link {
+      color: #93c5fd;
+      text-decoration: none;
+      font-size: 14px;
+    }
+    .back-link:hover { text-decoration: underline; }
   </style>
 </head>
 <body>
   <div id="app" class="pricing-container">
+    <!-- 返回主页链接（2026-10-06 新增：此前页面没有返回键，用户进来出不去） -->
+    <div class="back-bar">
+      <a href="admin.html" class="back-link">← 返回主页</a>
+    </div>
+
     <!-- 头部 -->
     <div class="pricing-header">
       <h1>💎 选择适合您的套餐</h1>
@@ -259,17 +272,12 @@
     <div v-if="currentUser" class="user-info">
       <h4>欢迎，{{ currentUser.username }}</h4>
       <div class="quota-display">
+        <!-- 【2026-10-06 精简】个人版配额只有"面试次数"一项（注册默认 3 次，
+             大模型成功出题的面试扣 1 次）——语音时长/AI分析是企业版遗留维度，
+             个人版后端没有对应字段，显示出来永远是 0，已删除 -->
         <div class="quota-item">
           <div class="quota-number">{{ userQuota.total_available?.interviews || 0 }}</div>
           <div class="quota-label">剩余面试次数</div>
-        </div>
-        <div class="quota-item">
-          <div class="quota-number">{{ userQuota.total_available?.tts_minutes || 0 }}</div>
-          <div class="quota-label">剩余语音时长(分钟)</div>
-        </div>
-        <div class="quota-item">
-          <div class="quota-number">{{ userQuota.total_available?.ai_analysis || 0 }}</div>
-          <div class="quota-label">剩余AI分析次数</div>
         </div>
       </div>
     </div>
@@ -441,9 +449,20 @@
         // 加载用户配额
         async loadUserQuota() {
           if (!this.currentUser) return;
-          
+
           try {
-            const response = await fetch(`/api/user/quota?user_id=${this.currentUser.id}`);
+            // 身份由请求头 token 决定（2026-10-06 越权修复，后端已不接受 user_id 参数）
+            const token = localStorage.getItem('authToken') || '';
+            const response = await fetch(`/api/user/quota`, {
+              headers: token ? { 'Authorization': 'Bearer ' + token } : {}
+            });
+            // token 失效：清登录态跳登录页
+            if (response.status === 401) {
+              localStorage.removeItem('currentUser');
+              localStorage.removeItem('authToken');
+              window.location.href = 'login.html';
+              return;
+            }
             const data = await response.json();
             if (data.status === 'success') {
               this.userQuota = data.quota;
@@ -460,6 +479,10 @@
             const data = await response.json();
             if (data.status === 'success') {
               this.plans = data.plans;
+            } else {
+              // 付费开关关闭时接口返回 503（{"error": "付费功能未启用"}）——
+              // HTTP 错误不会抛异常，走到这里；不提示的话页面套餐区静默空白
+              Swal.fire('提示', data.error || '套餐暂不可用，请稍后再试', 'info');
             }
           } catch (error) {
             console.error('加载套餐失败:', error);

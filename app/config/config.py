@@ -25,6 +25,12 @@ DASHSCOPE_BASE_URL = os.getenv("DASHSCOPE_BASE_URL", "https://dashscope.aliyuncs
 # 出题用的文本模型（qwen-flash 为 DashScope 上最便宜的文本模型）
 LLM_MODEL = os.getenv("LLM_MODEL", "qwen-flash")
 
+# 视觉理解模型（表情识别：分析摄像头抓拍画面里的情绪，qwen3-vl-flash 是百炼上
+# 最便宜的视觉模型，输入价与 qwen-flash 相同——0.15 元/百万 token）
+# 【2026-10-06】原 EXPRESSION_MODEL=face-expression-detection 是企业版遗留的
+# 虚构模型（百炼上不存在，调用必 404），已删除，表情识别统一走本配置项
+VISION_MODEL = os.getenv("VISION_MODEL", "qwen3-vl-flash")
+
 # ==================== AI 服务配置（全部可在 .env 里覆盖，无需改代码）====================
 # 使用者想换模型/换服务商时，只需要在 .env 里写同名变量，例如：
 #   LLM_MODEL=qwen-turbo          # 换文本模型
@@ -40,9 +46,6 @@ ASR_MODEL = os.getenv("ASR_MODEL", "paraformer-v2")
 
 # 语音合成模型（TTS：把面试题朗读出来）
 TTS_MODEL = os.getenv("TTS_MODEL", "qwen-tts")
-
-# 表情识别模型（面试中摄像头抓拍，分析候选人情绪）
-EXPRESSION_MODEL = os.getenv("EXPRESSION_MODEL", "face-expression-detection")
 
 # 默认朗读音色（当前端传来的音色类型不在映射表里时兜底用）
 # qwen-tts 用英文别名音色（Cherry=女 / Ethan=男），不认 zh-CN-* 风格音色

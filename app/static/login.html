@@ -214,6 +214,10 @@
               // 登录凭证存这里，其他页面（如 admin.html）可取出判断"是否已登录"
               // JSON.stringify 再存：localStorage 只能存字符串，对象必须先转成字符串
               localStorage.setItem('currentUser', JSON.stringify(data.user));
+              // 登录会话凭证（2026-10-06 越权修复）：服务端登录成功时下发的随机 token，
+              // 存这里供其他页面（admin/pricing）取用——之后所有需要身份的请求
+              // 都要带上 Authorization: Bearer <token> 请求头，服务端凭它确认"你是谁"
+              localStorage.setItem('authToken', data.auth_token);
 
               // Swal.fire：SweetAlert2 弹窗（比原生 alert 美观）；timer=1500 → 1.5 秒后自动关闭
               Swal.fire({

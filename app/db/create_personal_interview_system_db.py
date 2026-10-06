@@ -51,7 +51,14 @@ CREATE TABLE IF NOT EXISTS users (
     email TEXT,                             -- 邮箱
     password_hash TEXT,                     -- 密码哈希（只存摘要不存明文）
     created_at INTEGER DEFAULT (strftime('%s', 'now')),  -- 注册时间，默认当前Unix时间戳
-    last_login_at INTEGER                   -- 最后登录时间（登录成功时由代码更新）
+    last_login_at INTEGER,                  -- 最后登录时间（登录成功时由代码更新）
+    -- 剩余可用 AI 面试次数：注册默认 3 次；每场"大模型成功出题"的面试扣 1 次
+    --（出题降级为默认题库时不扣——没消耗大模型就不算用掉额度，见 question_service.py）
+    interview_quota INTEGER DEFAULT 3,      -- 可用面试次数（个人版唯一配额项）
+    -- 登录会话凭证：登录成功时生成随机 token 写入本列并下发给前端，
+    -- 之后所有需要身份的接口凭请求头里的 token 反查本表确定"当前用户"。
+    -- 取代"前端传 user_id 就信谁"的伪登录（2026-10-06 修复未登录越权漏洞）
+    auth_token TEXT                         -- 登录会话凭证（登出时置 NULL）
 )
 ''')
 
@@ -402,6 +409,27 @@ except sqlite3.OperationalError:
     cursor.execute("ALTER TABLE users ADD COLUMN status INTEGER DEFAULT 1")
     conn.commit()
     print("status 字段添加成功")
+
+# 检查并添加 interview_quota 字段到 users 表（个人版唯一配额：可用 AI 面试次数）
+# 老用户的存量账号统一补默认值 3（DEFAULT 在 ALTER ADD COLUMN 时对已有行生效）
+try:
+    cursor.execute("SELECT interview_quota FROM users LIMIT 1")
+except sqlite3.OperationalError:
+    print("添加 interview_quota 字段到 users 表...")
+    cursor.execute("ALTER TABLE users ADD COLUMN interview_quota INTEGER DEFAULT 3")
+    conn.commit()
+    print("interview_quota 字段添加成功")
+
+# 检查并添加 auth_token 字段到 users 表（登录会话凭证，2026-10-06 越权修复）
+# 与上面 interview_quota 同款探测式迁移：查询报错说明列不存在，补上即可。
+# 老用户的存量账号该列默认 NULL = 未登录状态，首次登录时才写入 token
+try:
+    cursor.execute("SELECT auth_token FROM users LIMIT 1")
+except sqlite3.OperationalError:
+    print("添加 auth_token 字段到 users 表...")
+    cursor.execute("ALTER TABLE users ADD COLUMN auth_token TEXT")
+    conn.commit()
+    print("auth_token 字段添加成功")
 
 # ==================== 插入初始数据 ====================
 # 【INSERT 语法】INSERT INTO 表名 (列1, 列2, ...) VALUES (值1, 值2, ...)

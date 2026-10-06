@@ -569,10 +569,16 @@ def update_order_payment(order_no, pay_method, pay_trade_no):
               plan['interviews_included'], plan['tts_minutes_included'], 
               plan['ai_analysis_included']))
         
-        # 更新用户类型为付费用户
+        # 更新用户类型为付费用户，并把套餐包含的面试次数加进个人版唯一配额列
+        # （interview_quota 是个人版真配额：大模型出题成功一场扣 1，见 question_service；
+        #   原实现只改 user_type 不加次数——企业版时代配额走 user_quotas/user_subscriptions
+        #   两张表，个人版前端只读 users.interview_quota，导致支付后配额纹丝不动）
         cursor.execute('''
-            UPDATE users SET user_type = 'premium' WHERE id = ?
-        ''', (order['user_id'],))
+            UPDATE users
+            SET user_type = 'premium',
+                interview_quota = interview_quota + ?
+            WHERE id = ?
+        ''', (plan['interviews_included'] or 0, order['user_id']))
         
         conn.commit()
         return True, "支付成功，订阅已激活"
