@@ -51,7 +51,17 @@ TTS_MODEL = os.getenv("TTS_MODEL", "qwen-tts")
 # qwen-tts 用英文别名音色（Cherry=女 / Ethan=男），不认 zh-CN-* 风格音色
 DEFAULT_TTS_VOICE = os.getenv("DEFAULT_TTS_VOICE", "Cherry")
 
-# SQLite 数据库文件路径（变量名叫 NAME，实际存的是完整路径）
+# ==================== 数据库连接配置（2026-10 从 SQLite 迁移到 PostgreSQL）====================
+# 【分发开关】DATABASE_URL 有值 → 全系统走 PostgreSQL；为空 → 回退 SQLite（原路径不动）
+# 双轨设计的目的：
+#   1. 迁移期间任何阶段出问题，删掉 .env 里的 DATABASE_URL 即可整体回到 SQLite，现场秒恢复
+#   2. 收尾稳定后（预计迁移完数天）再删除 SQLite 路径，干净收口
+# 【conninfo 格式】postgresql://用户名:密码@主机:端口/库名
+#   本机开发连容器映射的 127.0.0.1:5432；Docker 部署时 compose 的 environment
+#   会用容器网络主机名 postgres 覆盖这里（环境变量优先于 .env 文件）
+DATABASE_URL = os.getenv("DATABASE_URL", "")
+
+# SQLite 数据库文件路径（变量名叫 NAME，实际存的是完整路径；仅 DATABASE_URL 为空时使用）
 # 【为什么要锚定】"interview_system.db" 这种裸文件名是相对路径，跟「进程启动目录」走：
 #   从仓库根启动 → 连 <仓库根>/interview_system.db，从别处启动 → 又是另一个文件。
 #   实际后果：服务器连到一个凭空生成的空库，所有查询报 no such table。

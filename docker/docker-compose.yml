@@ -1,5 +1,5 @@
 # Docker Compose 编排文件
-# 作用：一条命令同时启动两个容器 —— app（Flask 后端）+ nginx（反向代理/HTTPS）
+# 作用：一条命令同时启动三个容器 —— app（FastAPI 后端）+ postgres（数据库）+ nginx（反向代理/HTTPS）
 # 运行方式：在本文件所在目录执行  docker compose up -d --build
 # 【路径规则】下面的相对路径都以「本文件所在目录」（docker/）为基准，
 #   ./ = docker/ 目录内，../ = 仓库根目录
@@ -14,9 +14,36 @@ services:
       - ../app:/srv/app                # 挂载本机 app/ 代码进容器（与镜像内 COPY 的位置一致），改代码不用重建镜像
       - ../.env:/srv/.env:ro           # API 密钥只读注入：config.py 的 load_dotenv() 会从 /srv/app 向上找到 /srv/.env
     ports:
-      - "10009:10009"                  # 本机10009 → 容器10009（server.py 实际监听的端口）
+      - "10009:10009"                  # 本机10009 → 容器10009（main.py 实际监听的端口）
+    depends_on:
+      postgres:
+        condition: service_healthy     # 等 PG 真正可接受连接再启动 app，避免启动时 init_db 连不上
     environment:
       - PYTHONUNBUFFERED=1             # 让 Python 日志实时显示，不缓冲
+      # 【容器内连 PG】主机名用 compose 服务名 postgres（容器网络内部域名），
+      # 而不是本机用的 127.0.0.1。这里的环境变量会覆盖根 .env 里的同名项
+      # （config.py 的 load_dotenv() 默认不覆盖已存在的环境变量）
+      - DATABASE_URL=postgresql://zsmian:${POSTGRES_PASSWORD}@postgres:5432/interview_system
+
+  # ---------- 服务 3：PostgreSQL 16 数据库容器（2026-10 从 SQLite 迁移） ----------
+  # 密码通过 ${POSTGRES_PASSWORD} 变量注入：从本目录的 .env（docker/.env）读取，
+  # 该文件不入 git。首次启动自动建库 interview_system 和用户 zsmian，
+  # 数据落在 named volume pg_data 里（容器删除重建数据不丢）
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: interview_system            # 启动时自动创建的数据库
+      POSTGRES_USER: zsmian                    # 自动创建的超级用户
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}  # 用户密码（从 docker/.env 读）
+    ports:
+      - "5432:5432"                  # 本机5432 → 容器5432（本机跑 app/搬迁脚本直连用）
+    volumes:
+      - pg_data:/var/lib/postgresql/data   # 数据持久化：容器重建不丢数据
+    healthcheck:                   # 健康检查：让上面的 depends_on condition 生效
+      test: ["CMD-SHELL", "pg_isready -U zsmian -d interview_system"]
+      interval: 5s                  # 每 5 秒探测一次
+      timeout: 3s
+      retries: 10                   # 最多重试 10 次（PG 冷启动约需几秒）
 
   # ---------- 服务 2：nginx 反向代理容器 ----------
   nginx:
@@ -30,3 +57,7 @@ services:
       - ../app:/srv/app                # 挂载代码，nginx 直接读静态文件（/srv/app/static）
     depends_on:
       - app                            # 先启动 app 再启动 nginx
+
+# 顶层 volumes：named volume 定义（compose 自动管理存储位置）
+volumes:
+  pg_data:
