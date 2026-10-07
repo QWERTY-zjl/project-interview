@@ -49,7 +49,7 @@ def generate_evaluation(token: str = Body(None, embed=True)):
 
         # 查面试记录（同时取 status 与已存档报告：报告已生成过就直接返回，
         # 避免每次打开已完成面试的页面都重新调大模型、重复消耗额度）
-        cursor.execute("SELECT id, status, report_content FROM interviews WHERE token = ?", (token,))
+        cursor.execute("SELECT id, status, report_content FROM interviews WHERE token = %s", (token,))
         interview = cursor.fetchone()
 
         if not interview:
@@ -85,7 +85,7 @@ def generate_evaluation(token: str = Body(None, embed=True)):
         # 查问题+回答（score_standard 回传给大模型当评分依据）
         cursor.execute('''
             SELECT question, score_standard, answer_text
-            FROM interview_questions WHERE interview_id = ? ORDER BY id
+            FROM interview_questions WHERE interview_id = %s ORDER BY id
         ''', (interview_id,))
         questions = [dict(r) for r in cursor.fetchall()]
 
@@ -106,7 +106,7 @@ def generate_evaluation(token: str = Body(None, embed=True)):
                    SUM(CASE WHEN emotion_status = '积极' THEN 1 ELSE 0 END) AS positive_count,
                    SUM(CASE WHEN emotion_status = '中性' THEN 1 ELSE 0 END) AS neutral_count,
                    SUM(CASE WHEN emotion_status = '消极' THEN 1 ELSE 0 END) AS negative_count
-            FROM interview_expression_records WHERE interview_id = ?
+            FROM interview_expression_records WHERE interview_id = %s
         ''', (interview_id,))
         agg = cursor.fetchone()
 
@@ -114,7 +114,7 @@ def generate_evaluation(token: str = Body(None, embed=True)):
             # 表情分布：{表情中文名: 出现次数}
             cursor.execute('''
                 SELECT expression_cn, COUNT(*) AS cnt
-                FROM interview_expression_records WHERE interview_id = ?
+                FROM interview_expression_records WHERE interview_id = %s
                 GROUP BY expression_cn
             ''', (interview_id,))
             distribution = {r['expression_cn']: r['cnt'] for r in cursor.fetchall()}

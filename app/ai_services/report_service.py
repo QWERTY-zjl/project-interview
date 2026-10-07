@@ -298,11 +298,11 @@ JSON格式示例:
     # status=4 表示"报告已生成"（面试状态机的最终阶段）；
     # 报告整体 JSON 序列化后存入单列，读取时再反序列化，无需为报告建单独的表
     cursor.execute('''
-        UPDATE interviews SET status = 4, report_content = ? WHERE id = ?
+        UPDATE interviews SET status = 4, report_content = %s WHERE id = %s
     ''', (json.dumps(report_data, ensure_ascii=False), interview_id))
     # ↑ ensure_ascii=False：中文原样存储，而不是 \uXXXX 转义，人读库时可直接看懂
 
-    conn.commit()# 提交事务：UPDATE 必须commit 才真正落盘
+    conn.commit()# PG autocommit 下 UPDATE 已自动提交；commit() 保留为兼容写法，无害
     return_db(conn)# 用完归还连接（关闭并移出连接池）
 
     return {

@@ -12,7 +12,7 @@ token 都是这场面试的"门牌号"（32 位随机串，防猜解）。
 2. 数据库两种执行写法（功能等价，项目里混用）：
    - conn.execute(...)："隐式游标"快捷方式，一行搞定执行+取结果，适合单发 SQL
    - cursor = conn.cursor() 后 cursor.execute(...)：显式游标，
-     用于需要 cursor.lastrowid（拿自增 id）或要把游标传给别的函数的场景
+     用于需要 RETURNING id 拿自增 id 或要把游标传给别的函数的场景
 3. 错误处理两段式：主动失败先 return_db(conn) 归还连接再 raise HTTPException
    （顺序反了连接就泄漏）；函数末尾 except HTTPException: raise 是把
    上面主动抛的 404/400 "原样放行"，不被下面的兜底逻辑改写成 500
@@ -27,7 +27,7 @@ token 都是这场面试的"门牌号"（32 位随机串，防猜解）。
 - users（用户表）：注册用户一行，username / email / password_hash 等
 - interview_types（面试类型字典表）：面试种类一行（如"Python 后端"），
   出题时拿它的 name / description 给 LLM 当背景资料
-表间关系：本文件查多表从不写 JOIN，全靠 WHERE 列 = ? 手动关联——
+表间关系：本文件查多表从不写 JOIN，全靠 WHERE 列 = %s 手动关联——
 interviews.user_id 对 users.id；interview_questions.interview_id 对 interviews.id
 
 版权声明：仅供学习参考，禁止商用/二次分发/他用本代码申请软著
@@ -104,17 +104,17 @@ async def get_interview_info(token: str = Path(...)):
         #     id 本场编号 / user_id 谁的面试 / question_count 要出几道题 /
         #     voice_reading 开朗读 / voice_type 音色 / start_time 创建时间戳 / status 状态
         #   FROM interviews —— 查"面试场次表"（一场面试一行）
-        #   WHERE token = ? —— 只取 token 匹配的那一行
+        #   WHERE token = %s —— 只取 token 匹配的那一行
         # conn.execute(...) 是"隐式游标"快捷写法，等价于 conn.cursor().execute(...)；
         # 返回值就是那个游标，所以能直接链式调 .fetchone()
-        # fetchone()：取结果集第一行，返回 sqlite3.Row 对象（可按列名取值），
+        # fetchone()：取结果集第一行，返回 dict 行（dict_row 行工厂，可按列名取值），
         # 查不到返回 None——下面 if not interview 就是"没查到"分支
-        # SQL 里的 ? 是占位符，参数通过元组 (token,) 传入，防 SQL 注入；
+        # SQL 里的 %s 是占位符，参数通过元组 (token,) 传入，防 SQL 注入；
         # 单元素元组 (token,) 的尾逗号必须带，(token) 只是普通括号
         interview = conn.execute('''
             SELECT id, user_id, question_count, voice_reading, voice_type, start_time, status
             FROM interviews
-            WHERE token = ?
+            WHERE token = %s
         ''', (token,)).fetchone()
 
         if not interview:
@@ -124,20 +124,20 @@ async def get_interview_info(token: str = Path(...)):
             # HTTPException(404)：FastAPI 自动转成 404 响应 {"detail": "面试不存在"}
             raise HTTPException(status_code=404, detail="面试不存在")
 
-        # dict(interview)：把 sqlite3.Row 转成真正的字典——Row 只支持 result['列名']
-        # 取值，转成字典后才能用 .get() 方法（键不存在返回 None 而不是报错）
+        # dict(interview)：复制一份字典——dict_row 下查询结果本身就是字典
+        # （按列名取值），dict() 出独立拷贝后才能放心用 .get() 方法（键不存在返回 None 而不是报错）
         result = dict(interview)
 
         # 尝试获取用户信息
-        # SQL：SELECT username, email FROM users WHERE id = ? —— users 是注册用户表，
-        # WHERE id = ? 按主键精确取一行（主键查询走索引，是 SQLite 最快的查法），
+        # SQL：SELECT username, email FROM users WHERE id = %s —— users 是注册用户表，
+        # WHERE id = %s 按主键精确取一行（主键查询走索引，是最快的查法），
         # 拿用户名/邮箱显示在面试页当"候选人"
         # 这里 try/except 是"防御性降级"：用户查不到不影响主流程，
         # 名字退化为"未知用户"（遗留代码风格，新代码不鼓励层层兜底）
         candidate_name = "未知用户"
         candidate_email = ""
         try:
-            user = conn.execute('SELECT username, email FROM users WHERE id = ?', (result['user_id'],)).fetchone()
+            user = conn.execute('SELECT username, email FROM users WHERE id = %s', (result['user_id'],)).fetchone()
             if user:
                 candidate_name = user['username']
                 candidate_email = user['email']
@@ -212,10 +212,10 @@ async def get_next_question(token: str = Path(...), current_id: int = Query(0)):
         conn = get_db()
 
         # 先获取面试ID
-        # SQL：SELECT id FROM interviews WHERE token = ? —— 用对外 token 换出内部 id
+        # SQL：SELECT id FROM interviews WHERE token = %s —— 用对外 token 换出内部 id
         # 这里只 SELECT id 一列：后续所有查询都用面试内部的 id 关联，
         # token 只在"入口"这一步用来定位面试
-        interview = conn.execute('SELECT id FROM interviews WHERE token = ?', (token,)).fetchone()
+        interview = conn.execute('SELECT id FROM interviews WHERE token = %s', (token,)).fetchone()
 
         if not interview:
             return_db(conn)
@@ -240,7 +240,7 @@ async def get_next_question(token: str = Path(...), current_id: int = Query(0)):
             next_question = conn.execute('''
                 SELECT id, question as text, question_audio, voice_type
                 FROM interview_questions
-                WHERE interview_id = ? AND answer_text IS NULL
+                WHERE interview_id = %s AND answer_text IS NULL
                 ORDER BY id ASC
                 LIMIT 1
             ''', (interview['id'],)).fetchone()
@@ -259,7 +259,7 @@ async def get_next_question(token: str = Path(...), current_id: int = Query(0)):
             next_question = conn.execute('''
                 SELECT id, question as text, question_audio, voice_type
                 FROM interview_questions
-                WHERE interview_id = ? AND id > ?
+                WHERE interview_id = %s AND id > %s
                 ORDER BY id ASC
                 LIMIT 1
             ''', (interview['id'], current_id)).fetchone()
@@ -324,9 +324,9 @@ async def submit_text_answer(token: str = Path(...), question_id: int = Body(...
     """
     try:
         conn = get_db()
-        # SQL：SELECT id FROM interviews WHERE token = ? —— 老三样"token 换内部 id"，
+        # SQL：SELECT id FROM interviews WHERE token = %s —— 老三样"token 换内部 id"，
         # 同时起到鉴权作用：token 查不到 = 没资格操作任何面试 → 404
-        interview = conn.execute('SELECT id FROM interviews WHERE token = ?', (token,)).fetchone()
+        interview = conn.execute('SELECT id FROM interviews WHERE token = %s', (token,)).fetchone()
 
         if not interview:
             return_db(conn)
@@ -342,14 +342,14 @@ async def submit_text_answer(token: str = Path(...), question_id: int = Body(...
 
         # 【SQL 怎么读】UPDATE 表名 SET 列 = 新值 WHERE 条件（改数据三段式）：
         #   UPDATE interview_questions —— 要改"题目表"
-        #   SET answer_text = ?, answered_at = ? —— 把这两列改成新值（? 依次由元组填入）
-        #   WHERE id = ? AND interview_id = ? —— 只改"这场面试的这道题"这一行
+        #   SET answer_text = %s, answered_at = %s —— 把这两列改成新值（%s 依次由元组填入）
+        #   WHERE id = %s AND interview_id = %s —— 只改"这场面试的这道题"这一行
         # WHERE 同时限定两个条件还是安全设计：即使 question_id 被伪造，
         # 只要不属于这场面试就更新不到任何行（防越权写）
         conn.execute('''
             UPDATE interview_questions
-            SET answer_text = ?, answered_at = ?
-            WHERE id = ? AND interview_id = ?
+            SET answer_text = %s, answered_at = %s
+            WHERE id = %s AND interview_id = %s
         ''', (answer_text, answered_time, question_id, interview['id']))
 
         # 立刻查下一题一并返回——前端交一次答案就能直接展示下一题，省一次请求
@@ -357,7 +357,7 @@ async def submit_text_answer(token: str = Path(...), question_id: int = Body(...
         next_question = conn.execute('''
             SELECT id, question as text, question_type
             FROM interview_questions
-            WHERE interview_id = ? AND id > ?
+            WHERE interview_id = %s AND id > %s
             ORDER BY id ASC
             LIMIT 1
         ''', (interview['id'], question_id)).fetchone()
@@ -377,13 +377,13 @@ async def submit_text_answer(token: str = Path(...), question_id: int = Body(...
             all_answered = conn.execute('''
                 SELECT COUNT(*) as total, SUM(CASE WHEN answered_at IS NOT NULL THEN 1 ELSE 0 END) as answered
                 FROM interview_questions
-                WHERE interview_id = ?
+                WHERE interview_id = %s
             ''', (interview['id'],)).fetchone()
 
             # 总题数 == 已答题数 → 面试完成
             if all_answered['total'] == all_answered['answered']:
                 # UPDATE 只改 interviews 的 status 一列：3 = 已完成（状态终态）
-                conn.execute('UPDATE interviews SET status = 3 WHERE id = ?', (interview['id'],))
+                conn.execute('UPDATE interviews SET status = 3 WHERE id = %s', (interview['id'],))
                 conn.commit()
 
             result = {
@@ -433,13 +433,13 @@ async def toggle_voice_reading(token: str = Path(...), enabled: bool = Body(...,
     try:
         conn = get_db()
         # 更新语音朗读设置
-        # SQL：UPDATE interviews SET voice_reading = ? WHERE token = ? ——
+        # SQL：UPDATE interviews SET voice_reading = %s WHERE token = %s ——
         # 改"面试场次表"的 voice_reading 一列，按 token 定位行
         # 1 if enabled else 0：条件表达式——True 写 1，False 写 0
-        # （SQLite 没有布尔类型，习惯用整数 0/1 存真假值）
+        # （习惯用整数 0/1 存真假值）
         # 注意本接口没先查面试是否存在，token 不存在时 UPDATE 静默影响 0 行，
         # 仍返回 success——宽松实现，实际无碍（开关不存在的面试没有意义）
-        conn.execute('UPDATE interviews SET voice_reading = ? WHERE token = ?',
+        conn.execute('UPDATE interviews SET voice_reading = %s WHERE token = %s',
                     (1 if enabled else 0, token))
         conn.commit()
         return_db(conn)
@@ -469,9 +469,9 @@ async def set_interview_voice(token: str = Path(...), voice_type: str = Body(...
     """
     try:
         conn = get_db()
-        # SQL：SELECT status FROM interviews WHERE token = ? —— 只查 status 一列，
+        # SQL：SELECT status FROM interviews WHERE token = %s —— 只查 status 一列，
         # 本接口只需要它来判断"面试是否已开始"
-        interview = conn.execute('SELECT status FROM interviews WHERE token = ?', (token,)).fetchone()
+        interview = conn.execute('SELECT status FROM interviews WHERE token = %s', (token,)).fetchone()
 
         if not interview:
             return_db(conn)
@@ -483,8 +483,8 @@ async def set_interview_voice(token: str = Path(...), voice_type: str = Body(...
             return_db(conn)
             raise HTTPException(status_code=400, detail="面试已开始，无法更改面试官类型")
 
-        # SQL：UPDATE interviews SET voice_type = ? WHERE token = ? —— 改音色列
-        conn.execute('UPDATE interviews SET voice_type = ? WHERE token = ?',
+        # SQL：UPDATE interviews SET voice_type = %s WHERE token = %s —— 改音色列
+        conn.execute('UPDATE interviews SET voice_type = %s WHERE token = %s',
                     (voice_type, token))
         conn.commit()
         return_db(conn)
@@ -532,11 +532,11 @@ def _generate_questions_business(token: str):
         try:
             # 查询面试记录
             # SQL：SELECT id, user_id, interview_type_id, question_count, voice_type
-            #   FROM interviews WHERE token = ? —— 一次取齐出题要用的 5 个字段，
+            #   FROM interviews WHERE token = %s —— 一次取齐出题要用的 5 个字段，
             #   只查一行，按 token 精确定位
             # 本函数用 cursor.execute 风格（前面接口多用 conn.execute，两者等价）；
-            # fetchone() 返回的 Row 没转 dict 时，用 row[0]、row[1] 按列顺序取值
-            cursor.execute('SELECT id, user_id, interview_type_id, question_count, voice_type FROM interviews WHERE token = ?', (token,))
+            # fetchone() 返回 dict 行（dict_row 行工厂），用 row["列名"] 按列名取值
+            cursor.execute('SELECT id, user_id, interview_type_id, question_count, voice_type FROM interviews WHERE token = %s', (token,))
             interview = cursor.fetchone()
 
             if not interview:
@@ -544,39 +544,39 @@ def _generate_questions_business(token: str):
                 # 把"内容+状态码"交给调用方（路由函数或后台任务）打包
                 return {"error": "面试不存在"}, 404
 
-            # 五列按 SELECT 的列顺序取出
-            interview_id = interview[0]
-            user_id = interview[1]
-            interview_type_id = interview[2]
-            question_count = interview[3]
-            voice_type = interview[4]
+            # 五列按列名从 dict 行取出（与 SELECT 列一一对应）
+            interview_id = interview["id"]
+            user_id = interview["user_id"]
+            interview_type_id = interview["interview_type_id"]
+            question_count = interview["question_count"]
+            voice_type = interview["voice_type"]
 
             logger.info(f"[Interview] 找到面试记录，ID: {interview_id}, 用户ID: {user_id}")
 
             # 检查是否已经有面试问题（幂等：重复调用不重复出题）
-            # SQL：SELECT COUNT(*) FROM interview_questions WHERE interview_id = ? ——
+            # SQL：SELECT COUNT(*) AS cnt FROM interview_questions WHERE interview_id = %s ——
             # COUNT(*) 是聚合函数："数一数符合条件的行有几条"，这里 = 这场面试已出几道题
             # "幂等" = 同一操作执行多次和执行一次效果相同。已有题就直接返回成功，
             # 用户重复请求/页面刷新不会生成两套题
-            cursor.execute('SELECT COUNT(*) FROM interview_questions WHERE interview_id = ?', (interview_id,))
-            existing_questions = cursor.fetchone()[0]   # COUNT(*) 的结果在第一列
+            cursor.execute('SELECT COUNT(*) AS cnt FROM interview_questions WHERE interview_id = %s', (interview_id,))
+            existing_questions = cursor.fetchone()["cnt"]   # dict 行按别名 cnt 取 COUNT 结果
 
             if existing_questions > 0:
                 logger.info(f"[Interview] 面试已有 {existing_questions} 个问题，跳过生成")
                 return {"status": "success", "message": f"面试已有 {existing_questions} 个问题"}, 200
 
             # 获取面试类型信息
-            # SQL：SELECT name, description FROM interview_types WHERE id = ? ——
+            # SQL：SELECT name, description FROM interview_types WHERE id = %s ——
             # interview_types 是"面试类型字典表"（"Python 后端""前端开发"各占一行），
             # 按主键 id 取一行，拿它的名字和描述给出题 LLM 当背景资料
-            cursor.execute('SELECT name, description FROM interview_types WHERE id = ?', (interview_type_id,))
+            cursor.execute('SELECT name, description FROM interview_types WHERE id = %s', (interview_type_id,))
             interview_type = cursor.fetchone()
 
             if not interview_type:
                 return {"error": "面试类型不存在"}, 404
 
-            interview_type_name = interview_type[0]
-            interview_type_description = interview_type[1]
+            interview_type_name = interview_type["name"]
+            interview_type_description = interview_type["description"]
 
             # 生成面试问题（LLM 调用耗时数十秒，函数内导入保持项目惯例）
             # 函数内 import：把"加载出题模块"推迟到真正要用时，
@@ -672,14 +672,14 @@ def get_interview_stats(days: int = Query(None)):
     """
     conn = get_db()
     # 时间基准在 Python 里算好再传参：time.time() 是 Python 函数，SQL 里不存在
-    # （写进 SQL 会报 no such function）；"N天前" = 现在 - N×24×60×60 秒
+    # （写进 SQL 会报错）；"N天前" = 现在 - N×24×60×60 秒
     cutoff = int(time.time()) - days * 24 * 60 * 60
     # 【SQL 怎么读】WHERE 先筛选（只留最近 N 天的行）→ GROUP BY 再分堆计数
     # 子句顺序固定：WHERE 必须在 GROUP BY 之前
     rows = conn.execute('''
         SELECT status, COUNT(*) AS count
         FROM interviews
-        WHERE start_time >= ?
+        WHERE start_time >= %s
         GROUP BY status
     ''', (cutoff,)).fetchall()    # fetchall()：把结果从游标里取回成列表
     return_db(conn)    # 只读操作，用完立刻归还连接
@@ -751,16 +751,16 @@ async def get_my_records(request: Request):
         rows = conn.execute('''
             SELECT token, start_time, status, report_content
             FROM interviews
-            WHERE user_id = ?
+            WHERE user_id = %s
             ORDER BY id DESC
             LIMIT 10
         ''', (user['id'],)).fetchall()
 
         # 累计场数：COUNT(*) 只数该用户的全部行（不只最近 10 场），
-        # 作为"累计 X 场"指标——fetchone()[0] 取第一行第一列（COUNT 结果）
+        # 作为"累计 X 场"指标——fetchone()["cnt"] 按别名取 COUNT 结果
         total_count = conn.execute(
-            'SELECT COUNT(*) FROM interviews WHERE user_id = ?', (user['id'],)
-        ).fetchone()[0]
+            'SELECT COUNT(*) AS cnt FROM interviews WHERE user_id = %s', (user['id'],)
+        ).fetchone()["cnt"]
 
         # 逐场解析 report_content，抽出岗位名和得分
         records = []
@@ -836,7 +836,7 @@ async def get_interview_detail(token: str = Path(...)):
         interview = conn.execute('''
             SELECT id, token, start_time, status, question_count, report_content
             FROM interviews
-            WHERE token = ?
+            WHERE token = %s
         ''', (token,)).fetchone()
 
         if not interview:
@@ -848,7 +848,7 @@ async def get_interview_detail(token: str = Path(...)):
         question_rows = conn.execute('''
             SELECT id, question, score_standard, answer_text
             FROM interview_questions
-            WHERE interview_id = ?
+            WHERE interview_id = %s
             ORDER BY id ASC
         ''', (interview['id'],)).fetchall()
 
@@ -926,7 +926,7 @@ async def get_ai_hint(token: str, body: dict = Body(...)):
 
         # 验证 token 对应的面试存在
         interview = conn.execute(
-            'SELECT id FROM interviews WHERE token = ?', (token,)
+            'SELECT id FROM interviews WHERE token = %s', (token,)
         ).fetchone()
         if not interview:
             return_db(conn)
@@ -935,7 +935,7 @@ async def get_ai_hint(token: str, body: dict = Body(...)):
         # 查题目原文：id 和 interview_id 双条件——题目既要存在又要属于这场面试
         q = conn.execute('''
             SELECT question FROM interview_questions
-            WHERE id = ? AND interview_id = ?
+            WHERE id = %s AND interview_id = %s
         ''', (question_id, interview['id'])).fetchone()
         return_db(conn)
 

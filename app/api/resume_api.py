@@ -67,7 +67,7 @@ async def upload_resume(
     # 请求连分析都不该开始。or 0 兜底 interview_quota 为 NULL 的老数据
     conn = get_db()
     quota_row = conn.execute(
-        'SELECT interview_quota FROM users WHERE id = ?', (user['id'],)
+        'SELECT interview_quota FROM users WHERE id = %s', (user['id'],)
     ).fetchone()
     return_db(conn)
     remaining = (quota_row['interview_quota'] or 0) if quota_row else 0
@@ -245,10 +245,11 @@ async def upload_resume(
             cursor = conn.cursor()
             cursor.execute('''
                 INSERT INTO interviews (user_id, start_time, status, question_count, voice_reading, voice_type, token)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
+                RETURNING id
             ''', (user_id, int(time.time()), 1, 5, 1, 'professional_male', token))
             
-            interview_id = cursor.lastrowid
+            interview_id = cursor.fetchone()["id"]
             logger.info(f"[Resume] 创建面试成功，ID: {interview_id}")
         except Exception as e:
             logger.error(f"[Resume] 错误: 创建面试失败: {e}")

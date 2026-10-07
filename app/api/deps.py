@@ -33,8 +33,8 @@ def get_auth_user(request):
     Bearer 是"持有令牌"的意思；也兼容前端忘了加前缀、只发了裸 token 的情况。
 
     Returns:
-        sqlite3.Row: 登录用户的整行数据（user['id'] / user['username'] 等），
-                     查不到对应 token 时返回 None——调用方必须先判 None 再用
+        dict: 登录用户的整行数据（dict_row 行工厂，user['id'] / user['username'] 等按列名取），
+              查不到对应 token 时返回 None——调用方必须先判 None 再用
     """
     header = request.headers.get('Authorization') or ''
     # startswith 判断有没有 "Bearer " 前缀；有就切掉前 7 个字符留纯 token
@@ -49,7 +49,7 @@ def get_auth_user(request):
     try:
         # 用 token 反查用户：auth_token 列有唯一登录者（每次登录会覆盖旧 token）
         return conn.execute(
-            'SELECT * FROM users WHERE auth_token = ?', (token,)
+            'SELECT * FROM users WHERE auth_token = %s', (token,)
         ).fetchone()
     finally:
         return_db(conn)  # 借了连接必须还（见 app/db/db.py）

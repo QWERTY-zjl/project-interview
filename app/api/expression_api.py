@@ -129,7 +129,7 @@ async def save_interview_expression(
     """
     try:
         conn = get_db()
-        interview = conn.execute('SELECT id FROM interviews WHERE token = ?', (token,)).fetchone()
+        interview = conn.execute('SELECT id FROM interviews WHERE token = %s', (token,)).fetchone()
 
         if not interview:
             return_db(conn)
@@ -196,7 +196,7 @@ async def save_interview_expression(
                 INSERT INTO interview_expression_records
                 (interview_id, expression, expression_cn, confidence, emotion_status,
                  emotion_score, quality_score, final_score, suggestions, timestamp)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             ''', (
                 interview_id,
                 result.get('expression', ''),
@@ -238,7 +238,7 @@ async def get_expression_report(token: str = Path(...)):
     """
     try:
         conn = get_db()
-        interview = conn.execute('SELECT id FROM interviews WHERE token = ?', (token,)).fetchone()
+        interview = conn.execute('SELECT id FROM interviews WHERE token = %s', (token,)).fetchone()
 
         if not interview:
             return_db(conn)
@@ -250,7 +250,7 @@ async def get_expression_report(token: str = Path(...)):
             SELECT expression, expression_cn, confidence, emotion_status,
                    emotion_score, quality_score, final_score, suggestions, timestamp
             FROM interview_expression_records
-            WHERE interview_id = ?
+            WHERE interview_id = %s
             ORDER BY timestamp ASC
         ''', (interview_id,)).fetchall()
 

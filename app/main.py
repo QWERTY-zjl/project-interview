@@ -358,5 +358,5 @@ if __name__ == '__main__':
         host="0.0.0.0",  # 监听所有网卡：本机 127.0.0.1 和局域网 IP 都能访问；只本机用可改成 127.0.0.1
         port=10009,      # 监听端口
         reload=True,    # 改代码后不自动重启（开发时可改 True 热重载）
-        workers=1        # 单进程。SQLite 同一时刻只支持一个写者，多进程写库容易撞 "database is locked"
+        workers=1        # 单进程。已迁 PostgreSQL（支持并发写，不再有 SQLite 单写者锁库问题）；个人版保持单进程简单可靠
     )

@@ -135,7 +135,7 @@ async def api_login(username: str = Body(None), email: str = Body(None), passwor
         auth_token = secrets.token_urlsafe(32)
         conn = get_db()
         try:
-            conn.execute('UPDATE users SET auth_token = ? WHERE id = ?',
+            conn.execute('UPDATE users SET auth_token = %s WHERE id = %s',
                          (auth_token, user_data['id']))
             conn.commit()
         finally:
@@ -172,7 +172,7 @@ async def api_logout(request: Request):
     if token:
         conn = get_db()
         try:
-            conn.execute('UPDATE users SET auth_token = NULL WHERE auth_token = ?', (token,))
+            conn.execute('UPDATE users SET auth_token = NULL WHERE auth_token = %s', (token,))
             conn.commit()
         finally:
             return_db(conn)
@@ -199,7 +199,7 @@ async def api_get_quota(request: Request):
     try:
         conn = get_db()
         row = conn.execute(
-            'SELECT interview_quota FROM users WHERE id = ?', (user['id'],)
+            'SELECT interview_quota FROM users WHERE id = %s', (user['id'],)
         ).fetchone()
         return_db(conn)
         # 用户不存在 / 字段为 NULL 时兜底 0，接口永远成功（前端稳定不白屏）

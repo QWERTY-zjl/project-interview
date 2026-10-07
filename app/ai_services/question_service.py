@@ -274,11 +274,11 @@ def save_questions_to_db(cursor, interview_id, questions, voice_type):
             # 面试播放时直接读库，避免候选人等待实时 TTS 合成
             audio_data, _ = synthesize_speech(q['question'], voice_type)
 
-            # 保存到数据库（SQLite）：? 是占位符，由 sqlite3 做参数转义，防 SQL 注入
+            # 保存到数据库：%s 是占位符，由 psycopg3 做参数转义，防 SQL 注入
             cursor.execute('''
                 INSERT INTO interview_questions
                 (interview_id, question, score_standard, question_type, question_audio, voice_type)
-                VALUES (?, ?, ?, ?, ?, ?)
+                VALUES (%s, %s, %s, %s, %s, %s)
             ''', (interview_id, q['question'], q['score_standard'], q['question_type'], audio_data, voice_type))
             saved_count += 1
         except Exception as e:
@@ -355,14 +355,14 @@ def generate_questions(interview_id, candidate, position, interview, latest_tech
         # user_id，直接用 interview_id 反查 interviews 表最稳（同库一次主键查询）。
         if llm_success:
             try:
-                cursor.execute('SELECT user_id FROM interviews WHERE id = ?', (interview_id,))
+                cursor.execute('SELECT user_id FROM interviews WHERE id = %s', (interview_id,))
                 owner = cursor.fetchone()
                 if owner and owner['user_id']:
-                    # 扣 1 次但不下限到负数：MAX(配额-1, 0)——配额为 0 时不再变负
+                    # 扣 1 次但不下限到负数：GREATEST(配额-1, 0)——配额为 0 时不再变负
                     cursor.execute('''
                         UPDATE users
-                        SET interview_quota = MAX(interview_quota - 1, 0)
-                        WHERE id = ?
+                        SET interview_quota = GREATEST(interview_quota - 1, 0)
+                        WHERE id = %s
                     ''', (owner['user_id'],))
                     logger.info(f"[Question] 已扣减用户 {owner['user_id']} 的面试配额")
             except Exception as quota_err:
@@ -371,11 +371,10 @@ def generate_questions(interview_id, candidate, position, interview, latest_tech
 
         # 5. 更新面试状态
         #    status=1 表示"已出题/面试进行中"；question_count 记录实际保存的题数
-        cursor.execute('UPDATE interviews SET status = 1, question_count = ? WHERE id = ?',
+        cursor.execute('UPDATE interviews SET status = 1, question_count = %s WHERE id = %s',
                       (saved_count, interview_id))
         conn.commit()
-        # ↑ SQLite 默认开启事务：前面的 INSERT/UPDATE 都还在内存里，
-        #   必须 commit 才真正写入磁盘；不提交则程序退出后数据全部丢失
+        # ↑ PG autocommit 模式下每句 SQL 执行完已自动提交；commit() 保留为兼容写法，无害
 
         logger.info(f"[Question] 完成，保存{saved_count}个问题")
 
