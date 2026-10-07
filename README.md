@@ -4,97 +4,45 @@
 
 ## 功能特点
 
-- **智能面试问题生成**：基于候选人简历和岗位要求，自动生成针对性面试问题
+- **智能面试问题生成**：基于候选人简历（核心依据）和目标岗位（定方向）自动生成针对性面试问题
 - **在线语音面试**：候选人可通过网页进行语音回答，系统自动录音
-- **自动面试评估**：系统自动分析面试表现，生成详细的面试评估报告
-- **模拟面试流程**：上传简历、生成面试问题、在线作答到评估报告的完整闭环
-- **定时自动处理**：定期检查并处理待生成的面试问题和面试报告
-- **多样化面试官风格**：提供6种不同风格的虚拟面试官，适应不同岗位和面试场景
-- **智能语音合成**：集成阿里云cosyvoice-v3-flash大模型，支持语音预生成，提升用户体验
-- **支付功能**：支持套餐购买、免费试用和增值服务，集成支付宝支付
-- **用户认证**：支持用户注册登录、配额管理
+- **自动面试评估**：系统自动分析面试表现，生成详细的面试评估报告，支持下载排版后的报告文件
+- **模拟面试流程**：登录后上传简历、生成面试问题、在线作答到评估报告的完整闭环
+- **表情识别（可选）**：面试页手动开启摄像头后，定期抓拍画面调用视觉模型分析情绪，聚合进面试报告（默认关闭）
+- **多样化面试官音色**：提供多种面试官音色可选，题目自动预生成语音
+- **智能语音合成**：集成阿里云百炼 Qwen-TTS 大模型，支持语音预生成，提升用户体验
+- **支付功能**：支持套餐购买和增值服务，集成支付宝支付（默认关闭，可通过配置开启）
+- **用户认证**：用户注册登录，登录后签发服务端会话 token（Bearer 认证），配额随用户记录管理
 
-## 面试官风格
+## 面试官音色
 
-系统提供6种不同风格的虚拟面试官，每种面试官在问题生成和评估报告上都有独特的风格特点：
+系统通过 `/api/tts/voices` 提供多种面试官音色，候选人在面试开始前可选择，选择结果保存在 `interviews.voice_type` 字段中：
 
-### 风格对比
-
-| 面试官类型      | 风格特点        | 问题风格        | 评估重点      | 适用场景       |
-| ---------- | ----------- | ----------- | --------- | ---------- |
-| **专业男面试官** | 沉稳专业，注重技术深度 | 技术深度问题、逻辑推理 | 技术能力、逻辑思维 | 技术岗位面试     |
-| **专业女面试官** | 温柔专业，注重综合能力 | 综合能力问题、沟通表达 | 综合能力、团队协作 | 综合岗位面试     |
-| **亲和男面试官** | 亲切友好，营造轻松氛围 | 开放性问题、情景模拟  | 个人特质、发展潜力 | 初级岗位、实习生面试 |
-| **亲和女面试官** | 活泼亲切，缓解紧张感  | 创意问题、个性展示   | 创意思维、适应能力 | 创意岗位、应届生面试 |
-| **严谨男面试官** | 严肃认真，高标准要求  | 技术难题、压力测试   | 专业功底、抗压能力 | 高级技术岗位面试   |
-| **严谨女面试官** | 专业严谨，有战略高度  | 战略思维、领导力问题  | 战略思维、决策能力 | 高管岗位面试     |
-
-### 详细说明
-
-#### 1. 专业男面试官
-
-- **风格**：沉稳专业，注重技术深度和逻辑思维，问题严谨且有深度
-- **语气**：正式、专业、客观
-- **问题类型**：技术深度问题、逻辑推理问题、专业能力考察
-- **评估重点**：技术能力、逻辑思维、专业深度
-- **适用场景**：技术岗位面试，如软件工程师、架构师等
-
-#### 2. 专业女面试官
-
-- **风格**：温柔专业，注重综合能力和沟通表达，问题温和但有针对性
-- **语气**：温和、专业、亲切
-- **问题类型**：综合能力问题、沟通表达问题、团队协作考察
-- **评估重点**：综合能力、沟通表达、团队协作
-- **适用场景**：综合岗位面试，如产品经理、项目经理等
-
-#### 3. 亲和男面试官
-
-- **风格**：亲切友好，营造轻松面试氛围，问题开放且有趣
-- **语气**：轻松、友好、鼓励
-- **问题类型**：开放性问题、情景模拟问题、个人经历分享
-- **评估重点**：个人特质、发展潜力、学习能力
-- **适用场景**：初级岗位、实习生面试，帮助候选人放松表达
-
-#### 4. 亲和女面试官
-
-- **风格**：活泼亲切，缓解面试紧张感，问题活泼有趣
-- **语气**：活泼、亲切、自然
-- **问题类型**：创意问题、个性展示问题、轻松话题
-- **评估重点**：创意思维、个性特点、适应能力
-- **适用场景**：创意岗位、应届生面试，注重候选人个性展示
-
-#### 5. 严谨男面试官
-
-- **风格**：严肃认真，适合技术深度面试，问题严谨有挑战性
-- **语气**：严肃、严谨、专业
-- **问题类型**：技术难题、深度追问、压力测试问题
-- **评估重点**：专业功底、抗压能力、问题解决
-- **适用场景**：高级技术岗位面试，考察专业功底和抗压能力
-
-#### 6. 严谨女面试官
-
-- **风格**：专业严谨，适合高管岗位面试，问题有战略高度
-- **语气**：专业、严谨、有深度
-- **问题类型**：战略思维问题、领导力问题、决策能力考察
-- **评估重点**：战略思维、领导力、决策能力
-- **适用场景**：高管岗位面试，如总监、VP等
+| 音色类型               | 名称     | 说明                     |
+| ---------------------- | -------- | ------------------------ |
+| professional_male      | 专业男面试官 | 沉稳专业，适合技术岗位面试 |
+| professional_female    | 专业女面试官 | 温柔专业，适合综合岗位面试 |
+| friendly_male          | 亲和男面试官 | 阳光友好，营造轻松氛围     |
+| friendly_female        | 亲和女面试官 | 活泼亲切，缓解紧张感       |
+| strict_male            | 严谨男面试官 | 严肃认真，适合技术深挖     |
+| strict_female          | 严谨女面试官 | 干净利落，专业严谨         |
 
 ### 使用说明
 
-1. 面试官风格在**创建面试时选择**，一旦确定后不可更改
-2. 不同风格的面试官会生成不同风格的面试问题
-3. 评估报告也会体现相应面试官的评估风格和语气
-4. 建议根据岗位类型和候选人特点选择合适的面试官风格
+1. 面试官音色在**进入面试页后选择**，可通过朗读开关旁的设置随时切换（`/api/interview/{token}/set_voice`）
+2. 出题内容由「简历分析结果 + 目标岗位」驱动，音色只影响朗读发音，不影响题目内容与评估结论
+3. 实际合成走 Qwen-TTS，音色映射为：专业男 → Ethan，专业女 → Cherry，其余类型回落到默认音色 Cherry（详见下方「语音合成功能」）
 
 ## 系统架构
 
-- **后端**：基于Python和FastAPI的RESTful API服务（uvicorn 启动，自带 /docs 接口文档）
-- **前端**：使用Vue.js 3和Bootstrap 5构建的响应式Web界面
-- **数据库**：使用SQLite进行数据存储
-- **AI模型**：集成阿里云百炼大语言模型（OpenAI 兼容接口），出题使用 qwen-flash 文本模型，面试报告使用 qwen-plus
-- **语音处理**：支持Web录音，语音转写功能可选配置Whisper模型
-- **语音合成**：集成阿里云cosyvoice-v3-flash大模型，支持语音预生成
-- **支付系统**：支持支付宝支付，提供套餐购买、免费试用和增值服务
+- **后端**：基于Python和FastAPI的RESTful API服务（uvicorn 启动，/docs 接口文档使用本地静态 swagger-ui 资源，离线可用）
+- **认证**：服务端会话 token——登录成功生成随机 token 存入 `users.auth_token`，前端凭 `Authorization: Bearer <token>` 请求头访问需要身份的接口，不信任前端传参
+- **前端**：使用Vue.js 3和Bootstrap 5构建的响应式Web界面（Vue/axios 均为本地文件，不依赖 CDN）
+- **数据库**：使用SQLite进行数据存储（单文件，线程本地连接池）
+- **AI模型**：集成阿里云百炼大语言模型（OpenAI 兼容接口），出题/报告/答题提示统一使用 `LLM_MODEL`（默认 qwen-flash），表情识别使用 `VISION_MODEL`（默认 qwen3-vl-flash）
+- **语音处理**：支持Web录音，语音识别使用 `ASR_MODEL`（默认 paraformer-v2）
+- **语音合成**：集成阿里云百炼 Qwen-TTS 大模型（`TTS_MODEL`，默认 qwen-tts），支持语音预生成
+- **支付系统**：支持支付宝支付与模拟支付，提供套餐购买（`PAYMENT_ENABLED` 默认关闭）
 
 ## 项目结构
 
@@ -104,35 +52,39 @@ project-interview/
 │   ├── ai_services/                      # 智能体服务层
 │   │   ├── expression_service.py         # 表情分析服务
 │   │   ├── prompt.py                     # 面试提示词模板
-│   │   ├── question_service.py           # 面试问题生成服务（qwen-flash）
-│   │   ├── report_service.py             # 面试报告生成服务（qwen-plus）
+│   │   ├── question_service.py           # 面试问题生成服务（LLM_MODEL，与报告同模型）
+│   │   ├── report_service.py             # 面试报告生成服务（LLM_MODEL，与出题同模型）
 │   │   ├── resume_parser.py              # pdf解析服务（MinerU 主路径，pypdf 降级）
 │   │   ├── resume_service.py             # 简历信息提取服务
 │   │   └── speech_service.py             # 语音处理服务
 │   ├── api/                              # API层
-│   │   ├── auth_api.py                   # 用户认证API
+│   │   ├── auth_api.py                   # 用户认证API（注册/登录/登出/配额）
+│   │   ├── deps.py                       # 认证依赖（get_auth_user：解析 Bearer token 确定当前用户）
 │   │   ├── expression_api.py             # 表情分析API
 │   │   ├── interview_api.py              # 面试管理API
 │   │   ├── order_api.py                  # 订单管理API
 │   │   ├── payment_api.py                # 支付回调API
 │   │   ├── pricing_api.py                # 套餐定价API
-│   │   ├── resume_api.py                 # 简历上传API
+│   │   ├── report_api.py                 # 面试报告生成API
+│   │   ├── resume_api.py                 # 简历上传API（个人版开始面试的唯一入口）
 │   │   └── tts_api.py                    # 语音合成API
 │   ├── config/                           # 配置管理
-│   │   └── config.py                     # 配置文件
+│   │   └── config.py                     # 配置文件（AI 模型/端点等全部集中于此，支持 .env 覆盖）
 │   ├── db/                               # 数据库模块
 │   │   ├── db.py                         # 数据库连接管理
-│   │   ├── db_pool.py                    # 数据库连接池
+│   │   ├── db_pool.py                    # 数据库连接池（threading.local 线程本地池）
 │   │   ├── create_personal_interview_system_db.py # 建表脚本（权威来源：个人版7表+支付表）
 │   │   └── interview_system.db           # SQLite数据库文件
 │   ├── static/                           # 静态前端文件
-│   │   ├── admin.html                    # 管理后台界面
+│   │   ├── admin.html                    # 工作台界面（登录后上传简历、查看面试记录）
 │   │   ├── interview.html                # 候选人面试界面
+│   │   ├── record_detail.html            # 面试记录详情页（题目/回答/报告回看）
 │   │   ├── login.html                    # 登录界面
 │   │   ├── register.html                 # 注册界面
 │   │   ├── pricing.html                  # 套餐购买界面
+│   │   ├── swagger-ui/                   # swagger-ui 本地静态资源（/docs 离线可用）
 │   │   ├── css/                          # 样式文件
-│   │   └── js/                           # JavaScript库
+│   │   └── js/                           # JavaScript库（Vue/axios 本地文件 + report_download.js 报告下载工具）
 │   ├── utils/                            # 工具函数
 │   │   └── utils.py                      # 通用工具函数
 │   ├── temp/                             # 临时文件目录（简历解析时自动创建，用后自动清理）
@@ -142,9 +94,15 @@ project-interview/
 │   ├── payment_module.py                 # 支付功能模块
 │   ├── minimal_test.py / simple_test.py  # 简单测试脚本（开发调试用）
 │   └── alipay_module.py                  # 支付宝集成模块
-├── docs/                                 # 文档目录（开发教程、图片资源、实验notebook）
+├── tests/                                # 测试脚本目录
+│   ├── ai_api_check.py                   # AI 接口连通性测试（含百炼配额诊断与多模态真实调用）
+│   ├── full_healthcheck.py               # 系统全量健康检查
+│   ├── test_quota_gate.py                # 配额拦截测试
+│   └── full_flow_test.py                 # 全流程测试（未被 git 跟踪）
+├── docs/                                 # 文档目录（开发教程、图片资源、实验notebook、示例简历）
 ├── dailylogs/                            # 开发日志（每日总结、技术学习笔记、项目教程）
 ├── .env                                  # 环境变量配置（API密钥，不提交git）
+├── .env.example                          # 环境变量配置模板（配置项说明与默认值，随 git 提交）
 ├── .dockerignore                         # Docker构建排除名单（防止venv/.env/数据库进镜像）
 ├── docker/                               # Docker部署全家桶（Dockerfile、docker-compose.yml、nginx配置与SSL证书）
 ├── start_server.bat / start_server.ps1   # Windows启动脚本
@@ -178,6 +136,8 @@ erDiagram
         TEXT username "用户名"
         TEXT email "邮箱"
         TEXT password_hash "密码哈希"
+        INTEGER interview_quota "剩余面试次数(默认3)"
+        TEXT auth_token "登录会话凭证(Bearer认证)"
         INTEGER created_at "Unix时间戳"
         INTEGER last_login_at "最后登录"
     }
@@ -257,7 +217,7 @@ erDiagram
 
 | 表名                                 | 说明                                   | 核心字段                                                                                  |
 | ---------------------------------- | ------------------------------------ | ------------------------------------------------------------------------------------- |
-| **users**                          | 用户表                                  | id, username, email, password\_hash                                                   |
+| **users**                          | 用户表（含面试配额与会话凭证）                | id, username, email, password\_hash, interview\_quota, auth\_token                     |
 | **interview\_types**               | 面试类型字典表（类型名称、难度、时长、题目数）              | id, name, difficulty\_level, duration, question\_count                                |
 | **interviews**                     | 核心表：一场面试 = 一条记录（谁面的、面的哪类、状态、总分、面试令牌） | id, user\_id, interview\_type\_id, status, token, total\_score, report\_content(BLOB) |
 | **interview\_questions**           | 每道题：题目文本、预生成语音、回答录音/转写、得分与反馈         | id, interview\_id, question, question\_audio(BLOB), answer\_text, user\_score         |
@@ -315,12 +275,15 @@ pip install -r requirements.txt
 
 ### 第三步：配置API密钥
 
-在项目根目录下创建 `.env` 文件（已存在可跳过）：
+在项目根目录下创建 `.env` 文件（已存在可跳过；完整配置项说明和默认值参考 `.env.example` 模板，模板中不含真实密钥）：
 
 ```env
-OPENAI_API_KEY=你的API密钥
-OPENAI_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
-DASHSCOPE_API_KEY=你的API密钥
+DASHSCOPE_API_KEY=你的百炼API密钥
+# 以下为可选配置，不写则使用 config.py 中的默认值
+# LLM_MODEL=qwen-flash          # 出题/报告/提示 共用文本模型
+# VISION_MODEL=qwen3-vl-flash   # 表情识别视觉模型
+# TTS_MODEL=qwen-tts            # 语音合成模型
+# ASR_MODEL=paraformer-v2       # 语音识别模型
 ```
 
 > 本项目使用阿里云百炼大模型，需要申请API Key: <https://dashscope.console.aliyun.com/>
@@ -344,14 +307,26 @@ app\venv\Scripts\python.exe -m app.main
 
 ### 第六步：访问系统
 
-启动成功后，打开浏览器访问：
+启动成功后，打开浏览器访问（建议用 127.0.0.1 而非 localhost，避免被解析为 IPv6 导致连接失败；必须通过 http 访问，双击 html 文件用 file: 协议打开会请求失败）：
 
-- **管理后台**：<http://localhost:10009/static/admin.html>
-- **登录界面**：<http://localhost:10009/static/login.html>
-- **注册界面**：<http://localhost:10009/static/register.html>
-- **套餐购买**：<http://localhost:10009/static/pricing.html>
-- **面试界面**：<http://localhost:10009/static/interview.html?token=xxx>
-- **接口文档**：<http://localhost:10009/docs>（FastAPI 自带，可在线调试全部 API）
+- **工作台**：<http://127.0.0.1:10009/static/admin.html>（根路径 `/` 也返回此页；登录后上传简历开始面试、查看历史记录）
+- **登录界面**：<http://127.0.0.1:10009/static/login.html>
+- **注册界面**：<http://127.0.0.1:10009/static/register.html>
+- **面试界面**：<http://127.0.0.1:10009/static/interview.html?token=xxx>（token 由上传简历后自动创建）
+- **记录详情**：从工作台的面试记录列表进入（回看题目、回答与报告）
+- **套餐购买**：<http://127.0.0.1:10009/static/pricing.html>（支付功能默认关闭，开启后才可访问）
+- **接口文档**：<http://127.0.0.1:10009/docs>（swagger-ui 本地静态资源版，可在线调试全部 API）
+
+### Docker 部署（可选）
+
+部署文件集中在 `docker/` 目录（Dockerfile、docker-compose.yml、nginx 配置与 SSL 证书），容器内监听 10009 端口：
+
+```bash
+cd docker
+docker compose up -d --build
+```
+
+说明：构建上下文为仓库根目录（compose 中 `context: ..`），Dockerfile 会安装 Pango 系统库以支持 WeasyPrint 生成 PDF 报告；nginx 反向代理到 app 容器的 10009 端口。`.dockerignore` 已排除 venv、.env、数据库文件等，不会被打进镜像。
 
 ***
 
@@ -388,11 +363,9 @@ pip install -r requirements.txt
 
 1. **配置环境变量**
 
-在项目根目录下创建`.env`文件：
+在项目根目录下创建`.env`文件（配置项说明参考 `.env.example`）：
 
 ```env
-OPENAI_API_KEY=your_api_key_here
-OPENAI_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
 DASHSCOPE_API_KEY=your_api_key_here
 ```
 
@@ -414,53 +387,83 @@ app\venv\Scripts\python.exe -m app.main
 
 ### 访问地址
 
-- **管理后台**：<http://localhost:10009/static/admin.html>
-- **登录界面**：<http://localhost:10009/static/login.html>
-- **注册界面**：<http://localhost:10009/static/register.html>
-- **套餐购买**：<http://localhost:10009/static/pricing.html>
-- **面试界面**：<http://localhost:10009/static/interview.html?token=xxx>
+- **工作台**：<http://127.0.0.1:10009/static/admin.html>（根路径 `/` 同样返回此页）
+- **登录界面**：<http://127.0.0.1:10009/static/login.html>
+- **注册界面**：<http://127.0.0.1:10009/static/register.html>
+- **面试界面**：<http://127.0.0.1:10009/static/interview.html?token=xxx>（token 由上传简历后自动创建）
+- **记录详情**：从工作台的面试记录列表进入
 
 ### 系统流程
 
-1. 用户注册/登录账号
-2. 新用户获得免费试用配额（3次免费面试、10分钟TTS语音、5次AI分析）
-3. 管理员在后台创建招聘岗位
-4. 添加候选人信息和简历（PDF格式）
-5. 为候选人安排面试，系统生成面试链接
-6. 问题生成时自动预生成语音（使用cosyvoice-v3-flash）
-7. 候选人通过链接参加在线语音面试
-8. 面试完成后，系统自动生成评估报告
-9. 管理员可下载面试报告PDF
-10. 配额用完后可购买套餐继续使用
+1. 用户注册/登录账号（登录成功后前端保存会话 token，后续请求通过 `Authorization: Bearer` 头携带）
+2. 新用户默认获得 3 次面试配额（`users.interview_quota`）
+3. 在工作台上传简历（PDF，必填目标岗位——出题方向由岗位决定，简历分析结果才是出题核心依据）
+4. 系统解析简历（MinerU 主路径，失败自动降级 pypdf）→ AI 出题（约 2 分钟）→ 自动创建面试并跳转
+5. 出题完成时自动预生成题目语音（Qwen-TTS）
+6. 候选人在面试页作答（语音录音或文字），可选开启摄像头进行表情分析（默认关闭，手动开启）
+7. 面试完成后，系统生成评估报告，可在工作台/详情页查看并下载排版后的报告文件
+8. 每场「大模型成功出题」的面试扣 1 次配额；配额用完后可购买套餐继续使用（支付功能默认关闭）
 
 ## API接口说明
 
-| API端点                                         | 方法         | 功能       |
-| --------------------------------------------- | ---------- | -------- |
-| `/api/positions`                              | GET/POST   | 获取/创建岗位  |
-| `/api/positions/<id>`                         | PUT/DELETE | 更新/删除岗位  |
-| `/api/candidates`                             | GET/POST   | 获取/创建候选人 |
-| `/api/candidates/<id>/resume`                 | GET        | 下载候选人简历  |
-| `/api/interviews`                             | GET/POST   | 获取/创建面试  |
-| `/api/interviews/<id>/generate_questions`     | POST       | 生成面试问题   |
-| `/api/interviews/<id>/generate_report`        | POST       | 生成面试报告   |
-| `/api/interviews/<id>/report`                 | GET        | 下载面试报告   |
-| `/api/interview/<token>/info`                 | GET        | 获取面试信息   |
-| `/api/interview/<token>/get_question`         | GET        | 获取下一题    |
-| `/api/interview/<token>/submit_answer`        | POST       | 提交答案     |
-| `/api/interview/<token>/toggle_voice_reading` | POST       | 切换语音朗读   |
-| `/api/interview/<token>/set_voice`            | POST       | 设置面试官音色  |
-| `/api/tts/synthesize`                         | POST       | 语音合成     |
-| `/api/tts/voices`                             | GET        | 获取音色列表   |
-| `/api/user/register`                          | POST       | 用户注册     |
-| `/api/user/login`                             | POST       | 用户登录     |
-| `/api/user/quota`                             | GET        | 获取用户配额   |
-| `/api/quota/check`                            | POST       | 检查配额     |
-| `/api/quota/use`                              | POST       | 使用配额     |
-| `/api/pricing/plans`                          | GET        | 获取套餐列表   |
-| `/api/order/create`                           | POST       | 创建订单     |
-| `/api/order/<order_id>/pay`                   | POST       | 支付订单     |
-| `/api/payment/alipay/callback`                | POST       | 支付宝回调    |
+标注「认证」的接口需要在请求头携带 `Authorization: Bearer <登录token>`，未登录返回 401。
+
+### 认证与配额
+
+| API端点                | 方法   | 功能                               | 认证 |
+| ---------------------- | ---- | ---------------------------------- | ---- |
+| `/api/auth/register`   | POST | 用户注册                           | -    |
+| `/api/auth/login`      | POST | 用户登录（返回会话 token）          | -    |
+| `/api/auth/logout`     | POST | 退出登录（服务端销毁 token）        | 认证 |
+| `/api/user/quota`      | GET  | 查询当前用户面试配额               | 认证 |
+
+### 简历与面试主流程
+
+| API端点                                  | 方法   | 功能                                     | 认证 |
+| ---------------------------------------- | ------ | ---------------------------------------- | ---- |
+| `/api/resume/upload`                     | POST   | 上传简历并分析，创建面试（唯一入口）     | 认证 |
+| `/api/interview/{token}/info`            | GET    | 获取面试信息                             | -    |
+| `/api/interview/{token}/get_question`    | GET    | 获取下一题                               | -    |
+| `/api/interview/{token}/submit_text_answer` | POST | 提交回答（语音转写文本）                 | -    |
+| `/api/interview/{token}/toggle_voice_reading` | POST | 切换语音朗读                            | -    |
+| `/api/interview/{token}/set_voice`       | POST   | 设置面试官音色                           | -    |
+| `/api/interview/{token}/generate_questions` | POST | （重新）生成面试问题                     | -    |
+| `/api/interview/{token}/hint`            | POST   | AI 辅助：生成当前题目答题思路提示        | -    |
+| `/api/interview/{token}/detail`          | GET    | 查询某场面试完整详情（题目+回答+报告）   | -    |
+| `/api/interview/my_records`              | GET    | 查询当前用户面试记录列表（工作台用）     | 认证 |
+| `/api/interview/stats`                   | GET    | 面试统计（总数+状态分布）                | -    |
+| `/api/evaluation/generate`               | POST   | 生成面试评估报告                         | -    |
+
+### 表情分析（可选功能，默认关闭）
+
+| API端点                                    | 方法   | 功能                       | 认证 |
+| ------------------------------------------ | ------ | -------------------------- | ---- |
+| `/api/expression/analyze`                  | POST   | 分析抓拍画面的表情/情绪    | -    |
+| `/api/interview/{token}/expression`        | POST   | 保存面试表情采样记录       | -    |
+| `/api/interview/{token}/expression_report` | GET    | 获取表情分析聚合报告       | -    |
+
+### 语音合成
+
+| API端点                | 方法   | 功能                     | 认证 |
+| ---------------------- | ------ | ------------------------ | ---- |
+| `/api/tts/voices`      | GET    | 获取面试官音色列表       | -    |
+| `/api/tts/synthesize`  | POST   | 合成语音（base64 音频）  | -    |
+
+### 套餐与支付（支付功能默认关闭）
+
+| API端点                            | 方法   | 功能                     | 认证 |
+| ---------------------------------- | ------ | ------------------------ | ---- |
+| `/api/pricing/plans`               | GET    | 获取套餐列表             | -    |
+| `/api/pricing/plans/{plan_id}`     | GET    | 获取套餐详情             | -    |
+| `/api/orders/create`               | POST   | 创建订单                 | 认证 |
+| `/api/orders/pay`                  | POST   | 支付订单（含模拟支付）   | 认证 |
+| `/api/orders/{order_no}/status`    | GET    | 查询订单状态             | -    |
+| `/api/orders/user/{user_id}`       | GET    | 查询用户订单             | -    |
+| `/api/payment/alipay/notify`       | POST   | 支付宝异步通知           | -    |
+| `/api/payment/alipay/return`       | GET    | 支付宝同步返回           | -    |
+| `/api/payment/mock/confirm`        | POST   | 模拟支付确认（开发用）   | -    |
+
+> 完整参数与响应结构以 `/docs`（swagger-ui）实时生成的 OpenAPI 文档为准。
 
 ## 主要脚本说明
 
@@ -476,34 +479,44 @@ app\venv\Scripts\python.exe -m app.main
 
 | 模块名      | 功能描述                               | 文件位置                                    |
 | -------- | ---------------------------------- | --------------------------------------- |
-| 岗位管理API  | 管理招聘岗位                             | app/api/position\_api.py                |
+| 认证依赖    | 从 Bearer 请求头解析当前用户（未登录返回 401）  | app/api/deps.py                         |
+| 用户认证API | 注册/登录/登出/配额查询                     | app/api/auth\_api.py                    |
+| 简历上传API | 上传简历、解析分析、创建面试（开始面试唯一入口） | app/api/resume\_api.py                  |
 | 面试管理API  | 管理面试流程                             | app/api/interview\_api.py               |
 | 面试报告API  | 生成面试评估报告                           | app/api/report\_api.py                  |
+| 表情分析API  | 抓拍画面情绪分析与聚合报告                  | app/api/expression\_api.py              |
 | 数据库连接管理  | 管理数据库连接                            | app/db/db.py                            |
-| 数据库连接池   | 提高数据库操作性能                          | app/db/db\_pool.py                      |
-| 表情分析服务   | 分析面试者表情                            | app/ai\_services/expression\_service.py |
-| 面试问题生成服务 | 生成面试问题（qwen-flash）                 | app/ai\_services/question\_service.py   |
-| 面试提示词模板  | 按岗位生成出题提示词                         | app/ai\_services/prompt.py              |
-| 面试报告生成服务 | 生成面试报告                             | app/ai\_services/report\_service.py     |
-| 简历解析服务   | PDF 转 Markdown（MinerU，失败降级 PyPDF2） | app/ai\_services/resume\_parser.py      |
+| 数据库连接池   | 线程本地连接池（每线程一个连接）              | app/db/db\_pool.py                      |
+| 表情分析服务   | 调用视觉模型分析面试者表情（qwen3-vl-flash）   | app/ai\_services/expression\_service.py |
+| 面试问题生成服务 | 生成面试问题（LLM_MODEL，与报告同模型）    | app/ai\_services/question\_service.py   |
+| 面试提示词模板  | 简历为核心依据、岗位定方向的出题提示词         | app/ai\_services/prompt.py              |
+| 面试报告生成服务 | 生成面试报告（LLM_MODEL）              | app/ai\_services/report\_service.py     |
+| 简历解析服务   | PDF 转 Markdown（MinerU，失败降级 pypdf）  | app/ai\_services/resume\_parser.py      |
 | 简历分析服务   | 分析简历内容                             | app/ai\_services/resume\_service.py     |
-| 语音处理服务   | 处理语音数据                             | app/ai\_services/speech\_service.py     |
+| 语音处理服务   | 语音识别（paraformer-v2）与语音合成（qwen-tts） | app/ai\_services/speech\_service.py     |
 | 工具函数     | 通用工具函数                             | app/utils/utils.py                      |
 
 ## 语音合成功能
 
-系统集成阿里云cosyvoice-v3-flash大模型进行语音合成，支持以下功能：
+系统集成阿里云百炼 Qwen-TTS 大模型（`TTS_MODEL`，默认 qwen-tts）进行语音合成，支持以下功能：
 
-### 音色列表
+### 音色说明
 
-| 音色ID           | 音色名称 | 描述         |
-| -------------- | ---- | ---------- |
-| longanzhi\_v3  | 龙安智  | 睿智轻熟男，沉稳专业 |
-| longanya\_v3   | 龙安雅  | 高雅气质女，温柔专业 |
-| longanyang     | 龙安洋  | 阳光大男孩，亲切友好 |
-| longanhuan     | 龙安欢  | 欢脱元气女，活泼亲切 |
-| longanshuo\_v3 | 龙安朔  | 干净清爽男，严肃认真 |
-| longfeifei\_v3 | 龙菲菲  | 甜美娇气女，专业严谨 |
+Qwen-TTS 仅支持英文别名音色（不认 zh-CN-* 风格音色）。系统维护「面试官音色类型 → Qwen-TTS 音色」的映射表，未命中映射时回落到默认音色：
+
+| 音色ID   | 性别 | 说明                       |
+| -------- | ---- | -------------------------- |
+| Ethan    | 男   | 专业男面试官的实际发音音色 |
+| Cherry   | 女   | 默认音色（专业女面试官等回落到此） |
+| Chelsie  | 女   | 温柔女声                   |
+
+> 音色映射关系定义在 `app/ai_services/speech_service.py` 的 `VOICE_MAP`，默认音色由 `DEFAULT_TTS_VOICE` 配置。
+
+### 调用方式
+
+1. **请求端点**：Qwen-TTS 走 DashScope 原生 multimodal-generation 端点（不是旧版 /audio/tts）
+2. **返回形式**：非流式调用返回的是 24 小时有效的音频下载地址，服务端会二次下载二进制后返回给调用方
+3. **降级机制**：模型额度不足或调用失败时，接口返回 `use_browser_tts=True` 提示前端改用浏览器内置语音合成
 
 ### 语音预生成
 
@@ -516,29 +529,29 @@ app\venv\Scripts\python.exe -m app.main
 
 ## 支付系统
 
-系统支持完整的支付功能，包括：
+系统支持套餐购买，支付功能由 `PAYMENT_ENABLED` 开关控制（默认关闭，关闭时 `/api/pricing/plans` 返回 503）：
 
-### 套餐类型
+### 配额模型
 
-- **免费试用**：新用户自动获得，包含3次免费面试、10分钟TTS语音、5次AI分析
-- **月度套餐**：按月付费，包含更多面试次数、TTS语音时长和AI分析次数
-- **年度套餐**：按年付费，享受更多优惠
-- **增值服务**：可单独购买额外的面试次数、TTS语音时长和AI分析次数
+- 个人版唯一配额项为 `users.interview_quota`（注册默认 3 次面试）
+- 支付成功后同步更新 `users.interview_quota`，实时生效
 
 ### 支付方式
 
-- **支付宝**：支持网页支付和扫码支付
-- **模拟支付**：开发环境下使用模拟支付，无需真实支付
+- **支付宝**：支持网页支付（需配置支付宝SDK和商户信息）
+- **模拟支付**：开发环境下使用模拟支付确认接口，无需真实支付
 
 ## 注意事项
 
-1. **API密钥配置**：需要在项目根目录的`.env`文件中配置正确的API密钥，支持OpenAI兼容接口（如阿里云百炼、智谱AI等）
-2. **语音识别**：系统默认使用Web录音API收集答案，语音转文字功能需要配置Whisper模型（当前版本暂时禁用）
-3. **语音合成**：使用阿里云cosyvoice-v3-flash大模型，需要配置DASHSCOPE\_API\_KEY
+1. **API密钥配置**：需要在项目根目录的`.env`文件中配置正确的 API 密钥（配置项说明参考 `.env.example`，模板中不含真实密钥）；AI 模型名/端点等全部集中在 `app/config/config.py`，均可通过 .env 覆盖
+2. **语音识别**：系统使用Web录音API收集答案，语音转写使用阿里云百炼 paraformer-v2 模型（`ASR_MODEL`）
+3. **语音合成**：使用阿里云百炼 Qwen-TTS 模型（`TTS_MODEL`），需要配置 DASHSCOPE\_API\_KEY；额度不足时自动降级为浏览器内置语音合成
 4. **语音预生成**：生成问题时自动预生成语音，提升面试时的用户体验
-5. **PDF处理**：系统使用本地 MinerU（GPU 加速）将 PDF 简历解析为 Markdown，保留排版/表格信息；MinerU 不可用或解析失败时自动降级为 PyPDF2 纯文本提取。MinerU 首次运行需下载 1-2GB 模型权重
-6. **浏览器兼容性**：面试界面使用MediaRecorder API，推荐使用Chrome、Firefox、Edge等现代浏览器
-7. **支付系统**：生产环境需要配置支付宝SDK和商户信息
+5. **表情识别**：可选功能，默认关闭；需在面试页手动点击「开启摄像头」授权后才会抓拍分析，分析失败不影响答题与报告
+6. **PDF处理**：系统使用本地 MinerU（GPU 加速）将 PDF 简历解析为 Markdown，保留排版/表格信息；MinerU 不可用或解析失败时自动降级为 pypdf 纯文本提取。MinerU 首次运行需下载 1-2GB 模型权重
+7. **浏览器兼容性**：面试界面使用MediaRecorder API，推荐使用Chrome、Firefox、Edge等现代浏览器
+8. **支付系统**：默认关闭；生产环境需要配置支付宝SDK和商户信息
+9. **后台任务**：出题等后台任务在进程内存中执行，服务器重启/崩溃会导致进行中的任务丢失
 
 ## 技术依赖
 
@@ -547,13 +560,13 @@ app\venv\Scripts\python.exe -m app.main
 | Web框架   | FastAPI + uvicorn（2026-09 从 Flask 迁移） |
 | 前端框架    | Vue.js 3                             |
 | UI组件    | Bootstrap 5                          |
-| AI模型    | 阿里云百炼 qwen-flash（出题）/ qwen-plus（报告）  |
-| 语音合成    | 阿里云百炼 cosyvoice-v3-flash             |
+| AI模型    | 阿里云百炼 qwen-flash（出题/报告/提示，统一走 LLM_MODEL）+ qwen3-vl-flash（表情识别，VISION_MODEL） |
+| 语音合成    | 阿里云百炼 Qwen-TTS（TTS_MODEL）            |
+| 语音识别    | 阿里云百炼 paraformer-v2（ASR_MODEL）       |
 | 支付系统    | 支付宝SDK                               |
 | 数据库     | SQLite                               |
 | PDF生成   | WeasyPrint                           |
-| PDF解析   | MinerU 2.7.6（本地 GPU，主路径）+ PyPDF2（降级） |
-| 定时任务    | Schedule                             |
+| PDF解析   | MinerU 2.7.6（本地 GPU，主路径）+ pypdf（降级）  |
 | HTTP客户端 | OpenAI SDK / httpx / requests        |
 
 ## 开发与扩展

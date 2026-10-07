@@ -8,6 +8,7 @@
 调 report_service.generate_interview_report 让大模型逐题评分 → 报告存库。
 """
 
+import json
 import logging
 from fastapi import APIRouter, Body
 from fastapi.responses import JSONResponse
@@ -46,8 +47,9 @@ def generate_evaluation(token: str = Body(None, embed=True)):
         conn = get_db()
         cursor = conn.cursor()
 
-        # 查面试记录
-        cursor.execute("SELECT id FROM interviews WHERE token = ?", (token,))
+        # 查面试记录（同时取 status 与已存档报告：报告已生成过就直接返回，
+        # 避免每次打开已完成面试的页面都重新调大模型、重复消耗额度）
+        cursor.execute("SELECT id, status, report_content FROM interviews WHERE token = ?", (token,))
         interview = cursor.fetchone()
 
         if not interview:
@@ -56,6 +58,21 @@ def generate_evaluation(token: str = Body(None, embed=True)):
                 status_code=404,
                 content={"status": "error", "message": "面试记录不存在"}
             )
+
+        # 短路返回：status=4（报告已生成）且存档非空 → 反序列化存档直接响应；
+        # 存档解析失败（数据损坏）则 fallthrough 走正常重新生成流程
+        if interview['status'] == 4 and interview['report_content']:
+            try:
+                report_data = json.loads(interview['report_content'])
+                return_db(conn)
+                return JSONResponse(status_code=200, content={
+                    "status": "success",
+                    "message": "面试报告已生成（读取存档）",
+                    "evaluation": report_data.get("evaluation", {}),
+                    "report": report_data
+                })
+            except (ValueError, TypeError):
+                logger.warning(f"[Evaluation] 面试 {interview['id']} 的存档报告解析失败，将重新生成")
 
         interview_id = interview['id']
 

@@ -228,18 +228,32 @@ async def get_next_question(token: str = Path(...), current_id: int = Query(0)):
         # question，返回给前端时键名改成 text——前端统一读 text 字段
         next_question = None
         # 两分支查同一张表，只差 WHERE 条件：
-        #   current_id == 0 → ORDER BY id ASC 取最小 id（第一题）
+        #   current_id == 0 → 优先取第一道"未答"的题（断点续答）
         #   否则 → WHERE id > current_id 再取最小 id（下一题）
         # ORDER BY id ASC：按 id 从小到大排（ASC=升序，本可省略）；LIMIT 1：只要第一条
         if current_id == 0:
-            # 获取第一个问题
+            # 【断点续答】current_id=0 有两种来路：首次开考（一题未答）和中途
+            # 退出后重新进入（可能已答过几题）。answer_text IS NULL 即"没答过"
+            # （submit_text_answer 校验过非空才写入，答过必非 NULL）：
+            # 首次开考时第一道未答题就是第一题（行为不变），续面时从断点继续，
+            # 不会把答过的题再问一遍
             next_question = conn.execute('''
                 SELECT id, question as text, question_audio, voice_type
                 FROM interview_questions
-                WHERE interview_id = ?
+                WHERE interview_id = ? AND answer_text IS NULL
                 ORDER BY id ASC
                 LIMIT 1
             ''', (interview['id'],)).fetchone()
+
+            # 一道未答题都查不到 = 全部已答（比如答完最后一题、报告还没生成完
+            # 就关闭页面的"孤儿场"）→ 返回 id=0 完成信号，前端据此走
+            # "面试完成 → 生成报告"收尾流程，而不是把第一题再问一遍
+            if not next_question:
+                return_db(conn)
+                return JSONResponse(
+                    status_code=200,
+                    content={"id": 0, "text": "面试已完成"}
+                )
         else:
             # 获取下一个问题
             next_question = conn.execute('''

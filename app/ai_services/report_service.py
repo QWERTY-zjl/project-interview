@@ -200,10 +200,14 @@ def generate_interview_report(interview_id, candidate, position, questions, expr
 7. AI个性化建议 recommendations：3条，每条含 title 和 description
 8. 录用建议 recommendation：推荐录用/可以考虑/不建议录用
 
+重要：question_evaluations 只输出题号(id)、评分(score)、评语(comments)三个字段，
+【严禁】复述题目原文、评分标准或回答原文——系统会自动从数据库回填，复述会把
+输出撑到超长导致 JSON 被截断、解析失败（2026-10-07 实测踩坑）。
+
 JSON格式示例:
 {
     "question_evaluations": [
-        {"id": 1, "question": "[question]", "score_standard": "[score_standard]", "answer": "[answer_text]", "score": 85, "comments": "回答详细..."}
+        {"id": 1, "score": 85, "comments": "回答详细..."}
     ],
     "averageScore": 85,
     "description": "候选人整体表现良好...",
@@ -230,7 +234,9 @@ JSON格式示例:
             {"role": "system", "content": "你是一位专业的面试评估专家，负责评估技术面试表现。请返回JSON格式。"},
             {"role": "user", "content": prompt}
         ],
-        "max_tokens": 3000,  # 逐题评价+多维字段输出较长，3000 防止 JSON 被截断
+        "max_tokens": 6000,  # 综合评估+逐题评语输出较长；6000 防止 JSON 被截断
+                             #（逐题原文回显时代 3000 曾实测截断导致解析失败，改精简输出后
+                             #  仍留足余量；qwen-flash 最大输出 8192）
         "temperature": 0.7,  # 评估需要稳定：温度过高会让评分大幅波动
         # 指定 JSON 响应格式，方便直接 json.loads 解析
         "response_format": {"type": "json_object"}
@@ -266,6 +272,18 @@ JSON格式示例:
 
     # 与兜底结构浅合并：模型漏字段时补默认值，保证前端渲染不出现 undefined
     evaluation = {**_get_default_evaluation(), **evaluation_result}
+
+    # 回填逐题原文：模型按约定只输出 id/score/comments（防输出截断），
+    # 题目、评分标准、回答原文从 questions（进函数前查好的）按题号拼回，
+    # 保证存档报告的 question_evaluations 字段完整，后续渲染逐题详情不缺数据
+    for idx, qe in enumerate(evaluation.get('question_evaluations', []) or [], 1):
+        # 优先按模型给的题号(id)对应；漏给 id 时退回按列表顺序对齐
+        q_idx = qe.get('id') or idx
+        if isinstance(q_idx, int) and 1 <= q_idx <= len(questions):
+            q = questions[q_idx - 1]
+            qe.setdefault('question', q.get('question', ''))
+            qe.setdefault('score_standard', q.get('score_standard', ''))
+            qe.setdefault('answer', q.get('answer_text', ''))
 
     # 组装报告数据：环境信息（谁、什么岗位）+ 评估结果 + 生成时间
     report_data = {

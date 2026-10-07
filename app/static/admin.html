@@ -3,908 +3,863 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>面试系统管理</title>
-  <!-- Bootstrap CSS -->
+  <title>工作台 — 智面无忧</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link href="css/bootstrap.min.css" rel="stylesheet">
-  <!-- Vue.js -->
+  <link href="css/theme.css" rel="stylesheet">
   <script src="js/vue.global.prod.js"></script>
-  <!-- SweetAlert2 -->
   <script src="js/sweetalert2.js"></script>
   <style>
-    /* 字体设计 */
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-    
-    :root {
-      /* 字体设置 */
-      --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      
-      /* 字号层级 */
-      --font-size-xs: 0.75rem;   /* 12px */
-      --font-size-sm: 0.875rem;  /* 14px */
-      --font-size-base: 1rem;    /* 16px */
-      --font-size-lg: 1.125rem;   /* 18px */
-      --font-size-xl: 1.25rem;    /* 20px */
-      --font-size-2xl: 1.5rem;    /* 24px */
-      --font-size-3xl: 1.875rem;  /* 30px */
-      --font-size-4xl: 2.25rem;   /* 36px */
-      
-      /* 字重 */
-      --font-weight-light: 300;
-      --font-weight-normal: 400;
-      --font-weight-medium: 500;
-      --font-weight-semibold: 600;
-      --font-weight-bold: 700;
-      
-      /* 行高 */
-      --line-height-tight: 1.25;
-      --line-height-normal: 1.5;
-      --line-height-relaxed: 1.75;
-      
-      /* 字间距 */
-      --letter-spacing-tight: -0.025em;
-      --letter-spacing-normal: 0;
-      --letter-spacing-wide: 0.025em;
-      
-      /* 颜色系统 */
-      --primary-color: #4f46e5;
-      --primary-light: #6366f1;
-      --primary-dark: #4338ca;
-      --secondary-color: #3b82f6;
-      --success-color: #10b981;
-      --warning-color: #f59e0b;
-      --danger-color: #ef4444;
-      --info-color: #3b82f6;
-      --background-color: #0f172a;
-      --card-background: rgba(15, 23, 42, 0.8);
-      --card-border: rgba(59, 130, 246, 0.2);
-      --text-primary: #e2e8f0;
-      --text-secondary: #94a3b8;
-      --text-muted: #64748b;
-      --gradient-primary: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-light) 100%);
-      --gradient-secondary: linear-gradient(135deg, var(--secondary-color) 0%, #60a5fa 100%);
-    }
-    
-    /* 全局样式 */
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-    
+    /* ============ Base ============ */
     body {
-      font-family: var(--font-family);
-      font-size: var(--font-size-base);
-      font-weight: var(--font-weight-normal);
-      line-height: var(--line-height-normal);
-      letter-spacing: var(--letter-spacing-normal);
-      background: var(--background-color);
-      background-image: 
-        radial-gradient(circle at 25% 25%, rgba(79, 70, 229, 0.05) 0%, transparent 50%),
-        radial-gradient(circle at 75% 75%, rgba(59, 130, 246, 0.05) 0%, transparent 50%),
-        linear-gradient(rgba(30, 41, 59, 0.05) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(30, 41, 59, 0.05) 1px, transparent 1px);
-      background-size: 400px 400px, 400px 400px, 20px 20px, 20px 20px;
-      padding: 20px;
-      color: var(--text-primary);
+      background: var(--bg-secondary);
       min-height: 100vh;
-      overflow-x: hidden;
+      font-family: var(--font-sans);
     }
-    
-    .container {
-      max-width: 1400px;
+
+    .app-shell {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ============ Top Navigation ============ */
+    .top-nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(255, 255, 255, 0.8);
+      backdrop-filter: saturate(180%) blur(20px);
+      -webkit-backdrop-filter: saturate(180%) blur(20px);
+      border-bottom: 1px solid var(--border-light);
+    }
+
+    .top-nav-inner {
+      max-width: 1080px;
       margin: 0 auto;
-    }
-    
-    /* 导航栏 */
-    .navbar {
-      background: rgba(15, 23, 42, 0.9) !important;
-      backdrop-filter: blur(15px);
-      border: 1px solid var(--card-border);
-      border-radius: 16px;
-      margin-bottom: 30px;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-    }
-    
-    .navbar-brand {
-      color: var(--text-primary) !important;
-      font-weight: var(--font-weight-semibold);
-      font-size: var(--font-size-lg);
-      letter-spacing: var(--letter-spacing-tight);
+      padding: 0 24px;
+      height: 56px;
       display: flex;
       align-items: center;
-      gap: 8px;
+      justify-content: space-between;
     }
-    
-    .navbar-brand::before {
-      content: '🎯';
-      font-size: 20px;
+
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
     }
-    
-    .navbar-nav .nav-link {
-      color: var(--text-secondary) !important;
-      font-weight: var(--font-weight-medium);
-      font-size: var(--font-size-base);
-      letter-spacing: var(--letter-spacing-normal);
-      position: relative;
-      transition: all 0.3s ease;
-    }
-    
-    .navbar-nav .nav-link:hover {
-      color: var(--primary-light) !important;
-      transform: translateY(-1px);
-    }
-    
-    .navbar-nav .nav-link::after {
-      content: '';
-      position: absolute;
-      bottom: -2px;
-      left: 0;
-      width: 0;
-      height: 2px;
-      background: var(--gradient-primary);
-      transition: width 0.3s ease;
-    }
-    
-    .navbar-nav .nav-link:hover::after {
-      width: 100%;
-    }
-    
-    .navbar-text {
-      color: var(--text-primary) !important;
-      font-weight: var(--font-weight-normal);
-      font-size: var(--font-size-sm);
-      letter-spacing: var(--letter-spacing-normal);
-    }
-    
-    /* 徽章 */
-    .badge {
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      font-weight: var(--font-weight-medium);
-      font-size: var(--font-size-xs);
-      letter-spacing: var(--letter-spacing-wide);
-      padding: 4px 10px;
-      border-radius: 9999px;
-    }
-    
-    .badge.bg-success {
-      background: rgba(16, 185, 129, 0.15) !important;
-      color: #34d399 !important;
-      border: 1px solid rgba(16, 185, 129, 0.3);
-    }
-    
-    /* 警告框 */
-    .alert {
-      background: rgba(15, 23, 42, 0.9);
-      border: 1px solid var(--card-border);
-      border-radius: 12px;
-      color: var(--text-primary);
-      font-weight: var(--font-weight-normal);
-      font-size: var(--font-size-base);
-      line-height: var(--line-height-relaxed);
-      letter-spacing: var(--letter-spacing-normal);
-      padding: 16px 20px;
-      margin-bottom: 20px;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
-    }
-    
-    .alert-info {
-      background: rgba(59, 130, 246, 0.08) !important;
-      border: 1px solid rgba(59, 130, 246, 0.2) !important;
-      color: #93c5fd !important;
-    }
-    
-    .alert-warning {
-      background: rgba(245, 158, 11, 0.08) !important;
-      border: 1px solid rgba(245, 158, 11, 0.2) !important;
-      color: #fcd34d !important;
-    }
-    
-    .alert-secondary {
-      background: rgba(148, 163, 184, 0.08) !important;
-      border: 1px solid rgba(148, 163, 184, 0.2) !important;
-      color: #cbd5e1 !important;
-    }
-    
-    /* 标题 */
-    h1 {
-      color: var(--text-primary);
-      font-weight: var(--font-weight-bold);
-      font-size: var(--font-size-3xl);
-      line-height: var(--line-height-tight);
-      letter-spacing: var(--letter-spacing-tight);
-      margin-bottom: 2rem;
-      position: relative;
-      display: inline-block;
-    }
-    
-    h1::after {
-      content: '';
-      position: absolute;
-      bottom: -8px;
-      left: 0;
-      width: 60px;
-      height: 4px;
-      background: var(--gradient-primary);
-      border-radius: 2px;
-    }
-    
-    h2 {
-      color: var(--text-primary);
-      font-weight: var(--font-weight-semibold);
-      font-size: var(--font-size-2xl);
-      line-height: var(--line-height-tight);
-      letter-spacing: var(--letter-spacing-tight);
-      margin-bottom: 1.5rem;
-    }
-    
-    h3 {
-      color: var(--text-primary);
-      font-weight: var(--font-weight-semibold);
-      font-size: var(--font-size-xl);
-      line-height: var(--line-height-normal);
-      letter-spacing: var(--letter-spacing-normal);
-      margin-bottom: 1.25rem;
-    }
-    
-    h4 {
-      color: var(--text-primary);
-      font-weight: var(--font-weight-medium);
-      font-size: var(--font-size-lg);
-      line-height: var(--line-height-normal);
-      letter-spacing: var(--letter-spacing-normal);
-      margin-bottom: 1rem;
-    }
-    
-    /* 表格 */
-    .table {
-      background: var(--card-background);
-      border: 1px solid var(--card-border);
-      border-radius: 12px;
-      overflow: hidden;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
-    }
-    
-    .table th {
-      background: rgba(30, 41, 59, 0.8);
-      color: var(--text-secondary);
-      border-bottom: 1px solid var(--card-border);
-      font-weight: var(--font-weight-medium);
-      font-size: var(--font-size-sm);
-      letter-spacing: var(--letter-spacing-wide);
-      text-transform: uppercase;
-      padding: 12px 16px;
-    }
-    
-    .table td {
-      color: var(--text-primary);
-      border-bottom: 1px solid rgba(59, 130, 246, 0.1);
-      vertical-align: middle;
-      font-weight: var(--font-weight-normal);
-      font-size: var(--font-size-base);
-      letter-spacing: var(--letter-spacing-normal);
-      padding: 12px 16px;
-      transition: background-color 0.3s ease;
-    }
-    
-    .table tr:hover {
-      background: rgba(30, 41, 59, 0.3);
-    }
-    
-    /* 按钮 */
-    .btn {
-      border-radius: 10px;
-      font-weight: var(--font-weight-medium);
-      font-size: var(--font-size-base);
-      letter-spacing: var(--letter-spacing-normal);
-      transition: all 0.3s ease;
-      position: relative;
-      overflow: hidden;
-      z-index: 1;
-    }
-    
-    .btn::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: -100%;
-      width: 100%;
-      height: 100%;
-      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
-      transition: left 0.6s ease;
-      z-index: -1;
-    }
-    
-    .btn:hover::before {
-      left: 100%;
-    }
-    
-    .btn-primary {
-      background: var(--gradient-primary);
-      border: 1px solid rgba(99, 102, 241, 0.3);
-      color: #ffffff;
-      font-weight: var(--font-weight-semibold);
-      box-shadow: 0 4px 16px rgba(79, 70, 229, 0.2);
-    }
-    
-    .btn-primary:hover {
-      background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary-color) 100%);
-      border-color: rgba(99, 102, 241, 0.5);
-      transform: translateY(-2px);
-      box-shadow: 0 8px 24px rgba(79, 70, 229, 0.3);
-    }
-    
-    .btn-secondary {
-      background: rgba(30, 41, 59, 0.7);
-      border: 1px solid rgba(99, 102, 241, 0.3);
-      color: var(--text-primary);
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    }
-    
-    .btn-secondary:hover {
-      background: rgba(30, 41, 59, 0.9);
-      border-color: rgba(99, 102, 241, 0.5);
-      transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    }
-    
-    .btn-sm {
-      padding: 6px 16px;
-      font-size: var(--font-size-sm);
-    }
-    
-    .btn-danger {
-      background: rgba(239, 68, 68, 0.15);
-      border: 1px solid rgba(239, 68, 68, 0.25);
-      color: #fca5a5;
-    }
-    
-    .btn-danger:hover {
-      background: rgba(239, 68, 68, 0.25);
-      border-color: rgba(239, 68, 68, 0.4);
-      transform: translateY(-1px);
-    }
-    
-    .btn-warning {
-      background: rgba(245, 158, 11, 0.15);
-      border: 1px solid rgba(245, 158, 11, 0.25);
-      color: #fcd34d;
-    }
-    
-    .btn-warning:hover {
-      background: rgba(245, 158, 11, 0.25);
-      border-color: rgba(245, 158, 11, 0.4);
-      transform: translateY(-1px);
-    }
-    
-    .btn-info {
-      background: rgba(59, 130, 246, 0.15);
-      border: 1px solid rgba(59, 130, 246, 0.25);
-      color: #93c5fd;
-    }
-    
-    .btn-info:hover {
-      background: rgba(59, 130, 246, 0.25);
-      border-color: rgba(59, 130, 246, 0.4);
-      transform: translateY(-1px);
-    }
-    
-    .btn-success {
-      background: rgba(16, 185, 129, 0.15);
-      border: 1px solid rgba(16, 185, 129, 0.25);
-      color: #34d399;
-    }
-    
-    .btn-success:hover {
-      background: rgba(16, 185, 129, 0.25);
-      border-color: rgba(16, 185, 129, 0.4);
-      transform: translateY(-1px);
-    }
-    
-    /* 表单 */
-    .form-control {
-      background: rgba(30, 41, 59, 0.7);
-      border: 1px solid rgba(59, 130, 246, 0.2);
-      border-radius: 10px;
-      color: var(--text-primary);
-      font-weight: var(--font-weight-normal);
-      font-size: var(--font-size-base);
-      letter-spacing: var(--letter-spacing-normal);
-      padding: 12px 16px;
-      transition: all 0.3s ease;
-    }
-    
-    .form-control:focus {
-      background: rgba(30, 41, 59, 0.9);
-      border-color: var(--primary-light);
-      box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
-      color: var(--text-primary);
-      outline: none;
-    }
-    
-    .form-label {
-      color: var(--text-secondary);
-      font-weight: var(--font-weight-medium);
-      font-size: var(--font-size-sm);
-      letter-spacing: var(--letter-spacing-normal);
-      margin-bottom: 6px;
-      display: block;
-    }
-    
-    /* 模态框 */
-    .modal {
-      backdrop-filter: blur(15px);
-    }
-    
-    .modal-content {
-      background: rgba(15, 23, 42, 0.95);
-      border: 1px solid var(--card-border);
-      border-radius: 16px;
-      color: var(--text-primary);
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-    }
-    
-    .modal-header {
-      border-bottom: 1px solid var(--card-border);
-      padding: 20px 24px;
-    }
-    
-    .modal-title {
-      color: var(--text-primary);
-      font-weight: var(--font-weight-semibold);
-      font-size: var(--font-size-lg);
-      letter-spacing: var(--letter-spacing-normal);
-    }
-    
-    .modal-body {
-      color: var(--text-primary);
-      font-weight: var(--font-weight-normal);
-      font-size: var(--font-size-base);
-      line-height: var(--line-height-relaxed);
-      letter-spacing: var(--letter-spacing-normal);
-      padding: 24px;
-    }
-    
-    .modal-footer {
-      border-top: 1px solid var(--card-border);
-      padding: 20px 24px;
-    }
-    
-    .btn-close {
-      background: rgba(148, 163, 184, 0.15);
-      border-radius: 50%;
+
+    .nav-brand-icon {
       width: 32px;
       height: 32px;
+      border-radius: 8px;
+      display: block;
+    }
+
+    .nav-brand-text {
+      font-size: var(--text-base);
+      font-weight: var(--fw-semibold);
+      color: var(--text-primary);
+      letter-spacing: -0.01em;
+    }
+
+    .nav-center {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .nav-user-info {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .nav-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-light);
       display: flex;
       align-items: center;
       justify-content: center;
-      transition: all 0.3s ease;
+      font-size: 14px;
     }
-    
-    .btn-close:hover {
-      background: rgba(148, 163, 184, 0.25);
-      transform: rotate(90deg);
+
+    .nav-user-meta {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
     }
-    
-    /* 卡片 */
-    .card {
-      background: var(--card-background);
-      border: 1px solid var(--card-border);
-      border-radius: 16px;
-      padding: 24px;
+
+    .nav-username {
+      font-size: var(--text-sm);
+      font-weight: var(--fw-medium);
+      color: var(--text-primary);
+      line-height: 1.2;
+    }
+
+    .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 180px;
+      justify-content: flex-end;
+    }
+
+    .nav-left-placeholder {
+      width: 180px;
+    }
+
+    /* ============ Main Content ============ */
+    .main-content {
+      flex: 1;
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 40px 24px 64px;
+      width: 100%;
+    }
+
+    /* ============ Welcome Hero Card ============ */
+    .welcome-card {
+      background: var(--bg-primary);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-2xl);
+      padding: 48px 48px;
       margin-bottom: 24px;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-      transition: all 0.3s ease;
+      box-shadow: var(--shadow-sm);
       position: relative;
       overflow: hidden;
     }
-    
-    .card::before {
+
+    .welcome-card::before {
       content: '';
       position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 4px;
-      background: var(--gradient-primary);
+      top: -50%;
+      right: -10%;
+      width: 400px;
+      height: 400px;
+      background: radial-gradient(circle, rgba(0, 122, 255, 0.06) 0%, transparent 70%);
+      border-radius: 50%;
+      pointer-events: none;
     }
-    
-    .card:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
-      border-color: rgba(99, 102, 241, 0.3);
-    }
-    
-    /* 文本样式 */
-    p {
-      font-weight: var(--font-weight-normal);
-      font-size: var(--font-size-base);
-      line-height: var(--line-height-normal);
-      letter-spacing: var(--letter-spacing-normal);
+
+    .welcome-title {
+      font-size: var(--text-4xl);
+      font-weight: var(--fw-bold);
       color: var(--text-primary);
-      margin-bottom: 1rem;
+      letter-spacing: -0.02em;
+      margin-bottom: 8px;
+      line-height: 1.2;
     }
-    
-    .text-muted {
-      color: var(--text-muted) !important;
-      font-weight: var(--font-weight-light);
-      font-size: var(--font-size-sm);
-      letter-spacing: var(--letter-spacing-normal);
+
+    .welcome-subtitle {
+      font-size: var(--text-lg);
+      color: var(--text-secondary);
+      margin-bottom: 28px;
+      font-weight: var(--fw-regular);
     }
-    
-    .text-sm {
-      font-size: var(--font-size-sm);
-    }
-    
-    .text-xs {
-      font-size: var(--font-size-xs);
-    }
-    
-    .text-lg {
-      font-size: var(--font-size-lg);
-    }
-    
-    .font-medium {
-      font-weight: var(--font-weight-medium);
-    }
-    
-    .font-semibold {
-      font-weight: var(--font-weight-semibold);
-    }
-    
-    .font-bold {
-      font-weight: var(--font-weight-bold);
-    }
-    
-    /* 工具类 */
-    .flex {
+
+    /* ============ Guest Banner ============ */
+    .guest-banner {
+      background: var(--warning-bg);
+      border: 1px solid var(--warning-border);
+      border-radius: var(--radius-xl);
+      padding: 16px 20px;
+      margin-bottom: 24px;
       display: flex;
-    }
-    
-    .flex-wrap {
-      flex-wrap: wrap;
-    }
-    
-    .gap-2 {
-      gap: 8px;
-    }
-    
-    .gap-3 {
-      gap: 12px;
-    }
-    
-    .gap-4 {
+      align-items: center;
+      justify-content: space-between;
       gap: 16px;
     }
-    
-    .grid {
-      display: grid;
-    }
-    
-    .grid-cols-1 {
-      grid-template-columns: repeat(1, minmax(0, 1fr));
-    }
-    
-    @media (min-width: 768px) {
-      .md\:grid-cols-2 {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-      }
-    }
-    
-    .justify-between {
-      justify-content: space-between;
-    }
-    
-    .items-center {
+
+    .guest-banner-text {
+      font-size: var(--text-sm);
+      color: var(--warning-fg);
+      display: flex;
       align-items: center;
+      gap: 8px;
     }
-    
-    .items-end {
-      align-items: flex-end;
+
+    .guest-banner-actions {
+      display: flex;
+      gap: 8px;
+      flex-shrink: 0;
     }
-    
-    .mb-2 {
-      margin-bottom: 8px;
-    }
-    
-    .mb-3 {
-      margin-bottom: 12px;
-    }
-    
-    .mb-4 {
-      margin-bottom: 16px;
-    }
-    
-    .mb-6 {
+
+    /* ============ Stats Grid ============ */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
       margin-bottom: 24px;
     }
-    
-    .mt-2 {
-      margin-top: 8px;
+
+    @media (max-width: 720px) {
+      .stats-grid { grid-template-columns: 1fr; }
     }
-    
-    .mt-3 {
-      margin-top: 12px;
+
+    .stat-card {
+      background: var(--bg-primary);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-2xl);
+      padding: 24px;
+      box-shadow: var(--shadow-sm);
+      transition: all var(--transition-base);
     }
-    
-    .p-3 {
-      padding: 12px;
+
+    .stat-card:hover {
+      box-shadow: var(--shadow-md);
+      transform: translateY(-1px);
     }
-    
-    .p-4 {
-      padding: 16px;
-    }
-    
-    .p-5 {
-      padding: 20px;
-    }
-    
-    .py-3 {
-      padding-top: 12px;
-      padding-bottom: 12px;
-    }
-    
-    .w-full {
-      width: 100%;
-    }
-    
-    .bg-slate-800 {
-      background: rgba(30, 41, 59, 0.8);
-    }
-    
-    .bg-slate-700\/50 {
-      background: rgba(51, 65, 85, 0.5);
-    }
-    
-    .bg-slate-700\/80 {
-      background: rgba(51, 65, 85, 0.8);
-    }
-    
-    .bg-slate-700 {
-      background: rgba(51, 65, 85, 0.8);
-    }
-    
-    .bg-blue-500 {
-      background: var(--secondary-color);
-    }
-    
-    .border {
-      border: 1px solid;
-    }
-    
-    .border-blue-500\/30 {
-      border-color: rgba(59, 130, 246, 0.3);
-    }
-    
-    .rounded-xl {
+
+    .stat-icon {
+      width: 40px;
+      height: 40px;
       border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      margin-bottom: 14px;
     }
-    
-    .rounded-lg {
-      border-radius: 8px;
+
+    .stat-icon.blue {
+      background: rgba(0, 122, 255, 0.1);
     }
-    
-    .rounded-full {
-      border-radius: 9999px;
+
+    .stat-icon.green {
+      background: rgba(52, 199, 89, 0.1);
     }
-    
-    .shadow-lg {
-      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+
+    .stat-icon.orange {
+      background: rgba(255, 149, 0, 0.1);
     }
-    
-    .text-blue-400 {
-      color: #93c5fd;
-    }
-    
-    .text-gray-400 {
-      color: var(--text-secondary);
-    }
-    
-    .text-gray-500 {
-      color: var(--text-muted);
-    }
-    
-    .text-green-400 {
-      color: #34d399;
-    }
-    
-    .text-green-500 {
-      color: var(--success-color);
-    }
-    
-    .block {
-      display: block;
-    }
-    
-    .text-sm {
-      font-size: var(--font-size-sm);
-    }
-    
-    .text-xs {
-      font-size: var(--font-size-xs);
-    }
-    
-    .font-medium {
-      font-weight: var(--font-weight-medium);
-    }
-    
-    .font-semibold {
-      font-weight: var(--font-weight-semibold);
-    }
-    
-    .hover\:bg-blue-500\/30:hover {
-      background: rgba(59, 130, 246, 0.3);
-    }
-    
-    .hover\:bg-slate-700\/80:hover {
-      background: rgba(51, 65, 85, 0.8);
-    }
-    
-    .hover\:text-blue-300:hover {
-      color: #bfdbfe;
-    }
-    
-    .transition {
-      transition: all 0.3s ease;
-    }
-    
-    .transform {
-      transform: transform;
-    }
-    
-    .hover\:-translate-y-0\.5:hover {
-      transform: translateY(-0.5px);
-    }
-    
-    .h-2 {
-      height: 8px;
-    }
-    
-    .w-2 {
-      width: 8px;
-    }
-    
-    .h-2 {
-      height: 8px;
-    }
-    
-    .mr-2 {
-      margin-right: 8px;
-    }
-    
-    .ml-1 {
-      margin-left: 4px;
-    }
-    
-    .mt-1 {
-      margin-top: 4px;
-    }
-    
-    .mb-1 {
+
+    .stat-value {
+      font-size: var(--text-3xl);
+      font-weight: var(--fw-bold);
+      color: var(--text-primary);
+      letter-spacing: -0.02em;
+      line-height: 1.1;
       margin-bottom: 4px;
     }
-    
-    .space-y-3 > * + * {
-      margin-top: 12px;
+
+    .stat-label {
+      font-size: var(--text-sm);
+      color: var(--text-tertiary);
+      font-weight: var(--fw-regular);
+    }
+
+    /* ============ Content Grid ============ */
+    .content-grid {
+      display: grid;
+      grid-template-columns: 1fr 1.2fr;
+      gap: 24px;
+      margin-bottom: 24px;
+    }
+
+    @media (max-width: 900px) {
+      .content-grid { grid-template-columns: 1fr; }
+    }
+
+    /* ============ Panel / Card ============ */
+    .panel {
+      background: var(--bg-primary);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-2xl);
+      padding: 28px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+
+    .panel-title {
+      font-size: var(--text-xl);
+      font-weight: var(--fw-semibold);
+      color: var(--text-primary);
+      letter-spacing: -0.01em;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .panel-title-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      background: rgba(0, 122, 255, 0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+    }
+
+    .panel-meta {
+      font-size: var(--text-sm);
+      color: var(--text-tertiary);
+    }
+
+    /* ============ Form Fields ============ */
+    .form-field {
+      margin-bottom: 18px;
+    }
+
+    .form-field-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+
+    @media (max-width: 480px) {
+      .form-field-row { grid-template-columns: 1fr; }
+    }
+
+    .form-label {
+      display: block;
+      font-size: var(--text-sm);
+      font-weight: var(--fw-medium);
+      color: var(--text-secondary);
+      margin-bottom: 6px;
+    }
+
+    .form-input {
+      width: 100%;
+      height: 44px;
+      padding: 0 14px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-lg);
+      color: var(--text-primary);
+      font-family: var(--font-sans);
+      font-size: var(--text-base);
+      transition: all var(--transition-fast);
+      outline: none;
+    }
+
+    .form-input:focus {
+      border-color: var(--accent-primary);
+      box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.12);
+      background: var(--bg-primary);
+    }
+
+    .form-input::placeholder {
+      color: var(--text-tertiary);
+    }
+
+    /* ============ File Upload ============ */
+    .file-upload {
+      position: relative;
+    }
+
+    .file-upload-input {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+    }
+
+    .file-upload-display {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 16px 18px;
+      background: var(--bg-secondary);
+      border: 1.5px dashed var(--border-light);
+      border-radius: var(--radius-xl);
+      transition: all var(--transition-fast);
+    }
+
+    .file-upload:hover .file-upload-display {
+      border-color: var(--accent-primary);
+      background: rgba(0, 122, 255, 0.04);
+    }
+
+    .file-upload-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      background: var(--bg-primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      flex-shrink: 0;
+      border: 1px solid var(--border-light);
+    }
+
+    .file-upload-text {
+      flex: 1;
+      font-size: var(--text-sm);
+      color: var(--text-secondary);
+      line-height: 1.4;
+    }
+
+    .file-upload-text strong {
+      color: var(--text-primary);
+      font-weight: var(--fw-medium);
+      display: block;
+      margin-bottom: 2px;
+    }
+
+    .file-upload-text.has-file strong {
+      color: var(--success-fg);
+    }
+
+    .file-upload-hint {
+      font-size: var(--text-xs);
+      color: var(--text-tertiary);
+      margin-top: 8px;
+    }
+
+    .btn-start {
+      width: 100%;
+      height: 52px;
+      font-size: var(--text-base);
+      font-weight: var(--fw-semibold);
+      margin-top: 6px;
+    }
+
+    /* ============ Record List ============ */
+    .record-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin: 0 -8px;
+    }
+
+    .record-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 16px;
+      border-radius: var(--radius-lg);
+      transition: all var(--transition-fast);
+      cursor: pointer;
+    }
+
+    .record-item:hover {
+      background: var(--bg-secondary);
+    }
+
+    .record-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .record-status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .record-status-dot.done {
+      background: var(--success-fg);
+    }
+
+    .record-status-dot.pending {
+      background: var(--warning-fg);
+    }
+
+    .record-info {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      min-width: 0;
+    }
+
+    .record-position {
+      font-size: var(--text-base);
+      font-weight: var(--fw-medium);
+      color: var(--text-primary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .record-time {
+      font-size: var(--text-xs);
+      color: var(--text-tertiary);
+    }
+
+    .record-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-shrink: 0;
+    }
+
+    .record-score {
+      font-size: var(--text-sm);
+      font-weight: var(--fw-semibold);
+      color: var(--accent-primary);
+    }
+
+    .record-score.pending {
+      color: var(--text-tertiary);
+      font-weight: var(--fw-regular);
+    }
+
+    .record-arrow {
+      color: var(--text-tertiary);
+      font-size: 14px;
+      opacity: 0.6;
+      transition: all var(--transition-fast);
+    }
+
+    .record-item:hover .record-arrow {
+      opacity: 1;
+      transform: translateX(2px);
+      color: var(--accent-primary);
+    }
+
+    .record-divider {
+      height: 1px;
+      background: var(--border-subtle);
+      margin: 0 16px;
+    }
+
+    /* ============ Empty State ============ */
+    .empty-state {
+      text-align: center;
+      padding: 48px 24px;
+    }
+
+    .empty-state-icon {
+      font-size: 40px;
+      margin-bottom: 12px;
+      opacity: 0.5;
+    }
+
+    .empty-state-title {
+      font-size: var(--text-base);
+      font-weight: var(--fw-medium);
+      color: var(--text-secondary);
+      margin-bottom: 4px;
+    }
+
+    .empty-state-text {
+      font-size: var(--text-sm);
+      color: var(--text-tertiary);
+    }
+
+    /* ============ Pricing CTA Card ============ */
+    .pricing-card {
+      background: linear-gradient(135deg, rgba(0, 122, 255, 0.04) 0%, rgba(88, 86, 214, 0.04) 100%);
+      border: 1px solid rgba(0, 122, 255, 0.12);
+      border-radius: var(--radius-2xl);
+      padding: 28px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    @media (max-width: 640px) {
+      .pricing-card {
+        flex-direction: column;
+        text-align: center;
+      }
+    }
+
+    .pricing-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .pricing-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, var(--accent-primary), #5856d6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      color: #fff;
+      flex-shrink: 0;
+    }
+
+    .pricing-text h3 {
+      font-size: var(--text-lg);
+      font-weight: var(--fw-semibold);
+      color: var(--text-primary);
+      margin-bottom: 2px;
+      letter-spacing: -0.01em;
+    }
+
+    .pricing-text p {
+      font-size: var(--text-sm);
+      color: var(--text-secondary);
+      margin: 0;
+    }
+
+    /* ============ Quota Progress ============ */
+    .quota-progress-wrap {
+      margin-top: 8px;
+    }
+
+    .quota-progress-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: var(--text-xs);
+      color: var(--text-tertiary);
+      margin-bottom: 6px;
+    }
+
+    .quota-progress-track {
+      height: 4px;
+      background: var(--bg-secondary);
+      border-radius: var(--radius-full);
+      overflow: hidden;
+    }
+
+    .quota-progress-fill {
+      height: 100%;
+      background: var(--accent-primary);
+      border-radius: var(--radius-full);
+      transition: width var(--transition-slow);
+    }
+
+    /* ============ Responsive adjustments ============ */
+    @media (max-width: 640px) {
+      .main-content {
+        padding: 24px 16px 48px;
+      }
+
+      .welcome-card {
+        padding: 32px 24px;
+      }
+
+      .welcome-title {
+        font-size: var(--text-3xl);
+      }
+
+      .panel {
+        padding: 20px;
+      }
+
+      .top-nav-inner {
+        padding: 0 16px;
+      }
+
+      .nav-left-placeholder {
+        display: none;
+      }
+
+      .nav-right {
+        min-width: auto;
+      }
     }
   </style>
 </head>
 <body>
-  <div id="app" class="container">
+  <div id="app" class="app-shell">
     <!-- 顶部导航栏 -->
-    <nav class="navbar navbar-expand-lg navbar-dark mb-4 rounded">
-      <div class="container-fluid">
-        <a class="navbar-brand" href="#">AI面试系统</a>
-        <div class="navbar-nav ms-auto align-items-center">
+    <nav class="top-nav">
+      <div class="top-nav-inner">
+        <div class="nav-brand">
+          <img class="nav-brand-icon" src="img/logo.svg" alt="智面无忧">
+          <span class="nav-brand-text">智面无忧</span>
+        </div>
+
+        <div class="nav-center">
           <template v-if="currentUser">
-            <span class="navbar-text me-3">
-              👤 {{ currentUser.username }}
-              <span class="badge bg-success ms-2">{{ currentUser.user_type === 'premium' ? 'VIP' : '免费版' }}</span>
-            </span>
-            <a class="nav-link" href="#" @click.prevent="logout">退出</a>
+            <div class="nav-user-info">
+              <div class="nav-avatar">{{ currentUser.username ? currentUser.username.charAt(0) : '我' }}</div>
+              <div class="nav-user-meta">
+                <span class="nav-username">{{ currentUser.username }}</span>
+                <span class="gt-badge" :class="currentUser.user_type === 'premium' ? 'gt-badge-primary' : 'gt-badge-muted'" style="margin-top: 2px;">
+                  {{ currentUser.user_type === 'premium' ? 'VIP 会员' : '免费版' }}
+                </span>
+              </div>
+            </div>
           </template>
           <template v-else>
-            <a class="nav-link" href="login.html">登录</a>
-            <a class="nav-link" href="register.html">注册</a>
+            <span class="nav-username">未登录</span>
+          </template>
+        </div>
+
+        <div class="nav-right">
+          <template v-if="currentUser">
+            <button class="gt-btn gt-btn-ghost gt-btn-sm" @click="logout">退出登录</button>
+          </template>
+          <template v-else>
+            <a href="login.html" class="gt-btn gt-btn-secondary gt-btn-sm">登录</a>
+            <a href="register.html" class="gt-btn gt-btn-primary gt-btn-sm">注册</a>
           </template>
         </div>
       </div>
     </nav>
 
-    <!-- 用户配额信息（仅登录用户显示） -->
-    <div v-if="currentUser && userQuota.total_available" class="alert alert-info mb-3">
-      <div class="d-flex justify-content-between align-items-center">
-        <div>
-          <strong>📊 我的配额：</strong>
-          <!-- 个人版唯一配额：可用 AI 面试次数（大模型出题成功一场扣 1，见 question_service） -->
-          <span class="badge bg-primary me-2">面试 {{ userQuota.total_available.interviews }} 次</span>
-        </div>
-        <a href="pricing.html" class="btn btn-sm btn-primary">购买更多</a>
-      </div>
-    </div>
+    <!-- 主内容区 -->
+    <main class="main-content">
 
-    <!-- 未登录提示 -->
-    <div v-if="!currentUser" class="alert alert-warning mb-3">
-      <div class="d-flex justify-content-between align-items-center">
-        <span>⚠️ 您尚未登录，部分功能可能受限。<a href="register.html">注册新账号</a> 可免费获得3次面试体验！</span>
-        <div>
-          <a href="login.html" class="btn btn-sm btn-primary me-2">登录</a>
-          <a href="register.html" class="btn btn-sm btn-success">注册</a>
+      <!-- 未登录提示 -->
+      <div v-if="!currentUser" class="guest-banner">
+        <span class="guest-banner-text">
+          您尚未登录，部分功能可能受限。注册新账号可免费获得 3 次面试体验！
+        </span>
+        <div class="guest-banner-actions">
+          <a href="login.html" class="gt-btn gt-btn-secondary gt-btn-sm">登录</a>
+          <a href="register.html" class="gt-btn gt-btn-primary gt-btn-sm">注册</a>
         </div>
       </div>
-    </div>
 
-    <h1 class="mb-4">面试系统管理</h1>
+      <!-- 欢迎横幅卡 -->
+      <section class="welcome-card">
+        <h1 class="welcome-title">
+          {{ currentUser ? '你好，' + currentUser.username : '欢迎使用智面无忧' }}
+        </h1>
+        <p class="welcome-subtitle">
+          上传简历，开启你的专属 AI 模拟面试训练
+        </p>
+      </section>
 
-    <!-- 主页（用户能看懂的叫法，此前叫"工作台"） -->
-    <div class="tab-content">
-      <h3 class="mt-3">主页</h3>
-      <p class="text-muted mb-4">欢迎回来，今天准备好开始面试训练了吗？</p>
-      
-      <!-- 新建面试训练卡片 -->
-      <div class="card">
-        <h4 class="text-lg font-semibold mb-4 text-blue-400">新建面试训练</h4>
-        
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-          <div>
-            <label class="block text-sm font-medium text-gray-400 mb-1">工作经验</label>
-            <input type="text" class="form-control" placeholder="1-3年经验" v-model="workExperience">
+      <!-- 数据统计卡 -->
+      <section class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-value">
+            {{ userQuota?.total_available?.interviews !== undefined ? userQuota.total_available.interviews : '--' }}
           </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-400 mb-1">目标岗位</label>
-            <input type="text" class="form-control" placeholder="例如：AI应用经理、前端开发、产品经理等" v-model="targetPosition" required>
+          <div class="stat-label">剩余面试次数</div>
+          <div v-if="currentUser && userQuota.total_available" class="quota-progress-wrap">
+            <div class="quota-progress-label">
+              <span>已用 {{ myStats?.total_count || 0 }}</span>
+              <span>共 {{ (userQuota.total_available.interviews || 0) + (myStats?.total_count || 0) }}</span>
+            </div>
+            <div class="quota-progress-track">
+              <div class="quota-progress-fill" :style="{ width: getUsagePercent() + '%' }"></div>
+            </div>
           </div>
         </div>
-        
-        <div class="mb-4">
-          <label class="block text-sm font-medium text-gray-400 mb-1">上传简历</label>
-          <input type="file" class="form-control" @change="handleResumeUpload" accept=".pdf,.doc,.docx">
-          <!-- 【2026-10-06 修复】原来 mounted 时自动塞一份假的 resume.md 导致一打开
-               就显示"已上传"；现在初始为空——没选文件时提示"请上传面试简历" -->
-          <p v-if="resumeFile" class="text-xs text-green-400 mt-1">{{ resumeFile.name }} 已上传</p>
-          <p v-else class="text-xs text-gray-500 mt-1">请上传面试简历（支持 PDF / Word）</p>
-        </div>
-        
-        <button class="btn btn-primary w-full py-3" @click="handleStartTraining">
-          立即训练
-        </button>
-      </div>
-      
-      <!-- 我的面试记录（真实数据：GET /api/interview/my_records，替换原企业版遗留假数据） -->
-      <div class="card">
-        <div class="flex justify-between items-center mb-4">
-          <h4 class="text-lg font-semibold text-blue-400">我的面试记录</h4>
-          <span class="text-sm text-gray-400" v-if="myStats">
-            累计 {{ myStats.total_count }} 场
-            <template v-if="myStats.average_score !== null"> · 平均 {{ myStats.average_score }} 分</template>
-          </span>
+
+        <div class="stat-card">
+          <div class="stat-value">{{ myStats?.total_count || 0 }}</div>
+          <div class="stat-label">已完成面试</div>
         </div>
 
-        <!-- 空状态：一场面试都没有 -->
-        <div v-if="myRecords.length === 0" class="text-center text-gray-500 py-8">
-          暂无面试记录，上传简历创建第一场面试吧
+        <div class="stat-card">
+          <div class="stat-value">
+            {{ myStats?.average_score !== null && myStats?.average_score !== undefined ? myStats.average_score : '--' }}
+          </div>
+          <div class="stat-label">平均得分</div>
         </div>
+      </section>
 
-        <div class="space-y-3" v-else>
-          <div v-for="record in myRecords" :key="record.token" class="flex justify-between items-center p-3 bg-slate-700/50 rounded-lg hover:bg-slate-700/80 transition">
-            <div>
-              <div class="flex items-center">
-                <!-- 绿点 = 已出分；黄点 = 还没走到报告环节 -->
-                <span class="w-2 h-2 rounded-full mr-2" :class="record.score !== null ? 'bg-green-500' : 'bg-yellow-500'"></span>
-                <span class="font-medium">{{ record.position_name || '模拟面试' }}</span>
+      <!-- 双栏内容区 -->
+      <div class="content-grid">
+        <!-- 左侧：简历上传区 -->
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">
+              新建面试
+            </div>
+          </div>
+
+          <div class="form-field-row">
+            <div class="form-field">
+              <label class="form-label">工作经验</label>
+              <input type="text" class="form-input" placeholder="如：1-3年经验" v-model="workExperience">
+            </div>
+            <div class="form-field">
+              <label class="form-label">目标岗位</label>
+              <input type="text" class="form-input" placeholder="如：产品经理" v-model="targetPosition">
+            </div>
+          </div>
+
+          <div class="form-field">
+            <label class="form-label">上传简历</label>
+            <div class="file-upload">
+              <input type="file" class="file-upload-input" @change="handleResumeUpload" accept=".pdf,.docx,.txt">
+              <div class="file-upload-display">
+                <div class="file-upload-text" :class="{ 'has-file': resumeFile }">
+                  <strong>{{ resumeFile ? resumeFile.name : '点击或拖拽上传简历' }}</strong>
+                  {{ resumeFile ? formatFileSize(resumeFile.size) : '支持 PDF / Word(.docx) / TXT' }}
+                </div>
               </div>
-              <div class="text-xs text-gray-400 mt-1">{{ formatRecordTime(record.start_time) }}</div>
+              <p class="file-upload-hint">最大 10MB，上传后将自动分析并生成面试题</p>
             </div>
-            <div class="flex items-center gap-3">
-              <span class="text-sm font-medium" :class="record.score !== null ? 'text-green-400' : 'text-gray-500'">
-                {{ record.score !== null ? record.score + '分' : '报告未生成' }}
-              </span>
-              <!-- 跳独立详情页：题目 + 回答 + 报告 -->
-              <a :href="'record_detail.html?token=' + record.token" class="text-xs text-blue-400 hover:text-blue-300">查看详情</a>
+          </div>
+
+          <button class="gt-btn gt-btn-primary btn-start" @click="handleStartTraining">
+            立即开始训练
+          </button>
+        </div>
+
+        <!-- 右侧：面试记录列表 -->
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">
+              面试记录
             </div>
+            <span class="panel-meta" v-if="myStats">
+              共 {{ myStats.total_count }} 场
+            </span>
+          </div>
+
+          <!-- 空状态 -->
+          <div v-if="myRecords.length === 0" class="empty-state">
+            <div class="empty-state-title">暂无面试记录</div>
+            <p class="empty-state-text">上传简历，开始你的专属面试之旅</p>
+          </div>
+
+          <!-- 记录列表 -->
+          <div v-else class="record-list">
+            <template v-for="(record, index) in myRecords" :key="record.token">
+              <div
+                class="record-item"
+                @click="goToDetail(record)"
+              >
+                <div class="record-left">
+                  <span
+                    class="record-status-dot"
+                    :class="record.score !== null ? 'done' : 'pending'"
+                  ></span>
+                  <div class="record-info">
+                    <span class="record-position">{{ record.position_name || '模拟面试' }}</span>
+                    <span class="record-time">{{ formatRecordTime(record.start_time) }}</span>
+                  </div>
+                </div>
+                <div class="record-right">
+                  <span class="record-score" :class="{ pending: record.score === null }">
+                    {{ recordStatusLabel(record) }}
+                  </span>
+                  <span class="record-arrow">›</span>
+                </div>
+              </div>
+              <div v-if="index < myRecords.length - 1" class="record-divider"></div>
+            </template>
           </div>
         </div>
       </div>
-    </div>
+
+      <!-- 套餐推荐 / 购买更多 -->
+      <section class="pricing-card">
+        <div class="pricing-left">
+          <div class="pricing-text">
+            <h3>会员专享</h3>
+            <p>解锁更多面试次数、AI 深度分析、更多岗位题库</p>
+          </div>
+        </div>
+        <a href="pricing.html" class="gt-btn gt-btn-primary">
+          查看套餐
+        </a>
+      </section>
+
+    </main>
   </div>
 
   <script>
@@ -913,31 +868,19 @@
     createApp({
       data() {
         return {
-          // 主页数据
           workExperience: '',
-          // 目标岗位默认必须为空：默认值会被直接传给后端当岗位出题（曾因默认 'frontend'
-          // 导致丢什么简历都出前端题）；留空时后端 422 拦截，强制用户填写
           targetPosition: '',
           resumeFile: null,
-          // 我的面试记录（真实数据，loadMyRecords 填充）
           myRecords: [],
-          // 汇总统计：{ total_count: 累计场数, average_score: 平均分或 null }
           myStats: null,
-          // 用户相关数据
           currentUser: null,
           userQuota: {}
         };
       },
       mounted() {
-        // 加载当前用户
         this.loadCurrentUser();
-
-        // 【2026-10-06 删除】原来这里自动调用 setTestResume() 塞一份假的
-        // "resume.md"（张三的 markdown 简历）——页面一打开就显示"已上传"，
-        // 用户误以为已经有默认简历。现在初始状态为空，未选文件时提示上传
       },
       methods: {
-        // 加载当前用户
         loadCurrentUser() {
           const user = localStorage.getItem('currentUser');
           if (user) {
@@ -947,15 +890,11 @@
           }
         },
 
-        // 构造鉴权请求头（2026-10-06 越权修复）：把登录时服务端下发的
-        // authToken 放进 Authorization 请求头，需要身份的接口都带上它。
-        // token 失效时后端回 401，前端各调用点据此提示重新登录
         getAuthHeaders() {
           const token = localStorage.getItem('authToken') || '';
           return token ? { 'Authorization': 'Bearer ' + token } : {};
         },
 
-        // 401 统一处理：token 失效/没登录 → 清掉本地登录态并提示重新登录
         handleUnauthorized() {
           localStorage.removeItem('currentUser');
           localStorage.removeItem('authToken');
@@ -967,17 +906,14 @@
             confirmButtonText: '去登录'
           }).then(() => { window.location.href = 'login.html'; });
         },
-        
-        // 加载用户配额
+
         async loadUserQuota() {
           if (!this.currentUser) return;
 
           try {
-            // 身份由请求头 token 决定（后端已不再接受 user_id 参数）
             const response = await fetch(this.getApiUrl('api/user/quota'), {
               headers: this.getAuthHeaders()
             });
-            // token 失效：清登录态并跳登录页
             if (response.status === 401) { this.handleUnauthorized(); return; }
             const data = await response.json();
             if (data.status === 'success') {
@@ -985,7 +921,6 @@
             }
           } catch (error) {
             console.error('加载配额失败:', error);
-            // 后端服务器不可用时，使用模拟数据
             this.userQuota = {
               total_available: {
                 interviews: 3,
@@ -995,10 +930,8 @@
             };
           }
         },
-        
-        // 退出登录
+
         async logout() {
-          // 通知服务端作废 token（就算这一步失败，本地照常清理）
           try {
             await fetch(this.getApiUrl('api/auth/logout'), {
               method: 'POST',
@@ -1019,57 +952,46 @@
             showConfirmButton: false
           });
         },
-        
-        // 获取API完整URL（统一走相对路径：页面从哪打开请求就发到哪，开发部署一套代码通用）
+
         getApiUrl(path) {
-          // 如果path已经以/开头，去掉开头的/
           if (path.startsWith('/')) {
             path = path.substring(1);
           }
-          const url = `/${path}`;
-          console.log('API URL:', url);
-          return url;
+          return `/${path}`;
         },
-        
-        // 处理简历上传
+
         handleResumeUpload(event) {
           const file = event.target.files[0];
           if (file) {
-            // 检查文件类型
-            const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/markdown'];
-            if (!allowedTypes.includes(file.type)) {
+            // 按扩展名校验（file.type 的 MIME 值因操作系统注册表差异可能为空，不可靠）
+            // 与后端 ALLOWED_RESUME_EXTS 白名单保持一致：pdf / docx / txt（.doc 不支持）
+            const fileName = file.name.toLowerCase();
+            const allowedExts = ['.pdf', '.docx', '.txt'];
+            if (!allowedExts.some(ext => fileName.endsWith(ext))) {
               Swal.fire({
                 title: '文件类型错误',
-                text: '请上传PDF、Word或Markdown格式的简历',
+                text: '请上传 PDF、Word(.docx) 或 TXT 格式的简历（老版 .doc 请另存为 .docx）',
                 icon: 'error'
               });
-              event.target.value = ''; // 清空输入
+              event.target.value = '';
               return;
             }
-            
-            // 检查文件大小（限制10MB）
+
             if (file.size > 10 * 1024 * 1024) {
               Swal.fire({
                 title: '文件过大',
                 text: '请上传小于10MB的简历',
                 icon: 'error'
               });
-              event.target.value = ''; // 清空输入
+              event.target.value = '';
               return;
             }
-            
+
             this.resumeFile = file;
           }
         },
-        
-        // 【2026-10-06 删除】setTestResume() 测试方法已移除：它会凭空构造一份
-        // "resume.md" 假简历（张三的 markdown）塞进 resumeFile，配合 mounted
-        // 自动调用导致页面一打开就显示"已上传"。测试应使用真实简历文件上传
 
-        // 处理立即训练点击
         async handleStartTraining() {
-          // 【2026-10-06 越权修复】开始面试必须登录：后端已强制校验登录 token，
-          // 未登录在这里就拦下，不给用户填完简历才被 401 打回
           if (!this.currentUser) {
             Swal.fire({
               title: '请先登录',
@@ -1080,8 +1002,6 @@
             return;
           }
 
-          // 【2026-10-06 配额拦截】面试剩余次数为 0 时提前拦截（后端上传接口
-          // 也有同样闸门兜底，这里是省得上传半天才被 422 打回）
           const remaining = this.userQuota?.total_available?.interviews;
           if (typeof remaining === 'number' && remaining <= 0) {
             Swal.fire({
@@ -1101,9 +1021,6 @@
             return;
           }
 
-          // 工作经验必填校验（2026-10-06 补）：经验年限和岗位一样是出题素材，
-          // 空着提交会让 AI 拿不到年限信息；此前未拦截导致报错时被笼统的
-          // "上传简历失败"文案掩盖真实原因
           if (!this.workExperience || !this.workExperience.trim()) {
             Swal.fire({
               title: '提示',
@@ -1113,7 +1030,6 @@
             return;
           }
 
-          // 目标岗位必填校验：岗位决定出题方向，不填就上传会导致答非所问的题目
           if (!this.targetPosition || !this.targetPosition.trim()) {
             Swal.fire({
               title: '提示',
@@ -1123,33 +1039,26 @@
             return;
           }
 
-          // 禁用按钮，防止重复点击
-          const startButton = document.querySelector('.btn-primary.w-full');
+          const startButton = document.querySelector('.btn-start');
           if (startButton) {
             startButton.disabled = true;
-            startButton.innerHTML = '处理中...';
+            startButton.innerHTML = '处理中…';
           }
-          
+
           Swal.fire({
             title: '训练开始',
-            text: '正在上传简历并分析，预计约 2 分钟（含 AI 出题），请耐心等待...',
+            text: '正在上传简历并分析，预计约 2 分钟（含 AI 出题），请耐心等待…',
             icon: 'info',
             showConfirmButton: false,
             allowOutsideClick: false
           });
-          
+
           try {
-            // 创建FormData对象
             const formData = new FormData();
             formData.append('resume', this.resumeFile);
             formData.append('work_experience', this.workExperience);
             formData.append('target_position', this.targetPosition);
-            // 面试归属不再由前端传 user_id（2026-10-06 越权修复）：
-            // 后端从 Authorization 请求头里的登录 token 自己判断"是谁在面试"
 
-            // 上传简历并分析。注意：这个接口是同步等"简历分析+AI出题"全部完成
-            // 才返回（弹窗文案"预计约 2 分钟"说的就是这个），所以超时必须放宽到
-            // 3 分钟——之前 60 秒会掐断一个正在正常执行的请求，用户还以为失败重试
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 180000);
 
@@ -1162,41 +1071,35 @@
 
             clearTimeout(timeoutId);
 
-            // token 失效/未登录：后端 401，清登录态并跳登录页
             if (response.status === 401) {
               Swal.close();
-              if (startButton) { startButton.disabled = false; startButton.innerHTML = '开始训练'; }
+              if (startButton) { startButton.disabled = false; startButton.innerHTML = '立即开始训练'; }
               this.handleUnauthorized();
               return;
             }
 
             const data = await response.json();
-            
+
             if (data.status === 'success') {
               Swal.fire({
                 title: '训练开始',
-                text: '正在为您生成面试问题，请稍候...',
+                text: '正在为您生成面试问题，请稍候…',
                 icon: 'info',
                 showConfirmButton: false,
                 timer: 2000
               }).then(() => {
-                // 跳转到面试页面
                 window.location.href = `interview.html?token=${data.token}`;
               });
             } else {
-              // FastAPI 校验失败（422）返回的是 {detail: [...]} 结构，没有 message 字段；
-              // 之前一律显示兜底文案"上传简历失败"，把真实原因（如某字段必填）掩盖了，
-              // 用户会误以为是简历本身的问题。现在优先展示后端给出的具体原因
               const detailMsg = Array.isArray(data.detail) ? data.detail[0].msg : data.detail;
               Swal.fire({
                 title: '错误',
                 text: detailMsg || data.message || '上传简历失败',
                 icon: 'error'
               });
-              // 重新启用按钮
               if (startButton) {
                 startButton.disabled = false;
-                startButton.innerHTML = '立即训练';
+                startButton.innerHTML = '立即开始训练';
               }
             }
           } catch (error) {
@@ -1206,24 +1109,41 @@
               text: '上传简历失败，请重试',
               icon: 'error'
             });
-            // 重新启用按钮
             if (startButton) {
               startButton.disabled = false;
-              startButton.innerHTML = '立即训练';
+              startButton.innerHTML = '立即开始训练';
             }
           }
         },
-        
-        // 加载我的面试记录（真实数据，替换原企业版假仪表盘）
+
+        // 点击面试记录的分流跳转：
+        // 未完成（status<3：0=出题中，1=题已备好/答题中）→ 回 interview.html 继续面试，
+        //   配合后端 get_question 的断点续答逻辑，从第一道未答题接着来；
+        // 已完成（status>=3：已答完/已出报告）→ record_detail.html 看报告详情
+        goToDetail(record) {
+          const unfinished = record.status !== null && record.status !== undefined && record.status < 3;
+          window.location.href = unfinished
+            ? `interview.html?token=${record.token}`
+            : `record_detail.html?token=${record.token}`;
+        },
+
+        // 记录右侧状态文案：有分显示分；无分时按面试状态细分。
+        // 替换原来一刀切的"生成中"——题已出好但从没开始答的场次也被标"生成中"，
+        // 用户看不懂（2026-10-07 反馈），现在"继续面试"明确表示可点进去接着答
+        recordStatusLabel(record) {
+          if (record.score !== null && record.score !== undefined) return record.score + ' 分';
+          if (record.status === 0) return '出题中';
+          if (record.status >= 3) return '待出报告';
+          return '继续面试';
+        },
+
         async loadMyRecords() {
           if (!this.currentUser) return;
 
           try {
-            // 身份由请求头 token 决定（后端已不再接受 user_id 参数）
             const response = await fetch(this.getApiUrl('api/interview/my_records'), {
               headers: this.getAuthHeaders()
             });
-            // token 失效：清登录态并跳登录页
             if (response.status === 401) { this.handleUnauthorized(); return; }
             const data = await response.json();
             if (data.status === 'success') {
@@ -1235,17 +1155,28 @@
           }
         },
 
-        // 秒级时间戳 → "2026-10-05 22:05" 可读格式（列表展示用）
         formatRecordTime(ts) {
           if (!ts || ts <= 0) return '未设置时间';
           const d = new Date(ts * 1000);
           const pad = n => String(n).padStart(2, '0');
           return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+        },
+
+        formatFileSize(bytes) {
+          if (!bytes) return '';
+          if (bytes < 1024) return bytes + ' B';
+          if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+          return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+        },
+
+        getUsagePercent() {
+          const total = (this.userQuota?.total_available?.interviews || 0) + (this.myStats?.total_count || 0);
+          if (total <= 0) return 0;
+          return Math.min(100, Math.round((this.myStats?.total_count || 0) / total * 100));
         }
       }
     }).mount('#app');
   </script>
-  <!-- Bootstrap JS -->
   <script src="js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

@@ -10,6 +10,8 @@ from fastapi.responses import JSONResponse
 
 from app.utils.utils import generate_token
 from app.ai_services.resume_service import analyze_resume
+# extract_resume_text：统一简历解析入口（PDF→MinerU/pypdf，DOCX→python-docx，TXT→文本解码）
+from app.ai_services.resume_parser import extract_resume_text
 from app.ai_services.question_service import generate_questions
 from app.db.db import get_db, return_db
 # get_auth_user：从请求头 Authorization: Bearer <token> 解析当前登录用户
@@ -20,6 +22,13 @@ logger = logging.getLogger(__name__)
 
 # 简历路由：本文件所有简历接口共用
 router = APIRouter(tags=["简历"])
+
+# 支持的简历格式白名单（扩展名小写）：
+# - pdf  → MinerU 主路径解析（保留表格/公式），失败自动降级 pypdf
+# - docx → python-docx 提取段落与表格文本
+# - txt  → 纯文本解码（utf-8 → gbk）
+# 老版 .doc（二进制复合文档）不支持，前端会提示另存为 .docx 或 PDF
+ALLOWED_RESUME_EXTS = {"pdf", "docx", "txt"}
 
 
 @router.post("/api/resume/upload", summary="上传简历并分析")
@@ -33,7 +42,7 @@ async def upload_resume(
 
     Args:
         request: FastAPI 请求对象（从请求头 Authorization: Bearer <token> 鉴权）
-        resume: 上传的简历文件（仅接受 PDF，内容级校验）
+        resume: 上传的简历文件（支持 PDF / DOCX / TXT，内容级校验 + 按文件头自动分流解析）
         work_experience: 工作经验年限
         target_position: 目标岗位名称
 
@@ -78,10 +87,25 @@ async def upload_resume(
                 content={"detail": "目标岗位不能为空，请填写后再上传（出题方向由岗位决定）"}
             )
 
-        # 检查文件类型
+        # 检查文件扩展名（白名单）
         file_ext = resume.filename.split('.')[-1].lower() if resume.filename else ''
         logger.info(f"[Resume] 文件扩展名: {file_ext}")
-        
+
+        if file_ext == 'doc':
+            # 老版 Word 二进制格式没有轻量可靠的纯 Python 解析方案，明确引导转换
+            return JSONResponse(
+                status_code=400,
+                content={"status": "error",
+                         "message": "暂不支持老版 .doc 格式，请在 Word 中另存为 .docx 或 PDF 后再上传",
+                         "error_code": "RESUME_FORMAT_DEPRECATED_DOC"}
+            )
+        if file_ext not in ALLOWED_RESUME_EXTS:
+            return JSONResponse(
+                status_code=400,
+                content={"status": "error",
+                         "message": "简历格式仅支持 PDF / Word(.docx) / TXT",
+                         "error_code": "RESUME_FORMAT_NOT_SUPPORTED"}
+            )
         # 读取文件内容
         try:
             file_content = await resume.read()
@@ -110,20 +134,69 @@ async def upload_resume(
                 content={"status": "error", "message": "简历文件为空", "error_code": "RESUME_FILE_EMPTY"}
             )
 
-        # 内容级校验（magic bytes）：真实 PDF 文件的前 5 个字节固定是 "%PDF-"
-        # 之前只看扩展名，改名的 txt/pptx 也能混进来（2026-10-01 测试报告已知问题，已修复）
-        if not file_content.startswith(b'%PDF-'):
+        # 内容级校验（magic bytes）：按扩展名分流检查文件头，拦截改名伪装的文件
+        # - PDF  真实文件头固定为 "%PDF-"
+        # - DOCX 本质是 zip 容器，文件头为 "PK\x03\x04"
+        # - TXT  尝试 utf-8/gbk 解码，解码失败说明是二进制文件（如改名的 exe/图片）
+        if file_ext == 'pdf' and not file_content.startswith(b'%PDF-'):
             logger.error("[Resume] 错误: 文件内容不是有效的 PDF（缺少 %PDF- 文件头）")
             return JSONResponse(
                 status_code=400,
                 content={"status": "error", "message": "简历文件不是有效的 PDF（缺少 PDF 文件头）",
                          "error_code": "RESUME_NOT_PDF"}
             )
+        if file_ext == 'docx' and not file_content.startswith(b'PK\x03\x04'):
+            logger.error("[Resume] 错误: 文件内容不是有效的 DOCX（缺少 zip 文件头）")
+            return JSONResponse(
+                status_code=400,
+                content={"status": "error", "message": "简历文件不是有效的 Word 文档（缺少 docx 文件头）",
+                         "error_code": "RESUME_NOT_DOCX"}
+            )
+        if file_ext == 'txt':
+            try:
+                file_content.decode('utf-8')
+            except UnicodeDecodeError:
+                try:
+                    file_content.decode('gbk')
+                except UnicodeDecodeError:
+                    logger.error("[Resume] 错误: TXT 文件无法按 utf-8/gbk 解码，疑似二进制文件")
+                    return JSONResponse(
+                        status_code=400,
+                        content={"status": "error", "message": "TXT 文件内容不是有效文本，请确认文件未损坏",
+                                 "error_code": "RESUME_NOT_TEXT"}
+                    )
         
-        # 分析简历内容
+        # 解析简历文件为文本（按文件头自动分流：PDF→MinerU/pypdf，DOCX→python-docx，TXT→解码）
+        # 【2026-10-07 修复】旧链路直接把文件字节当文本喂给 analyze_resume，
+        # PDF 二进制 decode 出来是乱码、结构化信息几乎提不出来；现在统一走
+        # resume_parser 的 extract_resume_text，先出干净文本再做正则分析
+        logger.info("[Resume] 开始解析简历文件")
+        try:
+            resume_text = extract_resume_text(file_content, resume.filename or "")
+        except Exception as e:
+            logger.error(f"[Resume] 错误: 解析简历文件异常: {e}")
+            import traceback
+            traceback.print_exc()
+            return JSONResponse(
+                status_code=500,
+                content={"status": "error", "message": f"解析简历文件失败: {str(e)}", "error_code": "RESUME_PARSE_ERROR"}
+            )
+
+        if not (resume_text and resume_text.strip()):
+            # 常见病因：扫描版/图片型 PDF（pypdf 提不出字，MinerU 也可能失败）、加密 PDF、损坏文件
+            logger.error(f"[Resume] 错误: 简历解析结果为空（{file_ext}）")
+            return JSONResponse(
+                status_code=422,
+                content={"status": "error",
+                         "message": "简历内容解析失败：可能是扫描版/图片型简历或文件损坏，请上传可复制文字的 PDF/DOCX/TXT",
+                         "error_code": "RESUME_PARSE_EMPTY"}
+            )
+        logger.info(f"[Resume] 简历解析完成，文本长度: {len(resume_text)} 字符")
+
+        # 分析简历内容（正则结构化：姓名/教育/工作/技能等，输入为上一步的干净文本）
         logger.info("[Resume] 开始分析简历内容")
         try:
-            analysis_result = analyze_resume(file_content, work_experience, target_position)
+            analysis_result = analyze_resume(resume_text, work_experience, target_position)
             logger.info("[Resume] 简历分析完成")
             logger.debug(f"[Resume] 分析结果: {analysis_result}")
         except Exception as e:

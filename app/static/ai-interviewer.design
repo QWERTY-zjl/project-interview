@@ -1,0 +1,196 @@
+{
+  "data": [
+    {
+      "id": "page-login",
+      "title": "登录页",
+      "type": "page",
+      "version": 2,
+      "createdAt": 1760000000000,
+      "canvasData": {
+        "x": 0,
+        "y": 0,
+        "group": 0,
+        "layoutSnapshot": {
+          "version": 1,
+          "contentHeight": 900,
+          "viewportWidth": 1440,
+          "sourceHash": "fnv1a-39470beb",
+          "measuredAt": 1791374194244
+        }
+      },
+      "devMetadata": {
+        "htmlSrc": "pages/login.html",
+        "interactions": [
+          {
+            "domId": "nav-register",
+            "targetPageId": "page-register"
+          }
+        ]
+      }
+    },
+    {
+      "id": "page-register",
+      "title": "注册页",
+      "type": "page",
+      "version": 2,
+      "createdAt": 1760000000001,
+      "canvasData": {
+        "x": 0,
+        "y": 900,
+        "group": 0,
+        "layoutSnapshot": {
+          "version": 1,
+          "contentHeight": 1040,
+          "viewportWidth": 1440,
+          "sourceHash": "fnv1a-899d0e89",
+          "measuredAt": 1791374194244
+        }
+      },
+      "devMetadata": {
+        "htmlSrc": "pages/register.html",
+        "interactions": [
+          {
+            "domId": "nav-login",
+            "targetPageId": "page-login"
+          }
+        ]
+      }
+    },
+    {
+      "id": "page-admin",
+      "title": "管理后台",
+      "type": "page",
+      "version": 2,
+      "createdAt": 1760000000002,
+      "canvasData": {
+        "x": 1500,
+        "y": 0,
+        "group": 0,
+        "layoutSnapshot": {
+          "version": 1,
+          "contentHeight": 1534,
+          "viewportWidth": 1440,
+          "sourceHash": "fnv1a-e5d08165",
+          "measuredAt": 1791374194244
+        }
+      },
+      "devMetadata": {
+        "htmlSrc": "pages/admin.html",
+        "interactions": [
+          {
+            "domId": "nav-interview",
+            "targetPageId": "page-interview"
+          },
+          {
+            "domId": "nav-record-detail",
+            "targetPageId": "page-record-detail"
+          },
+          {
+            "domId": "nav-pricing",
+            "targetPageId": "page-pricing"
+          },
+          {
+            "domId": "nav-login",
+            "targetPageId": "page-login"
+          }
+        ]
+      }
+    },
+    {
+      "id": "page-interview",
+      "title": "面试主页",
+      "type": "page",
+      "version": 2,
+      "createdAt": 1760000000003,
+      "canvasData": {
+        "x": 3100,
+        "y": 0,
+        "group": 0,
+        "layoutSnapshot": {
+          "version": 1,
+          "contentHeight": 3921,
+          "viewportWidth": 1440,
+          "sourceHash": "fnv1a-424f737e",
+          "measuredAt": 1791377013187
+        }
+      },
+      "devMetadata": {
+        "htmlSrc": "pages/interview.html",
+        "interactions": [
+          {
+            "domId": "nav-admin",
+            "targetPageId": "page-admin"
+          }
+        ]
+      }
+    },
+    {
+      "id": "page-record-detail",
+      "title": "面试详情",
+      "type": "page",
+      "version": 2,
+      "createdAt": 1760000000004,
+      "canvasData": {
+        "x": 3100,
+        "y": 1200,
+        "group": 0,
+        "layoutSnapshot": {
+          "version": 1,
+          "contentHeight": 900,
+          "viewportWidth": 1440,
+          "sourceHash": "fnv1a-9b3eda50",
+          "measuredAt": 1791377013187
+        }
+      },
+      "devMetadata": {
+        "htmlSrc": "pages/record-detail.html",
+        "interactions": [
+          {
+            "domId": "nav-admin",
+            "targetPageId": "page-admin"
+          }
+        ]
+      }
+    },
+    {
+      "id": "page-pricing",
+      "title": "套餐定价",
+      "type": "page",
+      "version": 2,
+      "createdAt": 1760000000005,
+      "canvasData": {
+        "x": 1500,
+        "y": 1200,
+        "group": 0,
+        "layoutSnapshot": {
+          "version": 1,
+          "contentHeight": 1411,
+          "viewportWidth": 1440,
+          "sourceHash": "fnv1a-aaf219ff",
+          "measuredAt": 1791374194244
+        }
+      },
+      "devMetadata": {
+        "htmlSrc": "pages/pricing.html",
+        "interactions": [
+          {
+            "domId": "nav-admin",
+            "targetPageId": "page-admin"
+          }
+        ]
+      }
+    }
+  ],
+  "config": {
+    "autoLayout": false,
+    "deviceType": "desktop",
+    "designLibrary": {
+      "name": "苹果",
+      "id": "dl_builtin_apple",
+      "version": "1.0.0",
+      "scope": "project",
+      "path": "c:\\Users\\jianlin\\.trae-cn\\design_libraries\\Apple",
+      "versionSource": "user-applied"
+    }
+  }
+}

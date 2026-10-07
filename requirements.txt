@@ -2,6 +2,7 @@
 schedule==1.2.2
 openai==1.75.0
 pypdf==6.16.2
+python-docx==1.2.0
 Jinja2==3.1.6
 weasyprint==65.1
 FastAPI==0.110.0

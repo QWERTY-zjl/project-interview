@@ -1,0 +1,1196 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>工作台 — AI 面试官</title>
+  <link href="../css/bootstrap.min.css" rel="stylesheet">
+  <link href="../css/theme.css" rel="stylesheet">
+  <script src="../js/vue.global.prod.js"></script>
+  <script src="../js/sweetalert2.js"></script>
+  <style>
+    /* ============ Base ============ */
+    body {
+      background: var(--bg-secondary);
+      min-height: 100vh;
+      font-family: var(--font-sans);
+    }
+
+    .app-shell {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ============ Top Navigation ============ */
+    .top-nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(255, 255, 255, 0.8);
+      backdrop-filter: saturate(180%) blur(20px);
+      -webkit-backdrop-filter: saturate(180%) blur(20px);
+      border-bottom: 1px solid var(--border-light);
+    }
+
+    .top-nav-inner {
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 0 24px;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .nav-brand-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, var(--accent-primary), #5856d6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      color: #fff;
+    }
+
+    .nav-brand-text {
+      font-size: var(--text-base);
+      font-weight: var(--fw-semibold);
+      color: var(--text-primary);
+      letter-spacing: -0.01em;
+    }
+
+    .nav-center {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .nav-user-info {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .nav-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-light);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+    }
+
+    .nav-user-meta {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+    }
+
+    .nav-username {
+      font-size: var(--text-sm);
+      font-weight: var(--fw-medium);
+      color: var(--text-primary);
+      line-height: 1.2;
+    }
+
+    .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 180px;
+      justify-content: flex-end;
+    }
+
+    .nav-left-placeholder {
+      width: 180px;
+    }
+
+    /* ============ Main Content ============ */
+    .main-content {
+      flex: 1;
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 40px 24px 64px;
+      width: 100%;
+    }
+
+    /* ============ Welcome Hero Card ============ */
+    .welcome-card {
+      background: var(--bg-primary);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-2xl);
+      padding: 48px 48px;
+      margin-bottom: 24px;
+      box-shadow: var(--shadow-sm);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .welcome-card::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      right: -10%;
+      width: 400px;
+      height: 400px;
+      background: radial-gradient(circle, rgba(0, 122, 255, 0.06) 0%, transparent 70%);
+      border-radius: 50%;
+      pointer-events: none;
+    }
+
+    .welcome-title {
+      font-size: var(--text-4xl);
+      font-weight: var(--fw-bold);
+      color: var(--text-primary);
+      letter-spacing: -0.02em;
+      margin-bottom: 8px;
+      line-height: 1.2;
+    }
+
+    .welcome-subtitle {
+      font-size: var(--text-lg);
+      color: var(--text-secondary);
+      margin-bottom: 28px;
+      font-weight: var(--fw-regular);
+    }
+
+    .welcome-actions {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .btn-hero {
+      height: 52px;
+      padding: 0 32px;
+      font-size: var(--text-base);
+      font-weight: var(--fw-semibold);
+    }
+
+    /* ============ Guest Banner ============ */
+    .guest-banner {
+      background: var(--warning-bg);
+      border: 1px solid var(--warning-border);
+      border-radius: var(--radius-xl);
+      padding: 16px 20px;
+      margin-bottom: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .guest-banner-text {
+      font-size: var(--text-sm);
+      color: var(--warning-fg);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .guest-banner-actions {
+      display: flex;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    /* ============ Stats Grid ============ */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    @media (max-width: 720px) {
+      .stats-grid { grid-template-columns: 1fr; }
+    }
+
+    .stat-card {
+      background: var(--bg-primary);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-2xl);
+      padding: 24px;
+      box-shadow: var(--shadow-sm);
+      transition: all var(--transition-base);
+    }
+
+    .stat-card:hover {
+      box-shadow: var(--shadow-md);
+      transform: translateY(-1px);
+    }
+
+    .stat-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      margin-bottom: 14px;
+    }
+
+    .stat-icon.blue {
+      background: rgba(0, 122, 255, 0.1);
+    }
+
+    .stat-icon.green {
+      background: rgba(52, 199, 89, 0.1);
+    }
+
+    .stat-icon.orange {
+      background: rgba(255, 149, 0, 0.1);
+    }
+
+    .stat-value {
+      font-size: var(--text-3xl);
+      font-weight: var(--fw-bold);
+      color: var(--text-primary);
+      letter-spacing: -0.02em;
+      line-height: 1.1;
+      margin-bottom: 4px;
+    }
+
+    .stat-label {
+      font-size: var(--text-sm);
+      color: var(--text-tertiary);
+      font-weight: var(--fw-regular);
+    }
+
+    /* ============ Content Grid ============ */
+    .content-grid {
+      display: grid;
+      grid-template-columns: 1fr 1.2fr;
+      gap: 24px;
+      margin-bottom: 24px;
+    }
+
+    @media (max-width: 900px) {
+      .content-grid { grid-template-columns: 1fr; }
+    }
+
+    /* ============ Panel / Card ============ */
+    .panel {
+      background: var(--bg-primary);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-2xl);
+      padding: 28px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+
+    .panel-title {
+      font-size: var(--text-xl);
+      font-weight: var(--fw-semibold);
+      color: var(--text-primary);
+      letter-spacing: -0.01em;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .panel-title-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      background: rgba(0, 122, 255, 0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+    }
+
+    .panel-meta {
+      font-size: var(--text-sm);
+      color: var(--text-tertiary);
+    }
+
+    /* ============ Form Fields ============ */
+    .form-field {
+      margin-bottom: 18px;
+    }
+
+    .form-field-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+
+    @media (max-width: 480px) {
+      .form-field-row { grid-template-columns: 1fr; }
+    }
+
+    .form-label {
+      display: block;
+      font-size: var(--text-sm);
+      font-weight: var(--fw-medium);
+      color: var(--text-secondary);
+      margin-bottom: 6px;
+    }
+
+    .form-input {
+      width: 100%;
+      height: 44px;
+      padding: 0 14px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-lg);
+      color: var(--text-primary);
+      font-family: var(--font-sans);
+      font-size: var(--text-base);
+      transition: all var(--transition-fast);
+      outline: none;
+    }
+
+    .form-input:focus {
+      border-color: var(--accent-primary);
+      box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.12);
+      background: var(--bg-primary);
+    }
+
+    .form-input::placeholder {
+      color: var(--text-tertiary);
+    }
+
+    /* ============ File Upload ============ */
+    .file-upload {
+      position: relative;
+    }
+
+    .file-upload-input {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+    }
+
+    .file-upload-display {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 16px 18px;
+      background: var(--bg-secondary);
+      border: 1.5px dashed var(--border-light);
+      border-radius: var(--radius-xl);
+      transition: all var(--transition-fast);
+    }
+
+    .file-upload:hover .file-upload-display {
+      border-color: var(--accent-primary);
+      background: rgba(0, 122, 255, 0.04);
+    }
+
+    .file-upload-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      background: var(--bg-primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      flex-shrink: 0;
+      border: 1px solid var(--border-light);
+    }
+
+    .file-upload-text {
+      flex: 1;
+      font-size: var(--text-sm);
+      color: var(--text-secondary);
+      line-height: 1.4;
+    }
+
+    .file-upload-text strong {
+      color: var(--text-primary);
+      font-weight: var(--fw-medium);
+      display: block;
+      margin-bottom: 2px;
+    }
+
+    .file-upload-text.has-file strong {
+      color: var(--success-fg);
+    }
+
+    .file-upload-hint {
+      font-size: var(--text-xs);
+      color: var(--text-tertiary);
+      margin-top: 8px;
+    }
+
+    .btn-start {
+      width: 100%;
+      height: 52px;
+      font-size: var(--text-base);
+      font-weight: var(--fw-semibold);
+      margin-top: 6px;
+    }
+
+    /* ============ Record List ============ */
+    .record-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin: 0 -8px;
+    }
+
+    .record-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 16px;
+      border-radius: var(--radius-lg);
+      transition: all var(--transition-fast);
+      cursor: pointer;
+    }
+
+    .record-item:hover {
+      background: var(--bg-secondary);
+    }
+
+    .record-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .record-status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .record-status-dot.done {
+      background: var(--success-fg);
+    }
+
+    .record-status-dot.pending {
+      background: var(--warning-fg);
+    }
+
+    .record-info {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      min-width: 0;
+    }
+
+    .record-position {
+      font-size: var(--text-base);
+      font-weight: var(--fw-medium);
+      color: var(--text-primary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .record-time {
+      font-size: var(--text-xs);
+      color: var(--text-tertiary);
+    }
+
+    .record-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-shrink: 0;
+    }
+
+    .record-score {
+      font-size: var(--text-sm);
+      font-weight: var(--fw-semibold);
+      color: var(--accent-primary);
+    }
+
+    .record-score.pending {
+      color: var(--text-tertiary);
+      font-weight: var(--fw-regular);
+    }
+
+    .record-arrow {
+      color: var(--text-tertiary);
+      font-size: 14px;
+      opacity: 0.6;
+      transition: all var(--transition-fast);
+    }
+
+    .record-item:hover .record-arrow {
+      opacity: 1;
+      transform: translateX(2px);
+      color: var(--accent-primary);
+    }
+
+    .record-divider {
+      height: 1px;
+      background: var(--border-subtle);
+      margin: 0 16px;
+    }
+
+    /* ============ Empty State ============ */
+    .empty-state {
+      text-align: center;
+      padding: 48px 24px;
+    }
+
+    .empty-state-icon {
+      font-size: 40px;
+      margin-bottom: 12px;
+      opacity: 0.5;
+    }
+
+    .empty-state-title {
+      font-size: var(--text-base);
+      font-weight: var(--fw-medium);
+      color: var(--text-secondary);
+      margin-bottom: 4px;
+    }
+
+    .empty-state-text {
+      font-size: var(--text-sm);
+      color: var(--text-tertiary);
+    }
+
+    /* ============ Pricing CTA Card ============ */
+    .pricing-card {
+      background: linear-gradient(135deg, rgba(0, 122, 255, 0.04) 0%, rgba(88, 86, 214, 0.04) 100%);
+      border: 1px solid rgba(0, 122, 255, 0.12);
+      border-radius: var(--radius-2xl);
+      padding: 28px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    @media (max-width: 640px) {
+      .pricing-card {
+        flex-direction: column;
+        text-align: center;
+      }
+    }
+
+    .pricing-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .pricing-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, var(--accent-primary), #5856d6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      color: #fff;
+      flex-shrink: 0;
+    }
+
+    .pricing-text h3 {
+      font-size: var(--text-lg);
+      font-weight: var(--fw-semibold);
+      color: var(--text-primary);
+      margin-bottom: 2px;
+      letter-spacing: -0.01em;
+    }
+
+    .pricing-text p {
+      font-size: var(--text-sm);
+      color: var(--text-secondary);
+      margin: 0;
+    }
+
+    /* ============ Quota Progress ============ */
+    .quota-progress-wrap {
+      margin-top: 8px;
+    }
+
+    .quota-progress-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: var(--text-xs);
+      color: var(--text-tertiary);
+      margin-bottom: 6px;
+    }
+
+    .quota-progress-track {
+      height: 4px;
+      background: var(--bg-secondary);
+      border-radius: var(--radius-full);
+      overflow: hidden;
+    }
+
+    .quota-progress-fill {
+      height: 100%;
+      background: var(--accent-primary);
+      border-radius: var(--radius-full);
+      transition: width var(--transition-slow);
+    }
+
+    /* ============ Responsive adjustments ============ */
+    @media (max-width: 640px) {
+      .main-content {
+        padding: 24px 16px 48px;
+      }
+
+      .welcome-card {
+        padding: 32px 24px;
+      }
+
+      .welcome-title {
+        font-size: var(--text-3xl);
+      }
+
+      .panel {
+        padding: 20px;
+      }
+
+      .top-nav-inner {
+        padding: 0 16px;
+      }
+
+      .nav-left-placeholder {
+        display: none;
+      }
+
+      .nav-right {
+        min-width: auto;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="app" class="app-shell">
+    <!-- 顶部导航栏 -->
+    <nav class="top-nav">
+      <div class="top-nav-inner">
+        <div class="nav-brand">
+          <div class="nav-brand-icon">🎙️</div>
+          <span class="nav-brand-text">AI 面试官</span>
+        </div>
+
+        <div class="nav-center">
+          <template v-if="currentUser">
+            <div class="nav-user-info">
+              <div class="nav-avatar">👤</div>
+              <div class="nav-user-meta">
+                <span class="nav-username">{{ currentUser.username }}</span>
+                <span class="gt-badge" :class="currentUser.user_type === 'premium' ? 'gt-badge-primary' : 'gt-badge-muted'" style="margin-top: 2px;">
+                  {{ currentUser.user_type === 'premium' ? 'VIP 会员' : '免费版' }}
+                </span>
+              </div>
+            </div>
+          </template>
+          <template v-else>
+            <span class="nav-username">未登录</span>
+          </template>
+        </div>
+
+        <div class="nav-right">
+          <template v-if="currentUser">
+            <button data-dom-id="nav-login" class="gt-btn gt-btn-ghost gt-btn-sm" @click="logout">退出登录</button>
+          </template>
+          <template v-else>
+            <a href="login.html" class="gt-btn gt-btn-secondary gt-btn-sm">登录</a>
+            <a href="register.html" class="gt-btn gt-btn-primary gt-btn-sm">注册</a>
+          </template>
+        </div>
+      </div>
+    </nav>
+
+    <!-- 主内容区 -->
+    <main class="main-content">
+
+      <!-- 未登录提示 -->
+      <div v-if="!currentUser" class="guest-banner">
+        <span class="guest-banner-text">
+          <span>⚠️</span>
+          您尚未登录，部分功能可能受限。注册新账号可免费获得 3 次面试体验！
+        </span>
+        <div class="guest-banner-actions">
+          <a href="login.html" class="gt-btn gt-btn-secondary gt-btn-sm">登录</a>
+          <a href="register.html" class="gt-btn gt-btn-primary gt-btn-sm">注册</a>
+        </div>
+      </div>
+
+      <!-- 欢迎横幅卡 -->
+      <section class="welcome-card">
+        <h1 class="welcome-title">
+          {{ currentUser ? '你好，' + currentUser.username : '欢迎使用 AI 面试官' }}
+        </h1>
+        <p class="welcome-subtitle">
+          上传简历，开启你的专属 AI 模拟面试训练
+        </p>
+        <div class="welcome-actions">
+          <button class="gt-btn gt-btn-primary btn-hero" @click="handleStartTraining">
+            立即开始训练
+          </button>
+          <a data-dom-id="nav-pricing" href="pricing.html" class="gt-btn gt-btn-secondary gt-btn-lg">
+            查看套餐
+          </a>
+        </div>
+      </section>
+
+      <!-- 数据统计卡 -->
+      <section class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon blue">🎯</div>
+          <div class="stat-value">
+            {{ userQuota?.total_available?.interviews !== undefined ? userQuota.total_available.interviews : '--' }}
+          </div>
+          <div class="stat-label">剩余面试次数</div>
+          <div v-if="currentUser && userQuota.total_available" class="quota-progress-wrap">
+            <div class="quota-progress-label">
+              <span>已用 {{ myStats?.total_count || 0 }}</span>
+              <span>共 {{ (userQuota.total_available.interviews || 0) + (myStats?.total_count || 0) }}</span>
+            </div>
+            <div class="quota-progress-track">
+              <div class="quota-progress-fill" :style="{ width: getUsagePercent() + '%' }"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon green">✅</div>
+          <div class="stat-value">{{ myStats?.total_count || 0 }}</div>
+          <div class="stat-label">已完成面试</div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon orange">📊</div>
+          <div class="stat-value">
+            {{ myStats?.average_score !== null && myStats?.average_score !== undefined ? myStats.average_score : '--' }}
+          </div>
+          <div class="stat-label">平均得分</div>
+        </div>
+      </section>
+
+      <!-- 双栏内容区 -->
+      <div class="content-grid">
+        <!-- 左侧：简历上传区 -->
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">
+              <span class="panel-title-icon">📄</span>
+              新建面试
+            </div>
+          </div>
+
+          <div class="form-field-row">
+            <div class="form-field">
+              <label class="form-label">工作经验</label>
+              <input type="text" class="form-input" placeholder="如：1-3年经验" v-model="workExperience">
+            </div>
+            <div class="form-field">
+              <label class="form-label">目标岗位</label>
+              <input type="text" class="form-input" placeholder="如：产品经理" v-model="targetPosition">
+            </div>
+          </div>
+
+          <div class="form-field">
+            <label class="form-label">上传简历</label>
+            <div class="file-upload">
+              <input type="file" class="file-upload-input" @change="handleResumeUpload" accept=".pdf,.doc,.docx">
+              <div class="file-upload-display">
+                <div class="file-upload-icon">📁</div>
+                <div class="file-upload-text" :class="{ 'has-file': resumeFile }">
+                  <strong>{{ resumeFile ? resumeFile.name : '点击或拖拽上传简历' }}</strong>
+                  {{ resumeFile ? formatFileSize(resumeFile.size) : '支持 PDF / Word 格式' }}
+                </div>
+              </div>
+              <p class="file-upload-hint">最大 10MB，上传后将自动分析并生成面试题</p>
+            </div>
+          </div>
+
+          <button data-dom-id="nav-interview" class="gt-btn gt-btn-primary btn-start" @click="handleStartTraining">
+            立即开始训练
+          </button>
+        </div>
+
+        <!-- 右侧：面试记录列表 -->
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">
+              <span class="panel-title-icon">📋</span>
+              面试记录
+            </div>
+            <span class="panel-meta" v-if="myStats">
+              共 {{ myStats.total_count }} 场
+            </span>
+          </div>
+
+          <!-- 空状态 -->
+          <div v-if="myRecords.length === 0" class="empty-state">
+            <div class="empty-state-icon">📝</div>
+            <div class="empty-state-title">暂无面试记录</div>
+            <p class="empty-state-text">上传简历，开始你的第一场面试训练</p>
+          </div>
+
+          <!-- 记录列表 -->
+          <div v-else class="record-list">
+            <template v-for="(record, index) in myRecords" :key="record.token">
+              <div
+                data-dom-id="nav-record-detail" class="record-item"
+                @click="goToDetail(record.token)"
+              >
+                <div class="record-left">
+                  <span
+                    class="record-status-dot"
+                    :class="record.score !== null ? 'done' : 'pending'"
+                  ></span>
+                  <div class="record-info">
+                    <span class="record-position">{{ record.position_name || '模拟面试' }}</span>
+                    <span class="record-time">{{ formatRecordTime(record.start_time) }}</span>
+                  </div>
+                </div>
+                <div class="record-right">
+                  <span class="record-score" :class="{ pending: record.score === null }">
+                    {{ record.score !== null ? record.score + ' 分' : '生成中' }}
+                  </span>
+                  <span class="record-arrow">›</span>
+                </div>
+              </div>
+              <div v-if="index < myRecords.length - 1" class="record-divider"></div>
+            </template>
+          </div>
+        </div>
+      </div>
+
+      <!-- 套餐推荐 / 购买更多 -->
+      <section class="pricing-card">
+        <div class="pricing-left">
+          <div class="pricing-icon">💎</div>
+          <div class="pricing-text">
+            <h3>升级到 Pro 会员</h3>
+            <p>解锁无限面试次数、AI 深度分析、更多岗位题库</p>
+          </div>
+        </div>
+        <a href="pricing.html" class="gt-btn gt-btn-primary">
+          查看套餐
+        </a>
+      </section>
+
+    </main>
+  </div>
+
+  <script>
+    const { createApp } = Vue;
+
+    createApp({
+      data() {
+        return {
+          workExperience: '',
+          targetPosition: '',
+          resumeFile: null,
+          myRecords: [],
+          myStats: null,
+          currentUser: null,
+          userQuota: {}
+        };
+      },
+      mounted() {
+        this.loadCurrentUser();
+      },
+      methods: {
+        loadCurrentUser() {
+          const user = localStorage.getItem('currentUser');
+          if (user) {
+            this.currentUser = JSON.parse(user);
+            this.loadUserQuota();
+            this.loadMyRecords();
+          }
+        },
+
+        getAuthHeaders() {
+          const token = localStorage.getItem('authToken') || '';
+          return token ? { 'Authorization': 'Bearer ' + token } : {};
+        },
+
+        handleUnauthorized() {
+          localStorage.removeItem('currentUser');
+          localStorage.removeItem('authToken');
+          this.currentUser = null;
+          Swal.fire({
+            title: '请先登录',
+            text: '登录状态已失效，请重新登录后再操作',
+            icon: 'warning',
+            confirmButtonText: '去登录'
+          }).then(() => { window.location.href = 'login.html'; });
+        },
+
+        async loadUserQuota() {
+          if (!this.currentUser) return;
+
+          try {
+            const response = await fetch(this.getApiUrl('api/user/quota'), {
+              headers: this.getAuthHeaders()
+            });
+            if (response.status === 401) { this.handleUnauthorized(); return; }
+            const data = await response.json();
+            if (data.status === 'success') {
+              this.userQuota = data.quota;
+            }
+          } catch (error) {
+            console.error('加载配额失败:', error);
+            this.userQuota = {
+              total_available: {
+                interviews: 3,
+                tts_minutes: 10,
+                ai_analysis: 5
+              }
+            };
+          }
+        },
+
+        async logout() {
+          try {
+            await fetch(this.getApiUrl('api/auth/logout'), {
+              method: 'POST',
+              headers: this.getAuthHeaders()
+            });
+          } catch (error) {
+            console.error('登出请求失败:', error);
+          }
+          localStorage.removeItem('currentUser');
+          localStorage.removeItem('authToken');
+          this.currentUser = null;
+          this.userQuota = {};
+          Swal.fire({
+            title: '已退出',
+            text: '您已成功退出登录',
+            icon: 'success',
+            timer: 1500,
+            showConfirmButton: false
+          });
+        },
+
+        getApiUrl(path) {
+          if (path.startsWith('/')) {
+            path = path.substring(1);
+          }
+          return `/${path}`;
+        },
+
+        handleResumeUpload(event) {
+          const file = event.target.files[0];
+          if (file) {
+            const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/markdown'];
+            if (!allowedTypes.includes(file.type)) {
+              Swal.fire({
+                title: '文件类型错误',
+                text: '请上传PDF、Word或Markdown格式的简历',
+                icon: 'error'
+              });
+              event.target.value = '';
+              return;
+            }
+
+            if (file.size > 10 * 1024 * 1024) {
+              Swal.fire({
+                title: '文件过大',
+                text: '请上传小于10MB的简历',
+                icon: 'error'
+              });
+              event.target.value = '';
+              return;
+            }
+
+            this.resumeFile = file;
+          }
+        },
+
+        async handleStartTraining() {
+          if (!this.currentUser) {
+            Swal.fire({
+              title: '请先登录',
+              text: '开始 AI 面试前请先登录账号',
+              icon: 'warning',
+              confirmButtonText: '去登录'
+            }).then(() => { window.location.href = 'login.html'; });
+            return;
+          }
+
+          const remaining = this.userQuota?.total_available?.interviews;
+          if (typeof remaining === 'number' && remaining <= 0) {
+            Swal.fire({
+              title: '次数已用完',
+              text: '面试剩余次数为 0，无法开始新面试',
+              icon: 'warning'
+            });
+            return;
+          }
+
+          if (!this.resumeFile) {
+            Swal.fire({
+              title: '提示',
+              text: '请先上传简历',
+              icon: 'warning'
+            });
+            return;
+          }
+
+          if (!this.workExperience || !this.workExperience.trim()) {
+            Swal.fire({
+              title: '提示',
+              text: '请填写工作经验（如：1-3年经验、应届生）',
+              icon: 'warning'
+            });
+            return;
+          }
+
+          if (!this.targetPosition || !this.targetPosition.trim()) {
+            Swal.fire({
+              title: '提示',
+              text: '请填写目标岗位（出题方向由岗位决定）',
+              icon: 'warning'
+            });
+            return;
+          }
+
+          const startButton = document.querySelector('.btn-start');
+          if (startButton) {
+            startButton.disabled = true;
+            startButton.innerHTML = '处理中…';
+          }
+
+          Swal.fire({
+            title: '训练开始',
+            text: '正在上传简历并分析，预计约 2 分钟（含 AI 出题），请耐心等待…',
+            icon: 'info',
+            showConfirmButton: false,
+            allowOutsideClick: false
+          });
+
+          try {
+            const formData = new FormData();
+            formData.append('resume', this.resumeFile);
+            formData.append('work_experience', this.workExperience);
+            formData.append('target_position', this.targetPosition);
+
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 180000);
+
+            const response = await fetch(this.getApiUrl('api/resume/upload'), {
+              method: 'POST',
+              headers: this.getAuthHeaders(),
+              body: formData,
+              signal: controller.signal
+            });
+
+            clearTimeout(timeoutId);
+
+            if (response.status === 401) {
+              Swal.close();
+              if (startButton) { startButton.disabled = false; startButton.innerHTML = '立即开始训练'; }
+              this.handleUnauthorized();
+              return;
+            }
+
+            const data = await response.json();
+
+            if (data.status === 'success') {
+              Swal.fire({
+                title: '训练开始',
+                text: '正在为您生成面试问题，请稍候…',
+                icon: 'info',
+                showConfirmButton: false,
+                timer: 2000
+              }).then(() => {
+                window.location.href = `interview.html?token=${data.token}`;
+              });
+            } else {
+              const detailMsg = Array.isArray(data.detail) ? data.detail[0].msg : data.detail;
+              Swal.fire({
+                title: '错误',
+                text: detailMsg || data.message || '上传简历失败',
+                icon: 'error'
+              });
+              if (startButton) {
+                startButton.disabled = false;
+                startButton.innerHTML = '立即开始训练';
+              }
+            }
+          } catch (error) {
+            console.error('上传简历失败:', error);
+            Swal.fire({
+              title: '错误',
+              text: '上传简历失败，请重试',
+              icon: 'error'
+            });
+            if (startButton) {
+              startButton.disabled = false;
+              startButton.innerHTML = '立即开始训练';
+            }
+          }
+        },
+
+        goToDetail(token) {
+          window.location.href = `record_detail.html?token=${token}`;
+        },
+
+        async loadMyRecords() {
+          if (!this.currentUser) return;
+
+          try {
+            const response = await fetch(this.getApiUrl('api/interview/my_records'), {
+              headers: this.getAuthHeaders()
+            });
+            if (response.status === 401) { this.handleUnauthorized(); return; }
+            const data = await response.json();
+            if (data.status === 'success') {
+              this.myRecords = data.records;
+              this.myStats = data.stats;
+            }
+          } catch (error) {
+            console.error('加载面试记录失败:', error);
+          }
+        },
+
+        formatRecordTime(ts) {
+          if (!ts || ts <= 0) return '未设置时间';
+          const d = new Date(ts * 1000);
+          const pad = n => String(n).padStart(2, '0');
+          return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+        },
+
+        formatFileSize(bytes) {
+          if (!bytes) return '';
+          if (bytes < 1024) return bytes + ' B';
+          if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+          return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+        },
+
+        getUsagePercent() {
+          const total = (this.userQuota?.total_available?.interviews || 0) + (this.myStats?.total_count || 0);
+          if (total <= 0) return 0;
+          return Math.min(100, Math.round((this.myStats?.total_count || 0) / total * 100));
+        }
+      }
+    }).mount('#app');
+  </script>
+  <script src="../js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -3,249 +3,364 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>登录 - AI面试系统</title>
-  <!-- 引入 Bootstrap 样式库：提供 form-control、btn 等现成 CSS 类（.min.css = 压缩版，体积小加载快） -->
+  <title>登录 — 智面无忧</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link href="css/bootstrap.min.css" rel="stylesheet">
-  <!-- 引入本地 JS 库（无 npm 构建架构：直接用 <script> 引文件，浏览器全局可用） -->
-  <!-- Vue 本体：负责"数据变 → 页面自动变"的响应式框架 -->
+  <link href="css/theme.css" rel="stylesheet">
   <script src="js/vue.global.prod.js"></script>
-  <!-- SweetAlert2：颜值更高的弹窗库（替代浏览器原生的 alert） -->
   <script src="js/sweetalert2.js"></script>
   <style>
-    /* ===== 页面整体背景 ===== */
     body {
-      background: #0f172a;                     /* 深蓝黑底色（十六进制颜色） */
-      background-image: 
-        linear-gradient(rgba(30, 41, 59, 0.1) 1px, transparent 1px),   /* 横向细线 */
-        linear-gradient(90deg, rgba(30, 41, 59, 0.1) 1px, transparent 1px);  /* 纵向细线 → 两层叠加成网格 */
-      background-size: 20px 20px;              /* 网格格子大小 20px */
-      min-height: 100vh;                       /* vh = 视口高度单位，100vh = 铺满整屏 */
-      display: flex;                           /* 弹性布局：让子元素可以居中 */
-      align-items: center;                     /* 垂直居中 */
-      justify-content: center;                 /* 水平居中 → 登录卡片屏幕正中 */
-      color: #e2e8f0;                          /* 全局文字颜色（浅灰白） */
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 48px 24px;
+      background: var(--bg-primary);
+      font-family: var(--font-sans);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
     }
-    /* ===== 登录卡片本体 ===== */
-    .login-container {
-      background: rgba(15, 23, 42, 0.8);
-      backdrop-filter: blur(10px);
-      border: 1px solid rgba(59, 130, 246, 0.3);
-      padding: 40px;
-      border-radius: 12px;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+
+    .auth-shell {
       width: 100%;
-      max-width: 400px;
+      max-width: 440px;
     }
-    /* ===== 卡片内部：标题区 / 输入框 / 登录按钮 ===== */
-    .login-header {
+
+    /* ===== 品牌 ===== */
+    .auth-brand {
       text-align: center;
-      margin-bottom: 30px;
+      margin-bottom: 40px;
     }
-    .login-header h2 {
-      color: #e2e8f0;
-      margin-bottom: 10px;
+
+    .auth-brand-icon {
+      width: 56px;
+      height: 56px;
+      margin: 0 auto 20px;
+      border-radius: 14px;
+      display: block;
+      box-shadow: 0 8px 24px rgba(0, 122, 255, 0.2);
+    }
+
+    .auth-brand-title {
+      font-size: 26px;
       font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 6px;
+      letter-spacing: -0.02em;
     }
-    .login-header p {
-      color: #94a3b8;
+
+    .auth-brand-subtitle {
+      font-size: 14px;
+      color: var(--text-tertiary);
+      font-weight: 400;
     }
-    /* 输入框样式（覆盖 Bootstrap 默认的 .form-control 外观） */
-    .form-control {
-      padding: 12px;
-      border-radius: 8px;
-      background: rgba(30, 41, 59, 0.6);
-      border: 1px solid rgba(59, 130, 246, 0.3);
-      color: #e2e8f0;
+
+    /* ===== 卡片 ===== */
+    .auth-card {
+      background: var(--bg-primary);
+      border: 1px solid var(--border-light);
+      border-radius: 18px;
+      padding: 36px 32px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.03);
     }
-    /* :focus 伪类 = 输入框被点击、正在输入时的状态（高亮边框+外发光） */
-    .form-control:focus {
-      background: rgba(30, 41, 59, 0.8);
-      border-color: #3b82f6;
-      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+
+    .auth-card-title {
+      font-size: 22px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 8px;
+      letter-spacing: -0.01em;
     }
-    /* 登录按钮：linear-gradient 做蓝紫渐变底色 */
+
+    .auth-card-desc {
+      font-size: 14px;
+      color: var(--text-secondary);
+      margin-bottom: 28px;
+      line-height: 1.5;
+    }
+
+    /* ===== 免费体验徽章 ===== */
+    .free-badge-row {
+      margin-bottom: 24px;
+    }
+
+    .free-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 14px;
+      background: rgba(0, 122, 255, 0.06);
+      border: 1px solid rgba(0, 122, 255, 0.12);
+      border-radius: 10px;
+      font-size: 13px;
+      color: var(--accent-primary);
+      font-weight: 500;
+    }
+
+    .free-badge svg {
+      width: 16px;
+      height: 16px;
+      stroke: var(--accent-primary);
+      stroke-width: 2;
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      flex-shrink: 0;
+    }
+
+    /* ===== 表单 ===== */
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      margin-bottom: 8px;
+    }
+
+    .form-input {
+      width: 100%;
+      height: 46px;
+      padding: 0 14px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-light);
+      border-radius: 10px;
+      color: var(--text-primary);
+      font-family: var(--font-sans);
+      font-size: 15px;
+      transition: all 0.18s ease;
+      outline: none;
+    }
+
+    .form-input:focus {
+      border-color: var(--accent-primary);
+      box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.12);
+      background: var(--bg-primary);
+    }
+
+    .form-input::placeholder {
+      color: var(--text-tertiary);
+    }
+
+    /* ===== 登录按钮 ===== */
     .btn-login {
       width: 100%;
-      padding: 12px;
-      background: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%);
+      height: 48px;
+      font-size: 15px;
+      font-weight: 600;
+      margin-top: 8px;
+      border-radius: 10px;
+      background: var(--accent-primary);
+      color: #ffffff;
       border: none;
-      border-radius: 8px;
-      color: white;
-      font-size: 16px;
-      font-weight: 500;
-      cursor: pointer;               /* 鼠标悬停时变成小手（表示可点击） */
-      transition: all 0.3s ease;     /* 样式变化用 0.3 秒平滑过渡（hover 效果不生硬） */
+      cursor: pointer;
+      transition: all 0.18s ease;
+      font-family: var(--font-sans);
     }
-    /* :hover 伪类 = 鼠标悬停在按钮上时的状态（变深 + 轻微上浮） */
-    .btn-login:hover {
-      background: linear-gradient(135deg, #2563eb 0%, #4f46e5 100%);
+
+    .btn-login:hover:not(:disabled) {
+      background: var(--accent-primary-hover);
       transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0, 122, 255, 0.25);
     }
-    /* ===== 底部链接区（注册 / 查看价格）与免费徽章 ===== */
-    .register-link {
+
+    .btn-login:active:not(:disabled) {
+      transform: translateY(0);
+    }
+
+    .btn-login:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    /* ===== 分隔线 ===== */
+    .auth-divider {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin: 32px 0 24px;
+    }
+
+    .auth-divider-line {
+      flex: 1;
+      height: 1px;
+      background: var(--border-light);
+    }
+
+    .auth-divider-text {
+      font-size: 12px;
+      color: var(--text-tertiary);
+      font-weight: 400;
+    }
+
+    /* ===== 底部链接 ===== */
+    .auth-footer {
       text-align: center;
-      margin-top: 20px;
     }
-    .register-link p {
-      color: #94a3b8;
+
+    .auth-footer-row {
+      margin-bottom: 12px;
+      font-size: 14px;
+      color: var(--text-secondary);
     }
-    .register-link a {
-      color: #3b82f6;
-      text-decoration: none;
+
+    .auth-footer-row:last-child {
+      margin-bottom: 0;
+    }
+
+    .auth-footer-row a {
+      color: var(--accent-primary);
       font-weight: 500;
+      text-decoration: none;
     }
-    .register-link a:hover {
+
+    .auth-footer-row a:hover {
       text-decoration: underline;
     }
-    .free-badge {
-      background: rgba(34, 197, 94, 0.2);
-      border: 1px solid rgba(34, 197, 94, 0.3);
-      color: #4ade80;
-      padding: 5px 15px;
-      border-radius: 20px;
-      font-size: 14px;
-      display: inline-block;
-      margin-top: 10px;
-    }
-    .form-label {
-      color: #cbd5e1;
-      font-weight: 500;
+
+    /* ===== 响应式 ===== */
+    @media (max-width: 480px) {
+      body {
+        padding: 24px 20px;
+        align-items: flex-start;
+        padding-top: 48px;
+      }
+
+      .auth-brand {
+        margin-bottom: 32px;
+      }
+
+      .auth-card {
+        padding: 28px 24px;
+      }
     }
   </style>
 </head>
 <body>
-  <!-- id="app"：Vue 的"挂载点"。下面 script 里 .mount('#app') 会接管这个 div，
-       从此 div 内部的 v-model / @click / v-if 等 Vue 指令全部生效（div 外的不归 Vue 管） -->
   <div id="app">
-    <div class="login-container">
-      <div class="login-header">
-        <h2>🔐 用户登录</h2>
-        <p class="text-muted">登录您的AI面试系统账号</p>  <!-- text-muted = Bootstrap 的弱化灰字样式 -->
-        <span class="free-badge">🎁 新用户免费体验3次面试</span>
+    <div class="auth-shell">
+      <!-- 品牌区 -->
+      <div class="auth-brand">
+        <img class="auth-brand-icon" src="img/logo.svg" alt="智面无忧">
+        <div class="auth-brand-title">智面无忧</div>
+        <div class="auth-brand-subtitle">智能模拟面试 · 提升求职表现</div>
       </div>
 
-      <!-- @submit.prevent = Vue 语法：监听表单"提交"事件，.prevent 表示
-           阻止浏览器默认行为（默认会整页刷新跳转），改由 JS 全权处理 -->
-      <form @submit.prevent="handleLogin">
-        <div class="mb-3">  <!-- mb-3 = Bootstrap 的 margin-bottom 第3档间距 -->
-          <label class="form-label">用户名或邮箱</label>
-          <!-- v-model：双向绑定，打字实时存入 JS 变量 form.username；
-               required：HTML 原生属性，不填就提交时浏览器自动拦截提示 -->
-          <input
-            type="text"
-            class="form-control"
-            v-model="form.username"
-            placeholder="请输入用户名或邮箱"
-            required
-          >
+      <!-- 登录卡片 -->
+      <div class="auth-card">
+        <h1 class="auth-card-title">欢迎回来</h1>
+        <p class="auth-card-desc">登录后继续你的面试练习</p>
+
+        <div class="free-badge-row">
+          <span class="free-badge">
+            <svg viewBox="0 0 24 24">
+              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+            </svg>
+            新用户免费体验 3 次面试
+          </span>
         </div>
 
-        <div class="mb-3">
-          <label class="form-label">密码</label>
-          <!-- type="password"：输入显示为圆点，不明文 -->
-          <input
-            type="password"
-            class="form-control"
-            v-model="form.password"
-            placeholder="请输入密码"
-            required
-          >
+        <form @submit.prevent="handleLogin">
+          <div class="form-group">
+            <label class="form-label">用户名或邮箱</label>
+            <input
+              type="text"
+              class="form-input"
+              v-model="form.username"
+              placeholder="请输入用户名或邮箱"
+              required
+            >
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">密码</label>
+            <input
+              type="password"
+              class="form-input"
+              v-model="form.password"
+              placeholder="请输入密码"
+              required
+            >
+          </div>
+
+          <button type="submit" class="btn-login" :disabled="loading">
+            <span v-if="loading">登录中…</span>
+            <span v-else>登录</span>
+          </button>
+        </form>
+
+        <div class="auth-divider">
+          <div class="auth-divider-line"></div>
+          <span class="auth-divider-text">或</span>
+          <div class="auth-divider-line"></div>
         </div>
 
-        <!-- :disabled（v-bind 缩写）：按钮禁用状态由 loading 变量决定——请求期间防重复点击；
-             v-if / v-else：二选一渲染，loading 为真显示"登录中..."，否则显示"登录" -->
-        <button type="submit" class="btn btn-login" :disabled="loading">
-          <span v-if="loading">登录中...</span>
-          <span v-else>登录</span>
-        </button>
-      </form>
-
-      <div class="register-link">
-        <p>还没有账号？ <a href="register.html">立即注册</a></p>
-        <p><a href="pricing.html">查看套餐价格</a></p>
+        <div class="auth-footer">
+          <p class="auth-footer-row">
+            还没有账号？ <a data-dom-id="nav-register" href="register.html">立即注册</a>
+          </p>
+          <p class="auth-footer-row">
+            <a href="pricing.html">查看套餐价格</a>
+          </p>
+        </div>
       </div>
     </div>
   </div>
 
   <script>
-    // ================= 登录页逻辑（Vue 选项式写法）=================
-    // ★ 教学对照：本页用 Vue 的"选项式 API"（data() / methods / this.xxx），
-    //   而 interview.html 用的是"组合式 API"（setup() / ref() / .value）。
-    //   两套写法能力相同：选项式更像"填表格"（把数据填进 data、函数填进 methods），
-    //   组合式更像"写普通函数"。老项目常用选项式，新项目推荐组合式。
-    // 本页流程：提交表单 → POST /api/auth/login → 成功则把用户信息存入 localStorage → 跳 admin.html
-
-    // 解构赋值：从 Vue 全局对象里取出 createApp 这一项
-    // （等价于 Python 的 from Vue import createApp；interview.html 直接写 Vue.createApp 效果相同）
     const { createApp } = Vue;
 
     createApp({
-      // data()：选项式的"变量仓库"——这里 return 的所有数据，模板里直接用、methods 里用 this. 访问
       data() {
         return {
-          // 接口地址用相对路径（/api/...）：页面从哪打开，请求就发到哪，开发和部署一套代码通用
-          // 嵌套对象：两个输入框的内容通过 v-model="form.username" 实时存到这里
           form: {
             username: '',
             password: ''
           },
-          loading: false   // 请求进行中标志：控制按钮禁用和"登录中..."文字
+          loading: false
         };
       },
-      // methods：选项式的"函数仓库"——模板里 @submit.prevent="handleLogin" 调的就是它
       methods: {
         async handleLogin() {
-          this.loading = true;   // this = 当前 Vue 实例；选项式里 this.loading 等价于组合式的 loading.value
+          this.loading = true;
 
           try {
-            // fetch：浏览器原生的 HTTP 请求函数（axios 是封装过的第三方库，fetch 免安装）
-            // JSON.stringify：把 JS 对象变成 JSON 字符串（Python 的 json.dumps）
             const response = await fetch(`/api/auth/login`, {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },   // 告诉后端：请求体是 JSON 格式
-              body: JSON.stringify(this.form)                    // 请求体：用户名+密码打包成 JSON
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(this.form)
             });
 
-            // response.json()：把响应体解析成 JS 对象（Python 的 response.json()），也是异步要 await
             const data = await response.json();
 
             if (data.status === 'success') {
-              // localStorage：浏览器自带的本地键值存储（关浏览器也不丢，按"域名"隔离）
-              // 登录凭证存这里，其他页面（如 admin.html）可取出判断"是否已登录"
-              // JSON.stringify 再存：localStorage 只能存字符串，对象必须先转成字符串
               localStorage.setItem('currentUser', JSON.stringify(data.user));
-              // 登录会话凭证（2026-10-06 越权修复）：服务端登录成功时下发的随机 token，
-              // 存这里供其他页面（admin/pricing）取用——之后所有需要身份的请求
-              // 都要带上 Authorization: Bearer <token> 请求头，服务端凭它确认"你是谁"
               localStorage.setItem('authToken', data.auth_token);
 
-              // Swal.fire：SweetAlert2 弹窗（比原生 alert 美观）；timer=1500 → 1.5 秒后自动关闭
               Swal.fire({
-                title: '登录成功！',
+                title: '登录成功',
                 text: '欢迎回来，' + data.user.username,
                 icon: 'success',
                 timer: 1500,
                 showConfirmButton: false
               }).then(() => {
-                // .then(回调)：弹窗关闭后"回头"执行——跳转到管理页
-                // window.location.href = 网址 → 让浏览器整页跳转（相当于在地址栏输网址回车）
                 window.location.href = 'admin.html';
               });
             } else {
-              // 登录失败：弹出错误框，data.error 是后端返回的错误信息，|| 取不到时用默认文案
               Swal.fire('登录失败', data.error || '用户名或密码错误', 'error');
             }
           } catch (error) {
-            // 网络不通、服务器没启动等异常都会落到这里
-            console.error('登录错误:', error);   // 只打印在 F12 控制台，用户看不见
-            Swal.fire('错误', '登录过程中发生错误', 'error');   // 用户可见的弹窗
+            console.error('登录错误:', error);
+            Swal.fire('错误', '登录过程中发生错误', 'error');
           } finally {
-            // finally = 无论成功失败都执行：关掉 loading，按钮恢复可点
             this.loading = false;
           }
         }
       }
-      // .mount('#app')：把上面这套数据+方法挂载到 <div id="app">，Vue 从此接管该区域
     }).mount('#app');
   </script>
 </body>

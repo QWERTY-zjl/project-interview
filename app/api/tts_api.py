@@ -110,7 +110,8 @@ async def synthesize_tts(text: str = Body(...), voice_type: str = Body("professi
             content={
                 "status": "success",
                 "audio": audio_base64,
-                "format": "mp3"
+                # 实测 synthesize_speech 产出的是 WAV（RIFF 文件头），此前误标 mp3
+                "format": "wav"
             }
         )
     else:

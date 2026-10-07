@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
+  <!-- 智面无忧品牌图标：对话气泡（面试对话）+ 对勾（无忧通过），蓝紫渐变圆角方块底 -->
+  <defs>
+    <linearGradient id="zmwy-bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#3B82F6"/>
+      <stop offset="1" stop-color="#8B5CF6"/>
+    </linearGradient>
+  </defs>
+  <rect x="2" y="2" width="44" height="44" rx="11" fill="url(#zmwy-bg)"/>
+  <path d="M14 13h20a5 5 0 0 1 5 5v9a5 5 0 0 1-5 5H23l-7 6v-6h-2a5 5 0 0 1-5-5v-9a5 5 0 0 1 5-5z" fill="#FFFFFF"/>
+  <path d="M17.5 21.5l5 5L31 17.5" fill="none" stroke="#3B82F6" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
