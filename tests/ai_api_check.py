@@ -1,4 +1,4 @@
-"""
+﻿"""
 AI API 连通性测试脚本
 ======================
 逐项测试项目用到的阿里云百炼 AI 服务是否真正可用，用来验证 .env 配置是否正确。
@@ -97,8 +97,9 @@ def get(url):
 
 
 def make_tiny_png():
-    """用纯标准库生成一张 2x2 的蓝色 PNG 图片（不依赖 Pillow）。
+    """用纯标准库生成一张 32x32 的蓝色 PNG 图片（不依赖 Pillow）。
 
+    尺寸不能太小：视觉模型要求边长 > 10 像素，否则 400 拒收。
     PNG 文件结构：文件头(8字节魔数) + IHDR(图像尺寸/位深) + IDAT(像素数据) + IEND，
     每个数据块 = 4字节长度 + 块类型 + 数据 + 4字节CRC校验。
     zlib.compress 负责把原始像素压成 IDAT 要求的 zlib 格式；
@@ -109,11 +110,11 @@ def make_tiny_png():
         body = tag + data
         return struct.pack(">I", len(data)) + body + struct.pack(">I", zlib.crc32(body) & 0xffffffff)
 
-    w = h = 2
+    w = h = 32
     # 像素原始数据：每行开头 1 字节过滤器类型（0=不过滤），后跟每像素 3 字节 RGB（蓝色）
     raw = b"".join(b"\x00" + b"\x33\x66\xff" * w for _ in range(h))
     return (b"\x89PNG\r\n\x1a\n"                                      # PNG 文件魔数，固定
-            + chunk(b"IHDR", struct.pack(">IIBBBBB", w, h, 8, 2, 0, 0, 0))  # 2x2、8位、真彩色
+            + chunk(b"IHDR", struct.pack(">IIBBBBB", w, h, 8, 2, 0, 0, 0))  # 32x32、8位、真彩色
             + chunk(b"IDAT", zlib.compress(raw))                       # 压缩后的像素
             + chunk(b"IEND", b""))                                     # 文件结束块
 
@@ -146,18 +147,24 @@ def check_text_model():
 
 
 def check_tts():
-    """[2] 语音合成：qwen-tts 走 multimodal-generation 端点，
-    非流式返回音频下载URL（24小时有效），再下载验证二进制可得"""
+    """[2] 语音合成：cosyvoice 系列走 SpeechSynthesizer 端点，
+    响应为音频二进制流，或 JSON（output.audio.url 指向 OSS 临时音频）"""
     print(f"[2/4] 语音合成  {TTS_MODEL}（音色 {DEFAULT_TTS_VOICE}）")
-    print(f"      端点: {DASHSCOPE_NATIVE_URL}/api/v1/services/aigc/multimodal-generation/generation")
+    print(f"      端点: {DASHSCOPE_NATIVE_URL}/api/v1/services/audio/tts/SpeechSynthesizer")
     if not DASHSCOPE_API_KEY:
         return report(False, "未配置 DASHSCOPE_API_KEY")
     try:
         r = post(
-            f"{DASHSCOPE_NATIVE_URL}/api/v1/services/aigc/multimodal-generation/generation",
-            {"model": TTS_MODEL, "input": {"text": "你好", "voice": DEFAULT_TTS_VOICE}},
+            f"{DASHSCOPE_NATIVE_URL}/api/v1/services/audio/tts/SpeechSynthesizer",
+            {
+                "model": TTS_MODEL,
+                "input": {"text": "你好", "voice": DEFAULT_TTS_VOICE, "format": "wav", "sample_rate": 24000},
+            },
         )
         if r.status_code == 200:
+            content_type = r.headers.get("Content-Type", "")
+            if "audio" in content_type or "octet-stream" in content_type:
+                return report(True, f"合成音频 {len(r.content)} 字节，题目朗读功能可用")
             audio_url = r.json().get("output", {}).get("audio", {}).get("url", "")
             if not audio_url:
                 return report(False, f"HTTP 200 但响应无音频URL: {r.text[:150]}")
@@ -171,7 +178,7 @@ def check_tts():
 
 
 def check_asr():
-    """[3] 语音识别：paraformer-v2 的录音转写只支持「异步任务 + 公网音频URL」，
+    """[3] 语音识别：paraformer 系列的录音转写只支持「异步任务 + 公网音频URL」，
     本地音频直传不可行（实测 OpenAI 兼容端点 /audio/transcriptions 也未开放），
     因此只显示配置不实测；要启用需安装 dashscope SDK 改用 Recognition 类"""
     print(f"[3/4] 语音识别  {ASR_MODEL}")
@@ -188,7 +195,7 @@ def check_expression():
     是区分「额度耗尽」还是「模型未授权」最直接的证据（查询本身不消耗额度）。
 
     第 2 步真实调用一次 chat/completions 多模态请求：content 用数组格式
-    （[{图}, {文}]），图是 dataURL 内嵌的 2x2 小 PNG。模型对没有脸的图
+    （[{图}, {文}]），图是 dataURL 内嵌的 32x32 小 PNG。模型对没有脸的图
     也会正常回复，所以 HTTP 200 即代表「key/端点/模型/授权/额度」全链路通。
     """
     print(f"[4/4] 视觉模型  {VISION_MODEL}（表情识别）")
@@ -210,7 +217,7 @@ def check_expression():
         print(f"        （查询异常: {e}，跳过）")
 
     # --- 第 2 步：真实多模态调用 ----------------------------------------
-    print(f"      ② 真实调用: 发送 2x2 测试图")
+    print(f"      ② 真实调用: 发送 32x32 测试图")
     png_data = make_tiny_png()
     data_url = "data:image/png;base64," + base64.b64encode(png_data).decode("utf-8")
     try:

@@ -2,7 +2,7 @@
 表情分析服务模块
 ================
 分析面试摄像头抓拍画面中候选人的表情/情绪：把抓拍图片发给百炼视觉模型
-qwen3-vl-flash，让它按固定 JSON 格式返回表情和情绪判断。
+（VISION_MODEL 配置），让它按固定 JSON 格式返回表情和情绪判断。
 """
 
 import base64
@@ -49,7 +49,7 @@ _ANALYSIS_PROMPT = """你是面试表情分析师。分析这张面试摄像头�
 
 def analyze_face_expression(image_data):
     """
-    分析面部表情（qwen3-vl-flash 多模态版）
+    分析面部表情（视觉模型多模态版）
 
     image_data 为前端 canvas.toDataURL 去 dataURL 前缀后的原始字节。
     返回 (分析结果, 错误信息)：成功时返回 faces 列表，expression_api 取
@@ -62,7 +62,7 @@ def analyze_face_expression(image_data):
         return None, "未配置 DASHSCOPE_API_KEY"
 
     try:
-        print(f"[FACE] 开始表情分析（qwen3-vl-flash），图像大小: {len(image_data)} 字节")
+        print(f"[FACE] 开始表情分析（{VISION_MODEL}），图像大小: {len(image_data)} 字节")
 
         # 图像转 base64，用 dataURL 形式直接嵌进消息体（OpenAI 视觉消息标准格式）
         image_base64 = base64.b64encode(image_data).decode('utf-8')

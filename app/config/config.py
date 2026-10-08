@@ -25,13 +25,13 @@ DASHSCOPE_BASE_URL = os.getenv("DASHSCOPE_BASE_URL", "https://dashscope.aliyuncs
 # 出题用的文本模型
 LLM_MODEL = os.getenv("LLM_MODEL", "qwen-flash")
 
-# 视觉理解模型（表情识别：分析摄像头抓拍画面里的情绪）
-VISION_MODEL = os.getenv("VISION_MODEL", "qwen3-vl-flash")
+# 视觉理解模型（表情识别：分析摄像头抓拍画面里的情绪，需支持图像输入）
+VISION_MODEL = os.getenv("VISION_MODEL", "qwen3.8-flash")
 
 # ==================== AI 服务配置（全部可在 .env 里覆盖，无需改代码）====================
 # 使用者想换模型/换服务商时，只需要在 .env 里写同名变量，例如：
-#   LLM_MODEL=qwen-turbo          # 换文本模型
-#   TTS_MODEL=cosyvoice-v2        # 换语音合成模型
+#   LLM_MODEL=qwen-plus           # 换文本模型
+#   TTS_MODEL=cosyvoice-v3-flash  # 换语音合成模型
 # 各项用途见下面每条注释；所有值都有默认值，不配也能跑（但 AI 功能需要 DASHSCOPE_API_KEY）
 
 # DashScope 原生 API 端点（语音识别/语音合成/表情识别等「非 OpenAI 兼容」接口走这里；
@@ -42,11 +42,11 @@ DASHSCOPE_NATIVE_URL = os.getenv("DASHSCOPE_NATIVE_URL", "https://dashscope.aliy
 ASR_MODEL = os.getenv("ASR_MODEL", "paraformer-v2")
 
 # 语音合成模型（TTS：把面试题朗读出来）
-TTS_MODEL = os.getenv("TTS_MODEL", "qwen-tts")
+TTS_MODEL = os.getenv("TTS_MODEL", "cosyvoice-v3-flash")
 
 # 默认朗读音色（当前端传来的音色类型不在映射表里时兜底用）
-# qwen-tts 用英文别名音色（Cherry=女 / Ethan=男），不认 zh-CN-* 风格音色
-DEFAULT_TTS_VOICE = os.getenv("DEFAULT_TTS_VOICE", "Cherry")
+# cosyvoice 系列用音色 ID（如 longanzhi_v3 男 / longanya_v3 女），不认 zh-CN-* 风格音色
+DEFAULT_TTS_VOICE = os.getenv("DEFAULT_TTS_VOICE", "longanzhi_v3")
 
 # ==================== 数据库连接配置 ====================
 # 【分发开关】DATABASE_URL 有值 → 全系统走 PostgreSQL；为空 → 回退 SQLite（原路径不动）
