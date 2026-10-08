@@ -5,17 +5,16 @@
 交给大模型逐题评分并给出综合评价，结果以 JSON 存入 interviews.report_content
 
 【模块定位】面试收尾环节的"报告生成器"：
-候选人答完全部问题后（interviews.status 更新为 3，见 server.py 的 submit_text_answer
-里"全部已回答"的判断），前端调用 /api/evaluation/generate，由 server.py 聚合好
-问题/回答/表情数据后调用本模块的 generate_interview_report()，
-大模型逐题评分并给出综合评价，结果存入 interviews.report_content，
-状态推进到 4（报告已生成）。
+候选人答完全部问题后（interviews.status 更新为 3，见 interview_api.py 的
+submit_text_answer 里"全部已回答"的判断），前端调用 /api/evaluation/generate，
+由 interview_api.py 聚合好问题/回答/表情数据后调用本模块的
+generate_interview_report()，大模型逐题评分并给出综合评价，
+结果存入 interviews.report_content，状态推进到 4（报告已生成）。
 状态流转：1 已出题 → 2 面试中 → 3 已答完 → 4 报告已生成
 
 【与出题流程（question_service）的配置一致性】
 统一走 DashScope 的 OpenAI 兼容端点（DASHSCOPE_BASE_URL + DASHSCOPE_API_KEY），
-模型统一用 LLM_MODEL（默认 qwen-flash）——个人版成本优先：qwen-flash 是百炼
-上最便宜的合理选择（输入 0.15 元/百万 token），且支持 JSON 输出与结构化评分
+模型统一用 LLM_MODEL（默认 qwen-flash）
 
 【一次返回两个视图】
   - evaluation：前端报告页直接使用的字段（averageScore/scores/detailedScores/

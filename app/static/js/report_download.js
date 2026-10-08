@@ -6,7 +6,7 @@
  * 也可以在浏览器里 Ctrl+P 直接"打印/另存为 PDF"。
  *
  * 为什么是 HTML 而不是 JSON/PDF：
- * - JSON 是给程序读的，普通用户看不懂（本项目真实反馈）；
+ * - JSON 是给程序读的，普通用户看不懂；
  * - 生成 PDF 需要后端装 weasyprint 等依赖，前端纯浏览器环境做不到；
  * - HTML 是两者之间的最优解：人能直接读，浏览器原生支持，还能打印成 PDF。
  *
@@ -21,8 +21,6 @@
  *   strengths       优势 [字符串]     improvements  待改进 [字符串]
  *   recommendations AI建议 [{title, description}]（兼容纯字符串）
  *   questions       逐题明细 [{text, answer, score, comment}]
- *
- * 版权声明：仅供学习参考，禁止商用/二次分发/他用本代码申请软著
  */
 
 /**

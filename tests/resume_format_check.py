@@ -13,8 +13,7 @@ r"""
   [5] 真实 PDF（张三丰简历）       → 期望 200 出题成功（MinerU 链路，耗时较长）
 
 用法：app\venv\Scripts\python.exe tests\resume_format_check.py
-注意：场景 [1][2][5] 会真实创建面试记录并扣减配额、调用 AI 出题（每场约 0.002 元）。
-版权声明：仅供学习参考，禁止商用/二次分发/他用本代码申请软著
+注意：场景 [1][2][5] 会真实创建面试记录并扣减配额、调用 AI 出题。
 """
 import json
 import os

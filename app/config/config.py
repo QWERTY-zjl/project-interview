@@ -22,11 +22,10 @@ OPENAI_BASE_URL = os.getenv("OPENAI_BASE_URL", "https://api.chatanywhere.tech/v1
 # DashScope OpenAI 兼容接口地址（出题走这里）
 DASHSCOPE_BASE_URL = os.getenv("DASHSCOPE_BASE_URL", "https://dashscope.aliyuncs.com/compatible-mode/v1")
 
-# 出题用的文本模型（qwen-flash 为 DashScope 上最便宜的文本模型）
+# 出题用的文本模型
 LLM_MODEL = os.getenv("LLM_MODEL", "qwen-flash")
 
-# 视觉理解模型（表情识别：分析摄像头抓拍画面里的情绪，qwen3-vl-flash 是百炼上
-# 最便宜的视觉模型，输入价与 qwen-flash 相同——0.15 元/百万 token）
+# 视觉理解模型（表情识别：分析摄像头抓拍画面里的情绪）
 VISION_MODEL = os.getenv("VISION_MODEL", "qwen3-vl-flash")
 
 # ==================== AI 服务配置（全部可在 .env 里覆盖，无需改代码）====================
