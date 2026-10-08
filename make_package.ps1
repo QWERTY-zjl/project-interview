@@ -3,12 +3,18 @@
 $ErrorActionPreference = "Stop"
 Set-Location $PSScriptRoot
 
-# 前置检查：工作区必须干净，否则 zip 内容不完整（git archive 只打包已提交内容）
-$dirty = git status --porcelain
+# 前置检查：已跟踪文件必须全部提交（git archive 只打包已提交内容，漏提交会导致包里是旧代码）。
+# 未跟踪文件（??）不进包也不影响包完整性，仅提示；已跟踪文件的修改/删除（M/D）直接中止
+$dirty = git status --porcelain | Where-Object { $_ -notmatch '^\?\?' }
 if ($dirty) {
-    Write-Host "[中止] 存在未提交的改动，请先提交 git，保证打进包里的代码是完整的：" -ForegroundColor Red
+    Write-Host "[中止] 已跟踪文件存在未提交的改动，请先提交 git：" -ForegroundColor Red
     $dirty | ForEach-Object { Write-Host "  $_" }
     exit 1
+}
+$untracked = git status --porcelain | Where-Object { $_ -match '^\?\?' }
+if ($untracked) {
+    Write-Host "[提示] 以下未跟踪文件不会打进包（如需纳入请先提交）：" -ForegroundColor Yellow
+    $untracked | ForEach-Object { Write-Host "  $_" }
 }
 
 # 版本号：取当天日期，方便区分多轮提交的作品包
