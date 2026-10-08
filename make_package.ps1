@@ -17,7 +17,9 @@ $outDir = Join-Path $PSScriptRoot "dist"
 $outFile = Join-Path $outDir "AI面试模拟系统_$version.zip"
 
 New-Item -ItemType Directory -Force -Path $outDir | Out-Null
-git archive --format=zip "--output=$outFile" HEAD
+# --prefix 给包内所有条目套一层顶层文件夹（与 zip 同名），解压不会散落一地文件
+$prefix = "AI面试模拟系统_$version/"
+git archive --format=zip "--prefix=$prefix" "--output=$outFile" HEAD
 
 # 密钥注入：真实 API Key 只存在本地 .env（不入 git），打包时才写进 zip 内的 .env，
 # 评委解压后无需配置即可运行；git 仓库全程不接触密钥
@@ -25,7 +27,7 @@ Add-Type -AssemblyName System.IO.Compression.FileSystem
 if (Test-Path ".env") {
     $zip = [System.IO.Compression.ZipFile]::Open((Resolve-Path $outFile).Path, 'Update')
     try {
-        $entry = $zip.CreateEntry(".env")
+        $entry = $zip.CreateEntry("$prefix.env")
         $writer = New-Object System.IO.StreamWriter($entry.Open(), (New-Object System.Text.UTF8Encoding($false)))
         $writer.Write((Get-Content ".env" -Raw -Encoding UTF8))
         $writer.Close()
