@@ -40,5 +40,26 @@ if (Test-Path ".env") {
 }
 
 $sizeMB = [math]::Round((Get-Item $outFile).Length / 1MB, 2)
+
+# 便携 Python 运行时注入：runtime\python（embeddable Python + 预装依赖）整体追加进
+# 顶层文件夹内，评委解压即用，无需安装 Python；runtime 目录不入 git，仅存在于作品包
+if (Test-Path "runtime\python\python.exe") {
+    $zip = [System.IO.Compression.ZipFile]::Open((Resolve-Path $outFile).Path, 'Update')
+    try {
+        $files = Get-ChildItem "runtime" -Recurse -File | Where-Object { $_.FullName -notmatch '__pycache__|\\.pytest_cache' }
+        foreach ($f in $files) {
+            $rel = "runtime\" + $f.FullName.Substring((Resolve-Path "runtime").Path.Length + 1)
+            $entryPath = $prefix + ($rel -replace '\\', '/')
+            [System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile($zip, $f.FullName, $entryPath, [System.IO.Compression.CompressionLevel]::Optimal) | Out-Null
+        }
+        Write-Host "[运行时] 已注入便携 Python（$($files.Count) 个文件），评委免安装运行" -ForegroundColor Cyan
+    } finally {
+        $zip.Dispose()
+    }
+    $sizeMB = [math]::Round((Get-Item $outFile).Length / 1MB, 2)
+} else {
+    Write-Host "[警告] 未找到 runtime\python，作品包不含内置 Python，评委需先运行 setup.bat" -ForegroundColor Yellow
+}
+
 Write-Host "[完成] 打包成功: $outFile ($sizeMB MB)" -ForegroundColor Green
-Write-Host "提交材料清单核对：安装运行说明.txt / setup.bat / start_personal_server.bat / .env / .env.example 应都在包内"
+Write-Host "提交材料清单核对：安装运行说明.txt / setup.bat / start_personal_server.bat / .env / runtime 便携 Python 应都在包内"

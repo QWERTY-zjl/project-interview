@@ -88,6 +88,9 @@ test_*.py
 *.seed
 *.pid.lock
 
+# 便携 Python 运行时（几十 MB 二进制，由打包脚本追加进作品包，不入 git）
+runtime/
+
 # Coverage
 htmlcov/
 .tox/
