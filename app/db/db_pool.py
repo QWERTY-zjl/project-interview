@@ -29,6 +29,64 @@ if DATABASE_URL:
     from psycopg_pool import ConnectionPool
 
 
+class _SQLiteCompatCursor:
+    """
+    SQLite 游标的方言适配：把业务代码里的 PG 风格 %s 占位符转成 SQLite 的 ?
+
+    业务 SQL 全库按 PG 方言书写（%s / RETURNING），为避免每处 SQL 写两份，
+    在游标层做一次机械翻译。两个前提保证替换安全：
+    1. 全项目 SQL 文本无 LIKE 模式字面量，不存在 '%s' 被误替换的场景
+    2. Python 3.13 内置 SQLite >= 3.45，原生支持 RETURNING 子句，无需改写
+    """
+
+    def __init__(self, cursor):
+        self._cur = cursor
+
+    def execute(self, sql, params=()):
+        return self._cur.execute(sql.replace("%s", "?"), params)
+
+    def executemany(self, sql, seq_of_params):
+        return self._cur.executemany(sql.replace("%s", "?"), seq_of_params)
+
+    def __getattr__(self, name):
+        # fetchone/fetchall/lastrowid 等其余属性直接委托给原生游标
+        return getattr(self._cur, name)
+
+
+class _SQLiteCompatConnection:
+    """
+    SQLite 连接包装：cursor() / execute() / executemany() 都过方言适配
+
+    execute 必须也做翻译：sqlite3.Connection 自带便捷方法 execute()
+    （等价于 cursor() + execute()），项目里大量代码直接 conn.execute(...)
+    书写 SQL，若只适配 cursor() 这部分 %s 会原样透传给 SQLite 报语法错误
+    """
+
+    def __init__(self, conn):
+        self._conn = conn
+
+    def cursor(self):
+        return _SQLiteCompatCursor(self._conn.cursor())
+
+    def execute(self, sql, params=()):
+        return _SQLiteCompatCursor(self._conn.execute(sql.replace("%s", "?"), params))
+
+    def executemany(self, sql, seq_of_params):
+        return _SQLiteCompatCursor(self._conn.executemany(sql.replace("%s", "?"), seq_of_params))
+
+    def commit(self):
+        return self._conn.commit()
+
+    def rollback(self):
+        return self._conn.rollback()
+
+    def close(self):
+        return self._conn.close()
+
+    def __getattr__(self, name):
+        return getattr(self._conn, name)
+
+
 class DatabasePool:
     """
     双轨数据库连接池
@@ -87,7 +145,8 @@ class DatabasePool:
         conn.row_factory = sqlite3.Row
         with self._lock:                   # 登记时要加锁（多线程可能同时登记）
             self._all_connections.append(conn)
-        return conn
+        # 方言适配包装：业务 SQL 的 %s 占位符在此统一翻译为 SQLite 的 ?
+        return _SQLiteCompatConnection(conn)
 
     def return_connection(self, conn):
         """
