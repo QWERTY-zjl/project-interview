@@ -30,6 +30,11 @@ env/
 .idea/
 .vscode/
 .trae/
+# 本地演示 PPT 工作目录（pptxgenjs）与 Node 依赖
+slides/
+node_modules/
+package.json
+package-lock.json
 *.swp
 *.swo
 *~
