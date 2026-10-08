@@ -65,7 +65,8 @@ from fastapi.middleware.cors import CORSMiddleware
 # 三种现成的"响应类型"：
 #   JSONResponse：返回 JSON 数据；FileResponse：返回磁盘上的文件（html/图片/PDF）；
 #   StreamingResponse：流式返回大块数据（本文件未用到，api/ 里的音频接口在用）
-from fastapi.responses import JSONResponse, StreamingResponse, FileResponse
+#   RedirectResponse：把请求重定向到另一个 URL（根路径 / 跳 /static/admin.html 用）
+from fastapi.responses import JSONResponse, StreamingResponse, FileResponse, RedirectResponse
 # uvicorn：ASGI 服务器——真正监听 10009 端口、接收 HTTP 请求的程序。
 # 分工：FastAPI 负责"处理请求"，uvicorn 负责"接请求"，两者配合才能对外提供服务
 import uvicorn
@@ -304,12 +305,17 @@ async def serve_static(path: str):
 # ==================== 根路径 ====================
 @app.get("/")
 async def root():
-    """根路径：返回管理后台首页（对齐 nginx try_files admin.html 的生产行为）"""
-    admin_path = os.path.join(os.path.dirname(__file__), "static", "admin.html")
-    if os.path.exists(admin_path):
-        return FileResponse(admin_path)  # 直接把 admin.html 文件发给浏览器
-    # 兜底：文件不存在就返回一段 JSON（return 一个 dict，FastAPI 自动转成 JSON 响应）
-    return {"message": "智能招聘面试模拟系统 API", "version": "1.0.0"}
+    """根路径：302 跳转到 /static/admin.html（工作台）
+
+    【2026-10-08 修复】原来直接 FileResponse 返回 admin.html，但页面里的资源
+    引用全是相对路径（js/xxx.js、css/xxx.css）：页面 URL 是 / 时，浏览器把它们
+    解析成 /js/...、/css/...——没有这些路由，全部 404，Vue 加载不到，
+    页面裸奔（控制台报 Vue is not defined、模板 {{ }} 原样显示）。
+    改成重定向后，页面 URL 变为 /static/admin.html，相对路径正确落到
+    /static/js/...、/static/css/...；生产环境由 nginx 直接以静态目录为根，
+    不受此影响。
+    """
+    return RedirectResponse("/static/admin.html", status_code=302)
 
 # ==================== 路由注册（APIRouter 模式） ====================
 # 各业务模块在自己的文件里用 APIRouter 声明路由（带中文 tags 和 summary），
