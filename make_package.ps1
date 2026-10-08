@@ -29,18 +29,22 @@ git archive --format=zip "--prefix=$prefix" "--output=$outFile" HEAD
 
 # 密钥注入：真实 API Key 只存在本地 .env（不入 git），打包时才写进 zip 内的 .env，
 # 评委解压后无需配置即可运行；git 仓库全程不接触密钥
+# DATABASE_URL 行必须剔除：它指向开发者本机的 PostgreSQL，评委机器没有 PG，
+# 带过去会连接超时导致启动失败；剔除后应用自动回退到包内 SQLite，零配置可用
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 if (Test-Path ".env") {
+    $envLines = Get-Content ".env" -Encoding UTF8 | Where-Object { $_ -notmatch '^\s*DATABASE_URL\s*=' }
     $zip = [System.IO.Compression.ZipFile]::Open((Resolve-Path $outFile).Path, 'Update')
     try {
         $entry = $zip.CreateEntry("$prefix.env")
         $writer = New-Object System.IO.StreamWriter($entry.Open(), (New-Object System.Text.UTF8Encoding($false)))
-        $writer.Write((Get-Content ".env" -Raw -Encoding UTF8))
+        $writer.Write(($envLines -join "`r`n"))
         $writer.Close()
     } finally {
         $zip.Dispose()
     }
     Write-Host "[密钥] 已把本地 .env（真实 API Key）注入 zip，评委免配置运行" -ForegroundColor Cyan
+    Write-Host "[数据库] 已剔除 DATABASE_URL，评委机器自动回退 SQLite" -ForegroundColor Cyan
 } else {
     Write-Host "[警告] 本地未找到 .env，包内不含密钥，评委需自行配置 API Key" -ForegroundColor Yellow
 }
