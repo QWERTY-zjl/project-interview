@@ -422,7 +422,7 @@ def _generate_questions_business(token: str):
             # 生成面试问题：函数内延迟导入，服务器启动阶段不背这个加载成本
             from app.ai_services.question_service import generate_questions
 
-            # 个人用户版：没有候选人/岗位表关联，用模拟信息占位（与 server.py 现役实现一致）
+            # 个人用户版：没有候选人/岗位表关联，用模拟信息占位
             # candidate/position 两个字典是给出题 LLM 看的"背景资料"
             candidate = {
                 "id": user_id,

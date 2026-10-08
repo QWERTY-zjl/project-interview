@@ -6,14 +6,14 @@
 简历由 resume_parser.py 解析成 markdown 文本后作为上下文传入
 
 【一条面试问题的完整旅程】（帮助理解各函数如何配合）
-    server.py（收到"开始面试"请求）
+    interview_api.py（收到"开始面试"请求）
         └→ generate_questions()          本模块主入口，串起整个流程
             ├→ build_interview_prompt()  prompt.py：把候选人/岗位信息拼成提示词
             ├→ call_llm_api()            本模块：把提示词发给 qwen-flash，拿回 JSON
             │    ├→ _get_client()           首次调用时创建客户端（懒加载单例）
             │    └→ _parse_json_content()   解析模型返回的 JSON（含剥围栏兜底）
             ├→ validate_questions()         校验问题格式，统一成固定三字段
-            ├→ save_questions_to_db()       每个问题先合成语音，再存入 SQLite
+            ├→ save_questions_to_db()       每个问题先合成语音，再写入数据库
             └→ 任何一步失败 → get_default_questions() 返回兜底默认问题
 """
 
@@ -222,7 +222,7 @@ def generate_questions(interview_id, candidate, position, interview, latest_tech
     """
     生成面试问题的主函数：拼提示词 → 调大模型 → 校验 → 入库(含预生成语音) → 更新面试状态
 
-    被 server.py 在用户点击"开始面试"后调用（异步线程中执行）。
+    被 interview_api.py 在用户点击"开始面试"后调用（异步线程中执行）。
     resume_md 为简历解析出的 markdown（MinerU 失败回退 PyPDF2，再失败则为 None，
     此时出题只依赖简历分析结论 latest_tech_info）。
     永远返回 status="success"：即使大模型失败也用默认问题兜底，保证面试一定能开始。

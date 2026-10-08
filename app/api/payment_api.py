@@ -155,7 +155,6 @@ async def alipay_return(request: Request):
 
 
 # ==================== 模拟支付确认API ====================
-# 以下 3 个接口从 server.py 平移（Flask→FastAPI），业务逻辑与响应格式保持一字不差
 
 @router.post("/api/payment/mock/confirm", summary="模拟支付确认")
 async def mock_confirm_payment(order_no: str = Body(..., embed=True)):

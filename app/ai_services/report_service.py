@@ -79,7 +79,7 @@ def generate_interview_report(interview_id, candidate, position, questions, expr
     生成面试报告：拼评估提示词 → 调大模型逐题评分 → 解析 JSON → 存入 interviews 表
 
     questions 每项需含 question（问题）、score_standard（评分标准）、
-    answer_text（候选人回答文本）字段；expression_summary 为 server.py 对
+    answer_text（候选人回答文本）字段；expression_summary 为调用方对
     interview_expression_records 按面试聚合的摘要（无记录时为 None，如摄像头
     未开启，此时不纳入评估）。
     返回 (dict, 状态码)：成功时含 evaluation（前端视图）和 report（完整存档）；

@@ -73,9 +73,7 @@ project-interview/
 │   ├── db/                               # 数据库模块
 │   │   ├── db.py                         # 数据库连接管理
 │   │   ├── db_pool.py                    # 数据库连接池（双轨：PG 用 psycopg_pool，SQLite 回退旧逻辑）
-│   │   ├── create_personal_interview_system_db.py # 建表脚本（权威来源：个人版7表+支付表）
-│   │   ├── migrate_sqlite_to_pg.py       # SQLite→PostgreSQL 数据搬迁脚本（一次性工具，可重复执行）
-│   │   └── interview_system_backup_20261008.db  # 迁移前 SQLite 全量备份（只读保留，回退用）
+│   │   └── create_personal_interview_system_db.py # 建表脚本（权威来源：个人版7表+支付表）
 │   ├── static/                           # 静态前端文件
 │   │   ├── admin.html                    # 工作台界面（登录后上传简历、查看面试记录）
 │   │   ├── interview.html                # 候选人面试界面
@@ -89,11 +87,9 @@ project-interview/
 │   ├── utils/                            # 工具函数
 │   │   └── utils.py                      # 通用工具函数
 │   ├── temp/                             # 临时文件目录（简历解析时自动创建，用后自动清理）
-│   ├── logs/                             # 运行日志目录（server 启动后生成 app.log）
-│   ├── server.py                         # 旧版 Flask 入口（已退役，仅作对照参考，不保证可运行）
+│   ├── logs/                             # 运行日志目录（启动后生成 app.log）
 │   ├── main.py                           # FastAPI版入口（现役，uvicorn 启动，端口 10009）
 │   ├── payment_module.py                 # 支付功能模块
-│   ├── minimal_test.py / simple_test.py  # 简单测试脚本（开发调试用）
 │   └── alipay_module.py                  # 支付宝集成模块
 ├── tests/                                # 测试脚本目录
 │   ├── ai_api_check.py                   # AI 接口连通性测试（含百炼配额诊断与多模态真实调用）
@@ -106,11 +102,8 @@ project-interview/
 ├── .env.example                          # 环境变量配置模板（配置项说明与默认值，随 git 提交）
 ├── .dockerignore                         # Docker构建排除名单（防止venv/.env/数据库进镜像）
 ├── docker/                               # Docker部署全家桶（Dockerfile、docker-compose.yml、nginx配置与SSL证书）
-├── start_server.bat / start_server.ps1   # Windows启动脚本
-├── start_personal_server.bat             # 个人版启动脚本
-├── start_server_background.bat           # 后台静默启动脚本
+├── start_personal_server.bat             # Windows启动脚本（个人版）
 ├── requirements.txt                      # Python依赖包列表
-├── resume.md                             # 简历解析结果示例
 ├── .gitignore                           # Git忽略文件
 └── README.md                             # 项目说明文档
 ```
@@ -236,7 +229,7 @@ erDiagram
 1. **时间字段统一存 Unix 时间戳**（`BIGINT`，默认 `EXTRACT(EPOCH FROM now())::BIGINT`），不是日期字符串
 2. **外键默认强制**：PG 对 `FOREIGN KEY` 真实校验（插入不存在的 user_id 直接报错），这是从 SQLite 迁移后最直接的收益；历史断链数据已在搬迁时清洗
 3. 支付相关表（`user_quotas`、`pricing_plans`、`orders` 等 6 张）定义已并入 `create_personal_interview_system_db.py`，程序启动时由 `init_db()` 自动创建；旧版企业版的 `positions`、`candidates` 表已彻底清理（数据库无表、代码无引用）
-4. 数据库数据经 `migrate_sqlite_to_pg.py` 从 SQLite 单事务搬迁（保留原 id + setval 校准序列 + 孤儿数据清洗），迁移前的全量备份保留在 `app/db/interview_system_backup_20261008.db`
+4. 历史数据已从 SQLite 单事务搬迁至 PostgreSQL（保留原 id + setval 校准序列 + 孤儿数据清洗），迁移完成后 SQLite 数据文件与迁移工具已清理
 5. 查看/管理数据库可使用 psql 命令行（`psql -U zsmian -d interview_system`）或 DBeaver/Navicat（连接类型选 PostgreSQL，主机 127.0.0.1 端口 5432）
 6. 连接层：`db_pool.py` 使用 psycopg_pool 连接池；`.env` 不配置 `DATABASE_URL` 时自动回退单文件 SQLite 模式（回退开关）
 
@@ -306,7 +299,7 @@ python app\db\create_personal_interview_system_db.py
 app\venv\Scripts\python.exe -m app.main
 ```
 
-（或直接双击 start_server.bat）
+（或直接双击 start_personal_server.bat）
 
 ### 第六步：访问系统
 
@@ -473,7 +466,6 @@ app\venv\Scripts\python.exe -m app.main
 | 文件名                                        | 功能描述                               |
 | ------------------------------------------ | ---------------------------------- |
 | main.py                                    | FastAPI Web服务器，提供RESTful API（包含所有功能，现役入口） |
-| server.py                                  | 旧版 Flask 入口（已退役，仅作对照参考）             |
 | payment\_module.py                         | 支付功能模块，用户认证、配额管理、套餐管理、订单管理         |
 | alipay\_module.py                          | 支付宝集成模块，支持网页支付、扫码支付、订单查询、模拟支付      |
 | create\_personal\_interview\_system\_db.py | 建表脚本（权威来源：个人版7表+支付表，启动时自动执行）       |
