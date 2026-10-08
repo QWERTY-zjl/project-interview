@@ -123,7 +123,10 @@ def _init_postgresql():
         total_score DOUBLE PRECISION,            -- 总分（报告生成后写入）
         voice_reading INTEGER,                   -- 是否语音读题（0/1）
         voice_type TEXT DEFAULT 'professional_male',  -- 面试官音色
-        report_content BYTEA,                    -- 评估报告PDF（BYTEA = 二进制字段）
+        -- 评估报告（JSON 文本）。【2026-10 迁移勘正】SQLite 建表把本列标成 BLOB，
+        -- 但历史数据实测 0 行二进制、存的全是 json.dumps 后的字符串（读取方
+        -- report_api/interview_api 全部 json.loads 解析），属历史误标，PG 版改为 TEXT
+        report_content TEXT,
         token TEXT,                              -- 面试链接令牌（候选人凭它访问专属面试页）
         FOREIGN KEY (user_id) REFERENCES users(id),   -- 外键：关联用户表（PG 真强制）
         FOREIGN KEY (interview_type_id) REFERENCES interview_types(id)

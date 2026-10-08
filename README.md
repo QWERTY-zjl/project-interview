@@ -38,7 +38,7 @@
 - **后端**：基于Python和FastAPI的RESTful API服务（uvicorn 启动，/docs 接口文档使用本地静态 swagger-ui 资源，离线可用）
 - **认证**：服务端会话 token——登录成功生成随机 token 存入 `users.auth_token`，前端凭 `Authorization: Bearer <token>` 请求头访问需要身份的接口，不信任前端传参
 - **前端**：使用Vue.js 3和Bootstrap 5构建的响应式Web界面（Vue/axios 均为本地文件，不依赖 CDN）
-- **数据库**：使用SQLite进行数据存储（单文件，线程本地连接池）
+- **数据库**：使用 PostgreSQL 16 进行数据存储（Docker 容器部署，psycopg3 连接池）；保留 SQLite 回退开关——`.env` 不配置 `DATABASE_URL` 时自动回退单文件 SQLite 模式
 - **AI模型**：集成阿里云百炼大语言模型（OpenAI 兼容接口），出题/报告/答题提示统一使用 `LLM_MODEL`（默认 qwen-flash），表情识别使用 `VISION_MODEL`（默认 qwen3-vl-flash）
 - **语音处理**：支持Web录音，语音识别使用 `ASR_MODEL`（默认 paraformer-v2）
 - **语音合成**：集成阿里云百炼 Qwen-TTS 大模型（`TTS_MODEL`，默认 qwen-tts），支持语音预生成
@@ -72,9 +72,10 @@ project-interview/
 │   │   └── config.py                     # 配置文件（AI 模型/端点等全部集中于此，支持 .env 覆盖）
 │   ├── db/                               # 数据库模块
 │   │   ├── db.py                         # 数据库连接管理
-│   │   ├── db_pool.py                    # 数据库连接池（threading.local 线程本地池）
+│   │   ├── db_pool.py                    # 数据库连接池（双轨：PG 用 psycopg_pool，SQLite 回退旧逻辑）
 │   │   ├── create_personal_interview_system_db.py # 建表脚本（权威来源：个人版7表+支付表）
-│   │   └── interview_system.db           # SQLite数据库文件
+│   │   ├── migrate_sqlite_to_pg.py       # SQLite→PostgreSQL 数据搬迁脚本（一次性工具，可重复执行）
+│   │   └── interview_system_backup_20261008.db  # 迁移前 SQLite 全量备份（只读保留，回退用）
 │   ├── static/                           # 静态前端文件
 │   │   ├── admin.html                    # 工作台界面（登录后上传简历、查看面试记录）
 │   │   ├── interview.html                # 候选人面试界面
@@ -116,7 +117,7 @@ project-interview/
 
 ## 数据库设计
 
-系统使用 SQLite 数据库（单文件 `interview_system.db`），包含 **7 张核心业务表 + 6 张支付扩展表**，核心表关系均为 **1:N 外键**，无多对多中间表。下方 ER 图展示核心业务表。
+系统使用 PostgreSQL 16 数据库（Docker 容器部署，库名 `interview_system`），包含 **7 张核心业务表 + 6 张支付扩展表**，核心表关系均为 **1:N 外键**（PG 默认强制校验），无多对多中间表。下方 ER 图展示核心业务表。
 
 ### ER 图
 
@@ -132,17 +133,17 @@ erDiagram
     interviews ||--o{ feedback_data : "interview_id"
 
     users {
-        INTEGER id PK "自增主键"
+        BIGINT id PK "IDENTITY自增主键"
         TEXT username "用户名"
         TEXT email "邮箱"
         TEXT password_hash "密码哈希"
         INTEGER interview_quota "剩余面试次数(默认3)"
         TEXT auth_token "登录会话凭证(Bearer认证)"
-        INTEGER created_at "Unix时间戳"
-        INTEGER last_login_at "最后登录"
+        BIGINT created_at "Unix时间戳(秒)"
+        BIGINT last_login_at "最后登录"
     }
     interview_types {
-        INTEGER id PK
+        BIGINT id PK
         TEXT name "面试类型名称"
         TEXT description "描述"
         INTEGER difficulty_level "难度"
@@ -150,64 +151,64 @@ erDiagram
         INTEGER question_count "题目数"
     }
     interviews {
-        INTEGER id PK
+        BIGINT id PK
         INTEGER user_id FK "所属用户"
         INTEGER interview_type_id FK "面试类型"
-        INTEGER start_time "开始时间"
-        INTEGER end_time "结束时间"
+        BIGINT start_time "开始时间"
+        BIGINT end_time "结束时间"
         INTEGER status "状态0到4"
         INTEGER question_count "题目数"
-        REAL total_score "总分"
+        DOUBLE PRECISION total_score "总分"
         INTEGER voice_reading "是否语音读题"
         TEXT voice_type "面试官发音人"
         TEXT token "面试链接令牌"
-        BLOB report_content "评估报告"
+        TEXT report_content "评估报告(JSON文本)"
     }
     interview_questions {
-        INTEGER id PK
+        BIGINT id PK
         INTEGER interview_id FK "所属面试"
         TEXT question "题目文本"
         TEXT question_type "默认voice"
         TEXT score_standard "评分标准"
-        BLOB question_audio "预生成题目语音"
+        BYTEA question_audio "预生成题目语音"
         TEXT voice_type "TTS发音人"
-        BLOB answer_audio "回答录音"
+        BYTEA answer_audio "回答录音"
         TEXT answer_text "回答转写文本"
-        INTEGER created_at "出题时间(Unix时间戳)"
-        INTEGER answered_at "回答时间(Unix时间戳)"
-        REAL user_score "得分"
+        BIGINT created_at "出题时间(Unix时间戳)"
+        BIGINT answered_at "回答时间(Unix时间戳)"
+        DOUBLE PRECISION user_score "得分"
         TEXT feedback "反馈"
     }
     interview_expression_records {
-        INTEGER id PK
+        BIGINT id PK
         INTEGER interview_id FK "所属面试"
         TEXT expression "表情"
         TEXT expression_cn "中文表情"
-        REAL confidence "置信度"
+        DOUBLE PRECISION confidence "置信度"
         TEXT emotion_status "情绪状态"
-        REAL emotion_score "情绪分"
-        REAL quality_score "画质分"
-        REAL final_score "最终分"
+        DOUBLE PRECISION emotion_score "情绪分"
+        DOUBLE PRECISION quality_score "画质分"
+        DOUBLE PRECISION final_score "最终分"
         TEXT suggestions "建议"
-        INTEGER timestamp "采样时间"
+        BIGINT timestamp "采样时间"
     }
     practice_progress {
-        INTEGER id PK
+        BIGINT id PK
         INTEGER user_id FK "所属用户"
         INTEGER interview_type_id FK "面试类型"
         INTEGER total_practices "总练习数"
         INTEGER completed_practices "已完成数"
-        REAL average_score "平均分"
-        INTEGER last_practice_at "最近练习"
+        DOUBLE PRECISION average_score "平均分"
+        BIGINT last_practice_at "最近练习"
     }
     feedback_data {
-        INTEGER id PK
+        BIGINT id PK
         INTEGER user_id FK "所属用户"
         INTEGER interview_id FK "所属面试"
         TEXT feedback_type "反馈类型"
         TEXT feedback_content "反馈内容"
         INTEGER rating "评分"
-        INTEGER created_at "反馈时间(Unix时间戳)"
+        BIGINT created_at "反馈时间(Unix时间戳)"
     }
 ```
 
@@ -219,8 +220,8 @@ erDiagram
 | ---------------------------------- | ------------------------------------ | ------------------------------------------------------------------------------------- |
 | **users**                          | 用户表（含面试配额与会话凭证）                | id, username, email, password\_hash, interview\_quota, auth\_token                     |
 | **interview\_types**               | 面试类型字典表（类型名称、难度、时长、题目数）              | id, name, difficulty\_level, duration, question\_count                                |
-| **interviews**                     | 核心表：一场面试 = 一条记录（谁面的、面的哪类、状态、总分、面试令牌） | id, user\_id, interview\_type\_id, status, token, total\_score, report\_content(BLOB) |
-| **interview\_questions**           | 每道题：题目文本、预生成语音、回答录音/转写、得分与反馈         | id, interview\_id, question, question\_audio(BLOB), answer\_text, user\_score         |
+| **interviews**                     | 核心表：一场面试 = 一条记录（谁面的、面的哪类、状态、总分、面试令牌） | id, user\_id, interview\_type\_id, status, token, total\_score, report\_content(TEXT) |
+| **interview\_questions**           | 每道题：题目文本、预生成语音、回答录音/转写、得分与反馈         | id, interview\_id, question, question\_audio(BYTEA), answer\_text, user\_score         |
 | **interview\_expression\_records** | 表情分析采样记录：情绪、置信度、各项评分、建议              | id, interview\_id, expression, emotion\_status, final\_score                          |
 
 **链路二：练习统计与反馈**
@@ -232,10 +233,12 @@ erDiagram
 
 ### 设计说明
 
-1. **时间字段统一存 Unix 时间戳**（`INTEGER`，默认 `strftime('%s','now')`），不是日期字符串
-2. **外键默认不强制**：建表语句虽声明了 `FOREIGN KEY`，但 SQLite 需要连接时执行 `PRAGMA foreign_keys = ON` 才会真正校验
-3. 支付相关表（`user_quotas`、`pricing_plans`、`orders` 等 6 张）定义已并入 `create_personal_interview_system_db.py`，程序启动时由 `init_db()` 自动创建，并含 `users` 表的 `phone/user_type/status` 迁移补列；旧版企业版的 `positions`、`candidates` 表已彻底清理（数据库无表、代码无引用）
-4. 查看/管理数据库可使用 DB Browser for SQLite 或 Navicat Premium（连接类型选择 SQLite → 现有数据库文件）
+1. **时间字段统一存 Unix 时间戳**（`BIGINT`，默认 `EXTRACT(EPOCH FROM now())::BIGINT`），不是日期字符串
+2. **外键默认强制**：PG 对 `FOREIGN KEY` 真实校验（插入不存在的 user_id 直接报错），这是从 SQLite 迁移后最直接的收益；历史断链数据已在搬迁时清洗
+3. 支付相关表（`user_quotas`、`pricing_plans`、`orders` 等 6 张）定义已并入 `create_personal_interview_system_db.py`，程序启动时由 `init_db()` 自动创建；旧版企业版的 `positions`、`candidates` 表已彻底清理（数据库无表、代码无引用）
+4. 数据库数据经 `migrate_sqlite_to_pg.py` 从 SQLite 单事务搬迁（保留原 id + setval 校准序列 + 孤儿数据清洗），迁移前的全量备份保留在 `app/db/interview_system_backup_20261008.db`
+5. 查看/管理数据库可使用 psql 命令行（`psql -U zsmian -d interview_system`）或 DBeaver/Navicat（连接类型选 PostgreSQL，主机 127.0.0.1 端口 5432）
+6. 连接层：`db_pool.py` 使用 psycopg_pool 连接池；`.env` 不配置 `DATABASE_URL` 时自动回退单文件 SQLite 模式（回退开关）
 
 ## 面试状态流转
 
@@ -564,7 +567,7 @@ Qwen-TTS 仅支持英文别名音色（不认 zh-CN-* 风格音色）。系统�
 | 语音合成    | 阿里云百炼 Qwen-TTS（TTS_MODEL）            |
 | 语音识别    | 阿里云百炼 paraformer-v2（ASR_MODEL）       |
 | 支付系统    | 支付宝SDK                               |
-| 数据库     | SQLite                               |
+| 数据库     | PostgreSQL 16（Docker 容器部署，psycopg3 连接池；SQLite 回退） |
 | PDF生成   | WeasyPrint                           |
 | PDF解析   | MinerU 2.7.6（本地 GPU，主路径）+ pypdf（降级）  |
 | HTTP客户端 | OpenAI SDK / httpx / requests        |
