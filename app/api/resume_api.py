@@ -10,13 +10,14 @@ from fastapi.responses import JSONResponse
 
 from app.utils.utils import generate_token
 from app.ai_services.resume_service import analyze_resume
-# extract_resume_text：统一简历解析入口（PDF→MinerU/pypdf，DOCX→python-docx，TXT→文本解码）
+# extract_resume_text：统一简历解析入口（PDF→pypdf，DOCX→python-docx，TXT→文本解码）
 from app.ai_services.resume_parser import extract_resume_text
 from app.ai_services.question_service import generate_questions
 from app.db.db import get_db, return_db
 # get_auth_user：从请求头 Authorization: Bearer <token> 解析当前登录用户
 # （上传接口鉴权用：未登录不允许开始面试，见 app/api/deps.py）
 from app.api.deps import get_auth_user
+from app.api.tts_api import INTERVIEWER_VOICES
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +25,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(tags=["简历"])
 
 # 支持的简历格式白名单（扩展名小写）：
-# - pdf  → MinerU 主路径解析（保留表格/公式），失败自动降级 pypdf
+# - pdf  → pypdf 提取纯文本
 # - docx → python-docx 提取段落与表格文本
 # - txt  → 纯文本解码（utf-8 → gbk）
 # 老版 .doc（二进制复合文档）不支持，前端会提示另存为 .docx 或 PDF
@@ -36,7 +37,8 @@ async def upload_resume(
     request: Request,
     resume: UploadFile = File(...),
     work_experience: str = Form(...),
-    target_position: str = Form(...)
+    target_position: str = Form(...),
+    voice_type: str = Form("professional_male")
 ):
     """上传简历并分析，返回面试token（需登录；支持 PDF / DOCX / TXT，含内容级校验）"""
     logger.info("[Resume] 开始处理上传简历请求")
@@ -73,6 +75,10 @@ async def upload_resume(
                 status_code=422,
                 content={"detail": "目标岗位不能为空，请填写后再上传（出题方向由岗位决定）"}
             )
+
+        # 音色校验：必须在音色列表内，防止前端传入非法值导致 TTS 合成失败
+        if voice_type not in INTERVIEWER_VOICES:
+            voice_type = "professional_male"
 
         # 检查文件扩展名（白名单）
         file_ext = resume.filename.split('.')[-1].lower() if resume.filename else ''
@@ -153,7 +159,7 @@ async def upload_resume(
                                  "error_code": "RESUME_NOT_TEXT"}
                     )
         
-        # 解析简历文件为文本（按文件头自动分流：PDF→MinerU/pypdf，DOCX→python-docx，TXT→解码），
+        # 解析简历文件为文本（按文件头自动分流：PDF→pypdf，DOCX→python-docx，TXT→解码），
         # 先出干净文本再做正则分析，避免二进制内容直接当文本喂给分析器
         logger.info("[Resume] 开始解析简历文件")
         try:
@@ -168,7 +174,7 @@ async def upload_resume(
             )
 
         if not (resume_text and resume_text.strip()):
-            # 常见病因：扫描版/图片型 PDF（pypdf 提不出字，MinerU 也可能失败）、加密 PDF、损坏文件
+            # 常见病因：扫描版/图片型 PDF（pypdf 提不出字）、加密 PDF、损坏文件
             logger.error(f"[Resume] 错误: 简历解析结果为空（{file_ext}）")
             return JSONResponse(
                 status_code=422,
@@ -230,7 +236,7 @@ async def upload_resume(
                 INSERT INTO interviews (user_id, start_time, status, question_count, voice_reading, voice_type, token)
                 VALUES (%s, %s, %s, %s, %s, %s, %s)
                 RETURNING id
-            ''', (user_id, int(time.time()), 1, 5, 1, 'professional_male', token))
+            ''', (user_id, int(time.time()), 1, 5, 1, voice_type, token))
             
             interview_id = cursor.fetchone()["id"]
             logger.info(f"[Resume] 创建面试成功，ID: {interview_id}")
@@ -263,13 +269,14 @@ async def upload_resume(
         }
         logger.debug(f"[Resume] 职位信息: {position}")
         
-        # 模拟面试信息
+        # 模拟面试信息（voice_type 用上传接口收到的选定音色，
+        # 出题时按它预生成每题语音）
         interview_dict = {
             "id": interview_id,
             "user_id": user_id,
             "interview_type_id": 1,
             "status": 1,
-            "voice_type": "professional_male"
+            "voice_type": voice_type
         }
         logger.debug(f"[Resume] 面试信息: {interview_dict}")
         

@@ -38,8 +38,8 @@ VISION_MODEL = os.getenv("VISION_MODEL", "qwen3.8-flash")
 # 出题和报告走上面的 DASHSCOPE_BASE_URL 兼容端点，两者不同，别混用）
 DASHSCOPE_NATIVE_URL = os.getenv("DASHSCOPE_NATIVE_URL", "https://dashscope.aliyuncs.com")
 
-# 语音识别模型（ASR：把面试录音转成文字）
-ASR_MODEL = os.getenv("ASR_MODEL", "paraformer-v2")
+# 语音识别模型（ASR：把面试录音转成文字；dashscope Recognition 本地文件转写对应流式识别模型）
+ASR_MODEL = os.getenv("ASR_MODEL", "paraformer-realtime-v2")
 
 # 语音合成模型（TTS：把面试题朗读出来）
 TTS_MODEL = os.getenv("TTS_MODEL", "cosyvoice-v3-flash")

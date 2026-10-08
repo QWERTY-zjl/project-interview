@@ -223,7 +223,7 @@ def generate_questions(interview_id, candidate, position, interview, latest_tech
     生成面试问题的主函数：拼提示词 → 调大模型 → 校验 → 入库(含预生成语音) → 更新面试状态
 
     被 interview_api.py 在用户点击"开始面试"后调用（异步线程中执行）。
-    resume_md 为简历解析出的 markdown（MinerU 失败回退 PyPDF2，再失败则为 None，
+    resume_md 为简历解析出的文本（解析失败则为 None，
     此时出题只依赖简历分析结论 latest_tech_info）。
     永远返回 status="success"：即使大模型失败也用默认问题兜底，保证面试一定能开始。
     """

@@ -54,7 +54,7 @@ project-interview/
 │   │   ├── prompt.py                     # 面试提示词模板
 │   │   ├── question_service.py           # 面试问题生成服务（LLM_MODEL，与报告同模型）
 │   │   ├── report_service.py             # 面试报告生成服务（LLM_MODEL，与出题同模型）
-│   │   ├── resume_parser.py              # pdf解析服务（MinerU 主路径，pypdf 降级）
+│   │   ├── resume_parser.py              # 简历文件解析服务（PDF→pypdf，DOCX→python-docx，TXT→解码）
 │   │   ├── resume_service.py             # 简历信息提取服务
 │   │   └── speech_service.py             # 语音处理服务
 │   ├── api/                              # API层
@@ -80,6 +80,7 @@ project-interview/
 │   │   ├── record_detail.html            # 面试记录详情页（题目/回答/报告回看）
 │   │   ├── login.html                    # 登录界面
 │   │   ├── register.html                 # 注册界面
+│   │   ├── profile.html                  # 个人设置界面（基本信息展示 + 修改密码）
 │   │   ├── pricing.html                  # 套餐购买界面
 │   │   ├── swagger-ui/                   # swagger-ui 本地静态资源（/docs 离线可用）
 │   │   ├── css/                          # 样式文件
@@ -308,6 +309,7 @@ app\venv\Scripts\python.exe -m app.main
 - **工作台**：<http://127.0.0.1:10009/static/admin.html>（根路径 `/` 也返回此页；登录后上传简历开始面试、查看历史记录）
 - **登录界面**：<http://127.0.0.1:10009/static/login.html>
 - **注册界面**：<http://127.0.0.1:10009/static/register.html>
+- **个人设置**：<http://127.0.0.1:10009/static/profile.html>（需登录；也可从工作台顶栏「个人设置」进入）
 - **面试界面**：<http://127.0.0.1:10009/static/interview.html?token=xxx>（token 由上传简历后自动创建）
 - **记录详情**：从工作台的面试记录列表进入（回看题目、回答与报告）
 - **套餐购买**：<http://127.0.0.1:10009/static/pricing.html>（支付功能默认关闭，开启后才可访问）
@@ -386,6 +388,7 @@ app\venv\Scripts\python.exe -m app.main
 - **工作台**：<http://127.0.0.1:10009/static/admin.html>（根路径 `/` 同样返回此页）
 - **登录界面**：<http://127.0.0.1:10009/static/login.html>
 - **注册界面**：<http://127.0.0.1:10009/static/register.html>
+- **个人设置**：<http://127.0.0.1:10009/static/profile.html>（需登录；也可从工作台顶栏「个人设置」进入）
 - **面试界面**：<http://127.0.0.1:10009/static/interview.html?token=xxx>（token 由上传简历后自动创建）
 - **记录详情**：从工作台的面试记录列表进入
 
@@ -394,8 +397,8 @@ app\venv\Scripts\python.exe -m app.main
 1. 用户注册/登录账号（登录成功后前端保存会话 token，后续请求通过 `Authorization: Bearer` 头携带）
 2. 新用户默认获得 3 次面试配额（`users.interview_quota`）
 3. 在工作台上传简历（PDF，必填目标岗位——出题方向由岗位决定，简历分析结果才是出题核心依据）
-4. 系统解析简历（MinerU 主路径，失败自动降级 pypdf）→ AI 出题（约 2 分钟）→ 自动创建面试并跳转
-5. 出题完成时自动预生成题目语音（Qwen-TTS）
+4. 系统解析简历（pypdf 提取文本）→ AI 出题（约 2 分钟）→ 自动创建面试并跳转
+5. 出题完成时自动预生成题目语音（cosyvoice-v3）
 6. 候选人在面试页作答（语音录音或文字），可选开启摄像头进行表情分析（默认关闭，手动开启）
 7. 面试完成后，系统生成评估报告，可在工作台/详情页查看并下载排版后的报告文件
 8. 每场「大模型成功出题」的面试扣 1 次配额；配额用完后可购买套餐继续使用（支付功能默认关闭）
@@ -412,6 +415,8 @@ app\venv\Scripts\python.exe -m app.main
 | `/api/auth/login`      | POST | 用户登录（返回会话 token）          | -    |
 | `/api/auth/logout`     | POST | 退出登录（服务端销毁 token）        | 认证 |
 | `/api/user/quota`      | GET  | 查询当前用户面试配额               | 认证 |
+| `/api/user/profile`    | GET  | 获取个人信息（用户名/邮箱/配额）    | 认证 |
+| `/api/user/password`   | POST | 修改密码（校验原密码）             | 认证 |
 
 ### 简历与面试主流程
 
@@ -443,6 +448,7 @@ app\venv\Scripts\python.exe -m app.main
 | API端点                | 方法   | 功能                     | 认证 |
 | ---------------------- | ------ | ------------------------ | ---- |
 | `/api/tts/voices`      | GET    | 获取面试官音色列表       | -    |
+| `/api/tts/transcribe`  | POST   | 录音音频转文字（语音答案兜底识别） | -    |
 | `/api/tts/synthesize`  | POST   | 合成语音（base64 音频）  | -    |
 
 ### 套餐与支付（支付功能默认关闭）
@@ -486,7 +492,7 @@ app\venv\Scripts\python.exe -m app.main
 | 面试问题生成服务 | 生成面试问题（LLM_MODEL，与报告同模型）    | app/ai\_services/question\_service.py   |
 | 面试提示词模板  | 简历为核心依据、岗位定方向的出题提示词         | app/ai\_services/prompt.py              |
 | 面试报告生成服务 | 生成面试报告（LLM_MODEL）              | app/ai\_services/report\_service.py     |
-| 简历解析服务   | PDF 转 Markdown（MinerU，失败降级 pypdf）  | app/ai\_services/resume\_parser.py      |
+| 简历解析服务   | PDF/DOCX/TXT 简历文件提取文本（PDF→pypdf） | app/ai\_services/resume\_parser.py      |
 | 简历分析服务   | 分析简历内容                             | app/ai\_services/resume\_service.py     |
 | 语音处理服务   | 语音识别（paraformer-v2）与语音合成（qwen-tts） | app/ai\_services/speech\_service.py     |
 | 工具函数     | 通用工具函数                             | app/utils/utils.py                      |
@@ -539,11 +545,11 @@ Qwen-TTS 仅支持英文别名音色（不认 zh-CN-* 风格音色）。系统�
 ## 注意事项
 
 1. **API密钥配置**：需要在项目根目录的`.env`文件中配置正确的 API 密钥（配置项说明参考 `.env.example`，模板中不含真实密钥）；AI 模型名/端点等全部集中在 `app/config/config.py`，均可通过 .env 覆盖
-2. **语音识别**：系统使用Web录音API收集答案，语音转写使用阿里云百炼 paraformer-v2 模型（`ASR_MODEL`）
-3. **语音合成**：使用阿里云百炼 Qwen-TTS 模型（`TTS_MODEL`），需要配置 DASHSCOPE\_API\_KEY；额度不足时自动降级为浏览器内置语音合成
+2. **语音识别**：答题时浏览器语音识别产出转写文本；识别失败时自动把录音上传到后端，用阿里云百炼 paraformer-realtime-v2（`ASR_MODEL`，dashscope SDK）转写兜底
+3. **语音合成**：使用阿里云百炼 cosyvoice-v3-flash 模型（`TTS_MODEL`），需要配置 DASHSCOPE\_API\_KEY；额度不足时自动降级为浏览器内置语音合成
 4. **语音预生成**：生成问题时自动预生成语音，提升面试时的用户体验
 5. **表情识别**：可选功能，默认关闭；需在面试页手动点击「开启摄像头」授权后才会抓拍分析，分析失败不影响答题与报告
-6. **PDF处理**：系统使用本地 MinerU（GPU 加速）将 PDF 简历解析为 Markdown，保留排版/表格信息；MinerU 不可用或解析失败时自动降级为 pypdf 纯文本提取。MinerU 首次运行需下载 1-2GB 模型权重
+6. **PDF处理**：系统使用 pypdf 提取 PDF 简历文本，无需 GPU、无需下载模型权重；扫描版/图片型 PDF 无法提取文字，请使用文字版简历
 7. **浏览器兼容性**：面试界面使用MediaRecorder API，推荐使用Chrome、Firefox、Edge等现代浏览器
 8. **支付系统**：默认关闭；生产环境需要配置支付宝SDK和商户信息
 9. **后台任务**：出题等后台任务在进程内存中执行，服务器重启/崩溃会导致进行中的任务丢失
@@ -556,12 +562,12 @@ Qwen-TTS 仅支持英文别名音色（不认 zh-CN-* 风格音色）。系统�
 | 前端框架    | Vue.js 3                             |
 | UI组件    | Bootstrap 5                          |
 | AI模型    | 阿里云百炼 qwen-flash（出题/报告/提示，统一走 LLM_MODEL）+ qwen3-vl-flash（表情识别，VISION_MODEL） |
-| 语音合成    | 阿里云百炼 Qwen-TTS（TTS_MODEL）            |
-| 语音识别    | 阿里云百炼 paraformer-v2（ASR_MODEL）       |
+| 语音合成    | 阿里云百炼 cosyvoice-v3-flash（TTS_MODEL）   |
+| 语音识别    | 阿里云百炼 paraformer-realtime-v2（ASR_MODEL，dashscope SDK） |
 | 支付系统    | 支付宝SDK                               |
 | 数据库     | PostgreSQL 16（Docker 容器部署，psycopg3 连接池；SQLite 回退） |
 | PDF生成   | WeasyPrint                           |
-| PDF解析   | MinerU 2.7.6（本地 GPU，主路径）+ pypdf（降级）  |
+| PDF解析   | pypdf（提取纯文本）                     |
 | HTTP客户端 | OpenAI SDK / httpx / requests        |
 
 ## 开发与扩展
@@ -581,5 +587,5 @@ Qwen-TTS 仅支持英文别名音色（不认 zh-CN-* 风格音色）。系统�
 
 本项目为商业项目，代码仅以学习交流为目的对外展示，供他人参考。未经作者书面授权，不得以任何形式将本项目全部或部分代码用于商业用途、二次分发或申请其他软件著作权。
 
-> 说明：本项目在运行时通过命令行方式调用开源工具 MinerU 进行 PDF 解析，不包含、也未修改其源代码；除此之外全部代码均为原创开发。
+> 说明：本项目全部代码均为原创开发。
 

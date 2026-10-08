@@ -694,6 +694,7 @@
 
         <div class="nav-right">
           <template v-if="currentUser">
+            <a href="profile.html" class="gt-btn gt-btn-ghost gt-btn-sm">个人设置</a>
             <button class="gt-btn gt-btn-ghost gt-btn-sm" @click="logout">退出登录</button>
           </template>
           <template v-else>
@@ -777,6 +778,21 @@
             <div class="form-field">
               <label class="form-label">目标岗位</label>
               <input type="text" class="form-input" placeholder="如：产品经理" v-model="targetPosition">
+            </div>
+          </div>
+
+          <div class="form-field-row">
+            <div class="form-field">
+              <label class="form-label">面试官音色</label>
+              <select class="form-input" v-model="selectedVoice">
+                <option v-for="v in voiceList" :key="v.id" :value="v.id">{{ v.name }}</option>
+              </select>
+            </div>
+            <div class="form-field">
+              <label class="form-label">&nbsp;</label>
+              <button class="gt-btn gt-btn-outline" @click="previewVoice" :disabled="previewingVoice">
+                {{ previewingVoice ? '试听中…' : '试听该音色' }}
+              </button>
             </div>
           </div>
 
@@ -871,6 +887,9 @@
           workExperience: '',
           targetPosition: '',
           resumeFile: null,
+          voiceList: [],
+          selectedVoice: 'professional_male',
+          previewingVoice: false,
           myRecords: [],
           myStats: null,
           currentUser: null,
@@ -879,8 +898,49 @@
       },
       mounted() {
         this.loadCurrentUser();
+        this.loadVoices();
       },
       methods: {
+        async loadVoices() {
+          // 拉取面试官音色列表（与面试页共用 /api/tts/voices 单一来源）
+          try {
+            const response = await fetch(this.getApiUrl('api/tts/voices'));
+            const data = await response.json();
+            if (data.voices && data.voices.length > 0) {
+              this.voiceList = data.voices;
+            }
+          } catch (err) {
+            console.error('获取音色列表失败:', err);
+          }
+        },
+        async previewVoice() {
+          // 试听当前选中的音色：现场合成一句固定话术播放
+          if (this.previewingVoice) return;
+          this.previewingVoice = true;
+          try {
+            const response = await fetch(this.getApiUrl('api/tts/synthesize'), {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                text: '你好，我是本次的AI面试官，很高兴见到你。我们可以开始了。',
+                voice_type: this.selectedVoice
+              })
+            });
+            const data = await response.json();
+            if (data.audio) {
+              const audio = new Audio(`data:audio/wav;base64,${data.audio}`);
+              audio.onended = () => { this.previewingVoice = false; };
+              audio.onerror = () => { this.previewingVoice = false; };
+              await audio.play();
+            } else {
+              this.previewingVoice = false;
+              Swal.fire({ title: '试听失败', text: '语音合成暂不可用，请稍后再试', icon: 'warning' });
+            }
+          } catch (err) {
+            this.previewingVoice = false;
+            console.error('试听失败:', err);
+          }
+        },
         loadCurrentUser() {
           const user = localStorage.getItem('currentUser');
           if (user) {
@@ -1058,6 +1118,7 @@
             formData.append('resume', this.resumeFile);
             formData.append('work_experience', this.workExperience);
             formData.append('target_position', this.targetPosition);
+            formData.append('voice_type', this.selectedVoice);
 
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 180000);

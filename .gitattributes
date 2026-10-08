@@ -1,0 +1,5 @@
+# git archive 打包软件包时排除的目录（内部资料不进评委作品包）
+dailylogs/ export-ignore
+.trae/ export-ignore
+.vscode/ export-ignore
+make_package.ps1 export-ignore

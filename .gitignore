@@ -29,6 +29,7 @@ env/
 # IDE相关
 .idea/
 .vscode/
+.trae/
 *.swp
 *.swo
 *~

@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>个人设置 — 智面无忧</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link href="css/bootstrap.min.css" rel="stylesheet">
+  <link href="css/theme.css" rel="stylesheet">
+  <script src="js/vue.global.prod.js"></script>
+  <script src="js/sweetalert2.js"></script>
+  <style>
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 48px 24px;
+      background: var(--bg-primary);
+      font-family: var(--font-sans);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    .profile-shell {
+      width: 100%;
+      max-width: 520px;
+    }
+
+    /* ===== 页头 ===== */
+    .profile-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+    }
+
+    .profile-title {
+      font-size: 24px;
+      font-weight: 600;
+      color: var(--text-primary);
+      letter-spacing: -0.02em;
+    }
+
+    .back-link {
+      font-size: 14px;
+      color: var(--accent-primary);
+      font-weight: 500;
+      text-decoration: none;
+    }
+
+    .back-link:hover {
+      text-decoration: underline;
+    }
+
+    /* ===== 卡片 ===== */
+    .profile-card {
+      background: var(--bg-primary);
+      border: 1px solid var(--border-light);
+      border-radius: 18px;
+      padding: 28px 32px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.03);
+    }
+
+    .profile-card-title {
+      font-size: 17px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 20px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--border-light);
+    }
+
+    /* ===== 基本信息行 ===== */
+    .info-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 0;
+      font-size: 14px;
+    }
+
+    .info-row + .info-row {
+      border-top: 1px dashed var(--border-light);
+    }
+
+    .info-label {
+      color: var(--text-secondary);
+    }
+
+    .info-value {
+      color: var(--text-primary);
+      font-weight: 500;
+    }
+
+    .quota-badge {
+      display: inline-block;
+      padding: 3px 12px;
+      background: rgba(0, 122, 255, 0.08);
+      border: 1px solid rgba(0, 122, 255, 0.15);
+      border-radius: 999px;
+      color: var(--accent-primary);
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    /* ===== 表单 ===== */
+    .form-group {
+      margin-bottom: 18px;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      margin-bottom: 8px;
+    }
+
+    .form-input {
+      width: 100%;
+      height: 46px;
+      padding: 0 14px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-light);
+      border-radius: 10px;
+      color: var(--text-primary);
+      font-family: var(--font-sans);
+      font-size: 15px;
+      transition: all 0.18s ease;
+      outline: none;
+    }
+
+    .form-input:focus {
+      border-color: var(--accent-primary);
+      box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.12);
+      background: var(--bg-primary);
+    }
+
+    .form-input::placeholder {
+      color: var(--text-tertiary);
+    }
+
+    .btn-submit {
+      width: 100%;
+      height: 46px;
+      font-size: 15px;
+      font-weight: 600;
+      margin-top: 4px;
+      border-radius: 10px;
+      background: var(--accent-primary);
+      color: #ffffff;
+      border: none;
+      cursor: pointer;
+      transition: all 0.18s ease;
+      font-family: var(--font-sans);
+    }
+
+    .btn-submit:hover:not(:disabled) {
+      background: var(--accent-primary-hover);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0, 122, 255, 0.25);
+    }
+
+    .btn-submit:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    /* ===== 响应式 ===== */
+    @media (max-width: 480px) {
+      body {
+        padding: 24px 20px;
+        align-items: flex-start;
+        padding-top: 40px;
+      }
+
+      .profile-card {
+        padding: 24px 20px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <div class="profile-shell">
+      <!-- 页头 -->
+      <div class="profile-header">
+        <div class="profile-title">个人设置</div>
+        <a class="back-link" href="admin.html">← 返回工作台</a>
+      </div>
+
+      <!-- 基本信息（只读展示） -->
+      <div class="profile-card">
+        <div class="profile-card-title">基本信息</div>
+        <div class="info-row">
+          <span class="info-label">用户名</span>
+          <span class="info-value">{{ profile.username || '--' }}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">邮箱</span>
+          <span class="info-value">{{ profile.email || '未绑定' }}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">注册时间</span>
+          <span class="info-value">{{ createdAtText }}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">剩余面试次数</span>
+          <span class="quota-badge">{{ profile.interview_quota }} 次</span>
+        </div>
+      </div>
+
+      <!-- 修改密码 -->
+      <div class="profile-card">
+        <div class="profile-card-title">修改密码</div>
+        <form @submit.prevent="handleChangePassword">
+          <div class="form-group">
+            <label class="form-label">原密码</label>
+            <input type="password" class="form-input" v-model="pwdForm.oldPassword"
+                   placeholder="请输入当前密码" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">新密码（至少 6 位）</label>
+            <input type="password" class="form-input" v-model="pwdForm.newPassword"
+                   placeholder="请输入新密码" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">确认新密码</label>
+            <input type="password" class="form-input" v-model="pwdForm.confirmPassword"
+                   placeholder="请再次输入新密码" required>
+          </div>
+          <button type="submit" class="btn-submit" :disabled="changing">
+            <span v-if="changing">提交中…</span>
+            <span v-else>确认修改</span>
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const { createApp } = Vue;
+
+    createApp({
+      data() {
+        return {
+          profile: {
+            username: '',
+            email: '',
+            phone: '',
+            created_at: 0,
+            interview_quota: 0
+          },
+          pwdForm: {
+            oldPassword: '',
+            newPassword: '',
+            confirmPassword: ''
+          },
+          loading: true,
+          changing: false
+        };
+      },
+      computed: {
+        // 后端 created_at 是 Unix 秒，前端转成可读日期
+        createdAtText() {
+          if (!this.profile.created_at) return '--';
+          const d = new Date(this.profile.created_at * 1000);
+          const pad = n => String(n).padStart(2, '0');
+          return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+        }
+      },
+      methods: {
+        // 与 admin.html 同一套鉴权约定：localStorage 里的 authToken 放进 Bearer 头
+        getAuthHeaders() {
+          const token = localStorage.getItem('authToken');
+          return {
+            'Content-Type': 'application/json',
+            ...(token ? { 'Authorization': 'Bearer ' + token } : {})
+          };
+        },
+        // token 无效/过期：清登录态并踢回登录页
+        handleUnauthorized() {
+          localStorage.removeItem('authToken');
+          localStorage.removeItem('currentUser');
+          Swal.fire('请先登录', '登录状态已失效，请重新登录', 'warning')
+            .then(() => { window.location.href = 'login.html'; });
+        },
+        async fetchProfile() {
+          try {
+            const response = await fetch('/api/user/profile', { headers: this.getAuthHeaders() });
+            if (response.status === 401) { this.handleUnauthorized(); return; }
+            const data = await response.json();
+            if (data.status === 'success') {
+              this.profile = data.profile;
+            } else {
+              Swal.fire('加载失败', data.error || '获取个人信息失败', 'error');
+            }
+          } catch (error) {
+            console.error('获取个人信息失败:', error);
+            Swal.fire('错误', '网络异常，获取个人信息失败', 'error');
+          } finally {
+            this.loading = false;
+          }
+        },
+        async handleChangePassword() {
+          const { oldPassword, newPassword, confirmPassword } = this.pwdForm;
+          // 前端先校验，减少无效请求
+          if (!oldPassword || !newPassword) {
+            Swal.fire('提示', '请填写原密码和新密码', 'warning');
+            return;
+          }
+          if (newPassword.length < 6) {
+            Swal.fire('提示', '新密码至少 6 位', 'warning');
+            return;
+          }
+          if (newPassword !== confirmPassword) {
+            Swal.fire('提示', '两次输入的新密码不一致', 'warning');
+            return;
+          }
+          this.changing = true;
+          try {
+            const response = await fetch('/api/user/password', {
+              method: 'POST',
+              headers: this.getAuthHeaders(),
+              body: JSON.stringify({
+                old_password: oldPassword,
+                new_password: newPassword
+              })
+            });
+            if (response.status === 401) { this.handleUnauthorized(); return; }
+            const data = await response.json();
+            if (data.status === 'success') {
+              Swal.fire('修改成功', '下次登录请使用新密码', 'success');
+              this.pwdForm = { oldPassword: '', newPassword: '', confirmPassword: '' };
+            } else {
+              Swal.fire('修改失败', data.error || '请检查原密码是否正确', 'error');
+            }
+          } catch (error) {
+            console.error('修改密码失败:', error);
+            Swal.fire('错误', '网络异常，修改密码失败', 'error');
+          } finally {
+            this.changing = false;
+          }
+        }
+      },
+      mounted() {
+        // 没带 token 直接踢回登录页，不浪费一次接口调用
+        if (!localStorage.getItem('authToken')) {
+          this.handleUnauthorized();
+          return;
+        }
+        this.fetchProfile();
+      }
+    }).mount('#app');
+  </script>
+</body>
+</html>

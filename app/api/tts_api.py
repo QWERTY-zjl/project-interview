@@ -3,10 +3,10 @@
 """
 
 import logging
-from fastapi import APIRouter, Body, HTTPException
+from fastapi import APIRouter, Body, File, HTTPException, UploadFile
 from fastapi.responses import JSONResponse
 
-from app.ai_services.speech_service import synthesize_speech
+from app.ai_services.speech_service import synthesize_speech, transcribe_audio
 
 logger = logging.getLogger(__name__)
 
@@ -63,6 +63,21 @@ async def get_tts_voices():
         status_code=200,
         content={"voices": voices}
     )
+
+
+@router.post("/api/tts/transcribe", summary="音频转文字")
+async def transcribe_audio_api(file: UploadFile = File(...)):
+    """把面试录音（WAV）转写成文字，作为浏览器语音识别失败时的兜底链路"""
+    audio_bytes = await file.read()
+    if not audio_bytes:
+        raise HTTPException(status_code=400, detail="音频内容为空")
+
+    text, error = transcribe_audio(audio_bytes)
+    if error:
+        logger.warning(f"[ASR] 转写失败: {error}")
+        return JSONResponse(status_code=200, content={"status": "error", "message": error})
+
+    return JSONResponse(status_code=200, content={"status": "success", "text": text})
 
 
 @router.post("/api/tts/synthesize", summary="合成语音")

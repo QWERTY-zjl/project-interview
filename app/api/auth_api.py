@@ -8,6 +8,8 @@ from fastapi.responses import JSONResponse
 # 数据库连接池入口：quota 接口个人版真查 users.interview_quota 用
 from app.db.db import get_db, return_db
 from app.api.deps import get_auth_user
+# 密码哈希函数与注册/登录共用同一实现（sha256），保证新旧密码摘要算法一致
+from app.payment_module import hash_password
 
 logger = logging.getLogger(__name__)
 
@@ -164,3 +166,80 @@ async def api_get_quota(request: Request):
             status_code=200,
             content={"status": "success", "quota": {"total_available": {"interviews": 0}}},
         )
+
+
+@router.get("/api/user/profile", summary="获取个人信息")
+async def api_get_profile(request: Request):
+    """获取当前登录用户的基本信息（个人设置页展示用）
+
+    从请求头 token 反查身份（与 quota 接口同一模式），未登录 401。
+    get_auth_user 已带出 users 整行，这里无需再查库，只做字段挑选与 NULL 兜底。
+    """
+    user = get_auth_user(request)
+    if user is None:
+        return JSONResponse(
+            status_code=401,
+            content={"error": "请先登录"}
+        )
+    return JSONResponse(
+        status_code=200,
+        content={
+            "status": "success",
+            "profile": {
+                "username": user['username'],
+                "email": user['email'],
+                "phone": user['phone'],
+                # created_at 为 Unix 秒（建表默认值），前端负责格式化展示
+                "created_at": user['created_at'],
+                "interview_quota": user['interview_quota'] if user['interview_quota'] is not None else 0,
+            }
+        }
+    )
+
+
+@router.post("/api/user/password", summary="修改密码")
+async def api_change_password(request: Request, old_password: str = Body(...), new_password: str = Body(...)):
+    """修改当前登录用户的密码
+
+    流程：token 反查身份 → 校验原密码（同算法 sha256 摘要对比）→ 写入新摘要。
+    修改成功不吊销当前 auth_token（用户不必被强制重新登录）。
+    """
+    user = get_auth_user(request)
+    if user is None:
+        return JSONResponse(
+            status_code=401,
+            content={"error": "请先登录"}
+        )
+    if not old_password or not new_password:
+        return JSONResponse(
+            status_code=400,
+            content={"error": "请填写原密码和新密码"}
+        )
+    if len(new_password) < 6:
+        return JSONResponse(
+            status_code=400,
+            content={"error": "新密码至少 6 位"}
+        )
+    # 原密码校验：与注册时同一 hash_password 算法，摘要一致才算通过
+    if hash_password(old_password) != (user['password_hash'] or ''):
+        return JSONResponse(
+            status_code=400,
+            content={"error": "原密码不正确"}
+        )
+    try:
+        conn = get_db()
+        try:
+            conn.execute('UPDATE users SET password_hash = %s WHERE id = %s',
+                         (hash_password(new_password), user['id']))
+            conn.commit()
+        finally:
+            return_db(conn)
+    except Exception as e:
+        logger.error(f"[Profile] 修改密码失败: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+    return JSONResponse(
+        status_code=200,
+        content={"status": "success", "message": "密码修改成功"}
+    )

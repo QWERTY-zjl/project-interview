@@ -10,7 +10,7 @@ r"""
   [2] TXT 简历                     → 期望 200 出题成功
   [3] 老版 .doc                    → 期望 400，提示另存为 .docx/PDF
   [4] 伪 DOCX（PK 头 + 垃圾内容）  → 期望 422，提示解析失败
-  [5] 真实 PDF（张三丰简历）       → 期望 200 出题成功（MinerU 链路，耗时较长）
+  [5] 真实 PDF（张三丰简历）       → 期望 200 出题成功
 
 用法：app\venv\Scripts\python.exe tests\resume_format_check.py
 注意：场景 [1][2][5] 会真实创建面试记录并扣减配额、调用 AI 出题。
@@ -109,7 +109,7 @@ def upload(token, path, position, filename=None):
             headers={"Authorization": f"Bearer {token}"},
             files=files,
             data={"work_experience": "1", "target_position": position},
-            timeout=300,  # PDF 走 MinerU 可能要几十秒
+            timeout=300,  # 出题等 AI 链路可能要几十秒
         )
     try:
         return resp.status_code, resp.json()
@@ -160,9 +160,9 @@ def main():
     check("场景[4] 伪 DOCX（PK头改名文件）拦截", ok,
           f"HTTP {code} → {msg} (error_code={err_code})")
 
-    # [5] 真实 PDF：MinerU 主路径（GPU 解析，耗时 30~120 秒属正常）
+    # [5] 真实 PDF：pypdf 提取文本
     code, data = upload(token, PDF_PATH, "前端开发")
-    check("场景[5] 真实 PDF 上传（MinerU 链路）",
+    check("场景[5] 真实 PDF 上传",
           code == 200 and data.get("status") == "success",
           f"HTTP {code} → {json.dumps(data, ensure_ascii=False)[:160]}")
 

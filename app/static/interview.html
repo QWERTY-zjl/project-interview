@@ -199,31 +199,74 @@
             margin-bottom: var(--space-2);
         }
 
-        .voice-select {
-            width: 100%;
-            height: 44px;
-            padding: 0 14px;
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-light);
-            border-radius: var(--radius-lg);
-            color: var(--text-primary);
-            font-size: var(--text-sm);
-            font-family: var(--font-sans);
-            outline: none;
-            transition: all var(--transition-fast);
-            cursor: pointer;
-            -webkit-appearance: none;
-            appearance: none;
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%238e8e93' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
-            background-repeat: no-repeat;
-            background-position: right 14px center;
-            padding-right: 36px;
+        .voice-label-hint {
+            font-size: var(--text-xs);
+            font-weight: var(--fw-regular);
+            color: var(--text-tertiary);
         }
 
-        .voice-select:focus {
+        /* 音色卡片网格：两列排布，选中的卡片主题色高亮 */
+        .voice-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: var(--space-3);
+        }
+
+        .voice-card {
+            padding: var(--space-3) var(--space-4);
+            background: var(--bg-secondary);
+            border: 1.5px solid var(--border-light);
+            border-radius: var(--radius-lg);
+            cursor: pointer;
+            transition: all var(--transition-fast);
+        }
+
+        .voice-card:hover {
             border-color: var(--accent-primary);
+        }
+
+        .voice-card.selected {
+            border-color: var(--accent-primary);
+            background: var(--bg-primary);
             box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.12);
-            background-color: var(--bg-primary);
+        }
+
+        .voice-card-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--space-1);
+        }
+
+        .voice-card-name {
+            font-size: var(--text-sm);
+            font-weight: var(--fw-medium);
+            color: var(--text-primary);
+        }
+
+        .voice-preview-btn {
+            border: none;
+            background: transparent;
+            color: var(--accent-primary);
+            font-size: var(--text-xs);
+            font-family: var(--font-sans);
+            cursor: pointer;
+            padding: 2px var(--space-2);
+            border-radius: var(--radius-sm);
+            transition: all var(--transition-fast);
+        }
+
+        .voice-preview-btn:hover {
+            background: var(--bg-tertiary);
+        }
+
+        .voice-preview-btn.playing {
+            color: var(--text-secondary);
+        }
+
+        .voice-card-desc {
+            font-size: var(--text-xs);
+            color: var(--text-tertiary);
         }
 
         .voice-select-hint {
@@ -474,14 +517,6 @@
             font-size: var(--text-xs);
             font-weight: var(--fw-medium);
             color: var(--accent-primary);
-        }
-
-        .voice-toggle {
-            display: flex;
-            align-items: center;
-            gap: var(--space-2);
-            font-size: var(--text-xs);
-            color: var(--text-secondary);
         }
 
         .question-text {
@@ -1100,12 +1135,22 @@
             </div>
 
             <div class="voice-select-group">
-                <label>选择面试官音色</label>
-                <select v-model="selectedVoice" class="voice-select">
-                    <option v-for="voice in availableVoices" :key="voice.id" :value="voice.id">
-                        {{ voice.name }} — {{ voice.description }}
-                    </option>
-                </select>
+                <label>选择面试官音色 <span class="voice-label-hint">点击卡片选中，可先试听</span></label>
+                <div class="voice-grid">
+                    <div v-for="voice in availableVoices" :key="voice.id"
+                         class="voice-card" :class="{ selected: selectedVoice === voice.id }"
+                         @click="selectedVoice = voice.id">
+                        <div class="voice-card-top">
+                            <span class="voice-card-name">{{ voice.name }}</span>
+                            <button class="voice-preview-btn" type="button"
+                                    :class="{ playing: previewingVoice === voice.id }"
+                                    @click.stop="previewVoice(voice)">
+                                {{ previewingVoice === voice.id ? '♪ 停止' : '▶ 试听' }}
+                            </button>
+                        </div>
+                        <div class="voice-card-desc">{{ voice.description }}</div>
+                    </div>
+                </div>
                 <p class="voice-select-hint">选择后将锁定，面试过程中不可更改</p>
             </div>
 
@@ -1279,13 +1324,6 @@
                         <span class="question-number">
                             第 {{ currentQuestionIndex + 1 }} 题
                         </span>
-                        <div class="voice-toggle">
-                            <span>朗读</span>
-                            <label class="gt-toggle">
-                                <input type="checkbox" v-model="voiceReadingEnabled" @change="toggleVoiceReading">
-                                <span class="gt-toggle-slider"></span>
-                            </label>
-                        </div>
                     </div>
 
                     <div class="question-text">
@@ -1420,9 +1458,12 @@
 
                 const interviewStatus = ref(1);
 
+                // 题目语音朗读固定开启（无界面开关），预生成的语音自动播放
                 const voiceReadingEnabled = ref(true);
                 const selectedVoice = ref('professional_male');
                 const availableVoices = ref([]);
+                // 当前正在试听的音色 id（null = 没在试听），驱动试听按钮的「▶ 试听/♪ 停止」状态
+                const previewingVoice = ref(null);
                 const isPlayingAudio = ref(false);
                 const currentAudioPlayer = ref(null);
 
@@ -1550,24 +1591,26 @@
                         const response = await axios.get(`/api/interview/${token.value}/info`);
                         const data = response.data;
                         // 后端 info 接口返回顶层字段：time（已格式化的字符串）、position、candidate、
-                        // status、question_count、voice_reading（0/1 整数）
+                        // status、question_count、voice_type（工作台/欢迎页选定的面试官音色）
                         interviewInfo.value = {
                             time: data.time || '',
                             position: data.position || '模拟面试',
                             candidate: data.candidate || '候选人',
-                            voice_reading: !!(data.voice_reading === 1 || data.voice_reading === true),
                             question_count: data.question_count || 10
                         };
+                        // 同步音色：从工作台进来时欢迎页不出现，实时合成的朗读必须
+                        // 跟随库内保存的音色，否则永远落在默认男声
+                        if (data.voice_type) {
+                            selectedVoice.value = data.voice_type;
+                        }
                         totalQuestions.value = data.question_count || 10;
                         interviewStatus.value = data.status !== undefined ? data.status : 1;
-                        voiceReadingEnabled.value = interviewInfo.value.voice_reading;
                     } catch (err) {
                         console.error('获取面试信息失败:', err);
                         interviewInfo.value = {
                             time: '',
                             position: '模拟面试',
                             candidate: '候选人',
-                            voice_reading: true,
                             question_count: 10
                         };
                     }
@@ -1581,14 +1624,43 @@
                     isPlayingAudio.value = false;
                 };
 
-                const toggleVoiceReading = async () => {
+                // 音色试听：现场合成一句固定试听语并播放，帮用户在开始面试前选出音色
+                // 同一音色播放中再点 = 停止；切换试听其他音色时先停掉当前播放
+                const previewVoice = async (voice) => {
+                    if (previewingVoice.value === voice.id && currentAudioPlayer.value) {
+                        stopCurrentAudio();
+                        previewingVoice.value = null;
+                        return;
+                    }
+                    stopCurrentAudio();
+                    previewingVoice.value = voice.id;
                     try {
-                        // 后端接口为 toggle_voice_reading（请求体 {"enabled": true/false}）
-                        await axios.post(`/api/interview/${token.value}/toggle_voice_reading`, {
-                            enabled: voiceReadingEnabled.value
+                        const response = await axios.post(`/api/tts/synthesize`, {
+                            text: '你好，我是本次的AI面试官，很高兴见到你。我们可以开始了。',
+                            voice_type: voice.id
                         });
+                        const audioBase64 = response.data.audio;
+                        if (!audioBase64) {
+                            previewingVoice.value = null;
+                            return;
+                        }
+                        const audio = new Audio(`data:audio/wav;base64,${audioBase64}`);
+                        currentAudioPlayer.value = audio;
+                        isPlayingAudio.value = true;
+                        audio.onended = () => {
+                            isPlayingAudio.value = false;
+                            if (currentAudioPlayer.value === audio) {
+                                currentAudioPlayer.value = null;
+                                previewingVoice.value = null;
+                            }
+                        };
+                        audio.onerror = () => {
+                            previewingVoice.value = null;
+                        };
+                        audio.play();
                     } catch (err) {
-                        console.error('切换语音朗读失败:', err);
+                        console.error('音色试听失败:', err);
+                        previewingVoice.value = null;
                     }
                 };
 
@@ -1982,7 +2054,37 @@
                     }
                 };
 
+                const transcribeRecording = async () => {
+                    // 把本次录音打包成 WAV 上传后端转写（浏览器语音识别失败时的兜底链路）
+                    try {
+                        const wavBlob = createWavBlob(audioBuffers.value, sampleRate);
+                        const formData = new FormData();
+                        formData.append('file', wavBlob, 'answer.wav');
+                        const response = await axios.post('/api/tts/transcribe', formData, {
+                            headers: { 'Content-Type': 'multipart/form-data' },
+                            timeout: 60000
+                        });
+                        if (response.data.status === 'success' && response.data.text) {
+                            return response.data.text;
+                        }
+                        return '';
+                    } catch (err) {
+                        console.error('录音转写失败:', err);
+                        return '';
+                    }
+                };
+
                 const submitTextAnswer = async () => {
+                    // 语音模式且浏览器识别没产出文本 → 上传录音让后端转写兜底
+                    if (answerMode.value === 'voice'
+                        && (!textAnswer.value || !textAnswer.value.trim())
+                        && audioBuffers.value.length > 0) {
+                        const transcribed = await transcribeRecording();
+                        if (transcribed) {
+                            textAnswer.value = transcribed;
+                        }
+                    }
+
                     if (!textAnswer.value || textAnswer.value.trim() === '') {
                         Swal.fire({
                             title: '提示',
@@ -2004,6 +2106,8 @@
 
                         if (response.data.status === 'success') {
                             textAnswer.value = '';
+                            // 录音计时器归零，避免下一题沿用上一题的时长
+                            recordingTime.value = 0;
                             currentQuestionIndex.value++;
 
                             if (currentQuestionIndex.value >= totalQuestions.value) {
@@ -2349,7 +2453,6 @@
                     error,
                     recordingTime,
                     interviewStatus,
-                    voiceReadingEnabled,
                     selectedVoice,
                     availableVoices,
                     isPlayingAudio,
@@ -2362,7 +2465,8 @@
                     stopRecording,
                     submitTextAnswer,
                     handleSubmit,
-                    toggleVoiceReading,
+                    previewVoice,
+                    previewingVoice,
                     cameraActive,
                     expressionData,
                     startCamera,
