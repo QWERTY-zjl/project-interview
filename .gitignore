@@ -74,9 +74,10 @@ docker/nginx/ssl/
 # 临时文件
 temp/
 
-# Uploaded files
+# Uploaded files（/resumes/ 锚定仓库根目录的运行时上传简历；
+# 不加斜杠会把 docs/resumes/ 示例简历也挡在 git 外）
 uploads/
-resumes/
+/resumes/
 
 # Test files
 test_*.py

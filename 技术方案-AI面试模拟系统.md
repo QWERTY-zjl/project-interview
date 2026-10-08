@@ -444,6 +444,7 @@ erDiagram
 ### 附录 3：测试数据
 
 - 测试脚本：`tests/full_flow_test.py`（端到端全链路）、`tests/resume_format_check.py`（简历格式边界）、`tests/ai_api_check.py`（模型授权/额度/多模态链路）；
+- 示例简历：作品包内置 `docs/resumes/` 目录，含 3 份虚构测试简历（AI 大模型产品经理 / 前端开发工程师 / 数据工程师，均提供 PDF 与 Markdown 双格式）。评委可直接上传这些简历体验"围绕简历内容动态出题"的个性化效果——三份简历岗位不同，生成的题目方向与考察点也完全不同；
 - 数据规模验证：PostgreSQL 生产库实际统计——interviews 2511 条、interview\_questions 2347 条、表情记录 409 条、完整报告 17 份；
 - 性能参考：简历解析 < 2 秒（pypdf 本地提取）；预生成语音播放零等待；转写兜底单题 < 10 秒（16kHz/WAV/1MB 量级）。
 

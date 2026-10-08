@@ -6,7 +6,7 @@
 - 操作系统：Windows 10 / 11（64 位）
 - Python：3.10 或以上版本（下载地址 https://www.python.org/downloads/）
   安装时务必勾选 "Add Python to PATH"
-- 浏览器：Chrome / Edge（推荐 Chrome，语音识别功能更完整）
+- 浏览器：Chrome / Edge（推荐 Edge，语音识别功能更完整）
 - 网络：需要联网调用 AI 模型服务
 
 【安装步骤（共 4 步）】
