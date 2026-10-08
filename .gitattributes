@@ -3,4 +3,5 @@ dailylogs/ export-ignore
 .trae/ export-ignore
 .vscode/ export-ignore
 docs/ export-ignore
+tests/ export-ignore
 make_package.ps1 export-ignore
