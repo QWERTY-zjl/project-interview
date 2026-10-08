@@ -15,12 +15,8 @@
     1. 校验 DATABASE_URL / 备份文件存在，否则直接报错退出
     2. 以「只读模式」打开备份库（mode=ro：物理上杜绝误写备份的可能）
     3. import 建表脚本 → 触发 PG 分支自动建表（幂等，表已存在就跳过）
-    4. 全量读入源数据 → 通用孤儿清洗（PG 强制外键，断链行必须先剔除）
-       已探明的孤儿数据（2026-10-08 实测）：
-         - interviews 3 行：user_id=9/10/11 在 users 表里不存在（企业版遗留）
-         - interview_questions 30 行：15 行 interview_id='test'（字符串脏值）+
-           15 行指向上面 3 场被剔除的面试（级联剔除）
-         - user_quotas 7 行：user_id 断链
+    4. 全量读入源数据 → 通用孤儿清洗（PG 强制外键，断链行必须先剔除，
+       剔除明细在运行时打印）
     5. 单事务写入 PG：
          TRUNCATE 全部 13 张表（清空目标，保证脚本可重复执行）
          → 逐表 INSERT（显式带原 id，防止外键断链）
@@ -29,11 +25,9 @@
 
 【为什么写入必须带 OVERRIDING SYSTEM VALUE】
     PG 建表用的是 GENERATED ALWAYS AS IDENTITY（"永远自动生成"），
-    默认禁止 INSERT 时手工指定 id 列；加上 OVERRiding SYSTEM VALUE 这个开关
+    默认禁止 INSERT 时手工指定 id 列；加上 OVERRIDING SYSTEM VALUE 这个开关
     才允许"我用备份里的原 id，你数据库别管"。搬完数据后 setval 把序列拨到
     max(id)，之后正常插入就继续自动编号，两不耽误。
-
-版权声明：仅供学习参考，禁止商用/二次分发/他用本代码申请软著
 """
 
 import os
@@ -100,14 +94,6 @@ def clean_orphans(table, rows, cols, alive_ids):
     """
     通用孤儿清洗：把外键指向"父表不存在的行"从数据里剔除
 
-    参数:
-        table:     当前表名
-        rows:      该表全部行（每行是 tuple，顺序与 cols 一致）
-        cols:      该表的列名列表（来自源库 cursor.description）
-        alive_ids: {父表名: 父表清洗后存活的 id 集合}
-    返回:
-        (清洗后保留的行列表, 剔除明细列表)
-
     【为什么能自动覆盖 'test' 这种脏值】
     interview_id='test' 不是整数，必然不在父表 id 集合（整数集合）里，
     一视同仁被判为孤儿剔除——不需要为脏值单写逻辑
@@ -116,7 +102,7 @@ def clean_orphans(table, rows, cols, alive_ids):
     if not fk_specs:
         return rows, []                      # 无外键的表（users 等）不清洗
 
-    col_index = {c: i for i, c in enumerate(cols)}   # 列名 → 行内下标
+    col_index = {c: i for i, c in enumerate(cols)}
     kept, removed = [], []
     for row in rows:
         broken = None
@@ -162,7 +148,7 @@ def main():
     data = {}
     for table in TABLE_ORDER:
         cursor = src.execute(f"SELECT * FROM {table}")
-        cols = [d[0] for d in cursor.description]      # cursor.description = 列元信息
+        cols = [d[0] for d in cursor.description]
         rows = [tuple(r) for r in cursor.fetchall()]   # sqlite3.Row → 普通 tuple
         data[table] = [rows, cols]
     src.close()   # 备份库读完了，立刻关掉（只读连接也要释放句柄）
@@ -221,8 +207,6 @@ def main():
             # sql.Placeholder() 生成一个 %s；乘列数再逗号拼接 = (%s, %s, ...)
             phs=sql.SQL(", ").join(sql.Placeholder() * len(cols)),
         )
-        # executemany：同一句 SQL 换参数执行 N 次，psycopg3 内部走 pipeline
-        # 批量模式，比逐行 execute 快一个量级
         cur.executemany(insert_sql, rows)
         print(f"  {table}: 灌入 {len(rows)} 行")
 

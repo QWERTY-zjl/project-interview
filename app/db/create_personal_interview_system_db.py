@@ -4,24 +4,18 @@
 作用：创建和初始化系统全部 13 张数据库表，是表结构的「权威来源」。
 程序每次启动时由 app/db/db.py 的 init_db() 自动 import 执行，也可手动运行。
 
-【2026-10 从 SQLite 迁移到 PostgreSQL】本脚本改为「按 DATABASE_URL 分发」的双方言版本：
-  - config.DATABASE_URL 有值（postgresql:// 开头）→ 走 _init_postgresql()：PG 方言建表
-  - DATABASE_URL 为空                              → 走 _init_sqlite()：原 SQLite 路径一行未动
+按 DATABASE_URL 分发的双方言版本：
+  - config.DATABASE_URL 有值（postgresql:// 开头）→ _init_postgresql()：PG 方言建表
+  - DATABASE_URL 为空                             → _init_sqlite()：SQLite 建表
     （回退开关：删掉 .env 里的 DATABASE_URL 即整体回到 SQLite）
-
-【为什么 SQLite 分支仍保留「迁移补列」段而 PG 分支没有】
-  SQLite 的老库历史上有过缺字段的旧版表，需要探测补列；而 PG 库是全新创建的，
-  建表 SQL 一开始就写全了所有字段（含历史上靠补列加上的 phone/user_type/
-  status/interview_quota/auth_token/user_score/feedback/total_score 等），
-  所以 PG 分支不需要补列逻辑。SQLite 老库的最终结构和 PG 建表结构完全一致。
+  PG 建表 SQL 一次性写全所有字段，无补列逻辑；
+  SQLite 分支额外含探测式补列，兼容缺字段的已有库。
 
 本文件 = Python 外壳 + SQL 内芯：
   1. 分发段   ：读 DATABASE_URL，决定走 PG 还是 SQLite
-  2. 建表段   ：一串 cursor.execute('CREATE TABLE ...')，三引号里是纯 SQL
+  2. 建表段   ：逐张 CREATE TABLE IF NOT EXISTS
   3. 初始数据 ：插入默认面试类型和默认套餐（幂等，重复执行不会插重）
   4. 收尾     ：commit 提交事务 + close 关闭连接
-
-版权声明：仅供学习参考，禁止商用/二次分发/他用本代码申请软著
 """
 
 import os
@@ -36,7 +30,7 @@ DATABASE_URL = os.getenv("DATABASE_URL", "")
 
 
 # ============================================================================
-# 分支一：PostgreSQL 建表（2026-10 新增）
+# 分支一：PostgreSQL 建表
 # ============================================================================
 def _init_postgresql():
     """
@@ -67,16 +61,11 @@ def _init_postgresql():
     # psycopg（回退环境），文件顶 import 会让 SQLite 回退路径直接报 ImportError
     import psycopg
 
-    # psycopg.connect()：建立到 PG 服务器的连接（TCP 通道）。
-    # connect_timeout=5：连接超时 5 秒——PG 没启动时 5 秒报错快速失败，
-    # 而不是用 libpq 默认的"无超时"干等几分钟
+    # connect_timeout=5：PG 没启动时 5 秒报错快速失败，而不是干等几分钟
     conn = psycopg.connect(DATABASE_URL, connect_timeout=5)
-    # 游标：真正执行 SQL 的工人（语义与 sqlite3 的 cursor 相同）
     cursor = conn.cursor()
 
     # ==================== 用户表 (users) ====================
-    # 字段 = SQLite 版 CREATE TABLE + 历史迁移段补的 4 列（phone/user_type/status）
-    # 和 1 列（interview_quota/auth_token 本来就在 SQLite 建表里）
     cursor.execute('''
     CREATE TABLE IF NOT EXISTS users (
         -- 主键自增：GENERATED ALWAYS AS IDENTITY = 插入时自动编号（PG 标准写法）
@@ -123,9 +112,7 @@ def _init_postgresql():
         total_score DOUBLE PRECISION,            -- 总分（报告生成后写入）
         voice_reading INTEGER,                   -- 是否语音读题（0/1）
         voice_type TEXT DEFAULT 'professional_male',  -- 面试官音色
-        -- 评估报告（JSON 文本）。【2026-10 迁移勘正】SQLite 建表把本列标成 BLOB，
-        -- 但历史数据实测 0 行二进制、存的全是 json.dumps 后的字符串（读取方
-        -- report_api/interview_api 全部 json.loads 解析），属历史误标，PG 版改为 TEXT
+        -- 评估报告（JSON 文本）
         report_content TEXT,
         token TEXT,                              -- 面试链接令牌（候选人凭它访问专属面试页）
         FOREIGN KEY (user_id) REFERENCES users(id),   -- 外键：关联用户表（PG 真强制）
@@ -342,9 +329,7 @@ def _init_postgresql():
         ('年度会员', 'yearly_premium', '无限次面试+6000分钟语音合成，最划算', 'yearly', 1999, 3588, 999999, 6000, 1200, 365, 1, 6),
     ]
 
-    # 【%s 占位符】PG 的占位符写 %s（SQLite 是 ?），含义相同：值和 SQL 分离防注入。
-    # %s 是 Python 的 % 格式化符号的"长相"，但这里不是字符串拼接——
-    # psycopg 会把值安全转义后发给数据库
+    # PG 占位符是 %s（SQLite 是 ?）：值参数化传给 psycopg，防注入
     for plan in default_plans:
         cursor.execute('''
         INSERT INTO pricing_plans
@@ -366,8 +351,6 @@ def _init_postgresql():
         ('行为面试', '针对个人综合素质的行为面试', 2, 20, 4)
         ''')
 
-    # ==================== 完成 ====================
-    # PG 默认事务模式：所有语句先在"暂存区"，commit 后才真正落库
     conn.commit()
     conn.close()
     print("PostgreSQL 数据库 13 张表已成功创建。")
@@ -377,34 +360,12 @@ def _init_postgresql():
 # 分支二：SQLite 建表（原有逻辑，一行未动，仅包进函数作为回退开关）
 # ============================================================================
 def _init_sqlite():
-    # ==================== 数据库连接 ====================
-    # 下面这行从里到外拆开读：
-    #   __file__                    → Python 内置变量 = 当前这个 .py 文件自己的路径
-    #   os.path.dirname(__file__)   → 取上面路径的目录部分 → app/db/
-    #   os.path.join(目录, '文件名') → 拼接成完整路径 → app/db/interview_system.db
-    #   sqlite3.connect(路径)       → 打开这个 .db 文件（不存在则自动新建），返回「连接」对象
-    #                                 连接(Connection) = 程序与数据库之间的通道，管事务提交和关闭
-    # 路径锚定到脚本所在目录的好处：不管从哪个目录启动程序，连的都是同一个库，
+    # 路径锚定到脚本所在目录：不管从哪个目录启动，连的都是同一个库，
     # 避免"在别的目录运行时凭空生成一个空库"
     conn = sqlite3.connect(os.path.join(os.path.dirname(__file__), 'interview_system.db'))
-
-    # conn.cursor()：创建「游标」(Cursor) —— 真正执行 SQL 的工人。
-    # 之后所有 SQL 都通过 cursor.execute(...) 发给数据库执行，一个游标可反复使用。
-    # 名字来源同 Word 的光标：连接是打开的文档，游标是输入内容的位置
     cursor = conn.cursor()
 
     # ==================== 用户表 (users) ====================
-    # 【SQL 语法导读】后面 13 张表都是同一个套路，读懂这张表就读懂了全部：
-    #   cursor.execute('''...''')  → Python 把三引号里的字符串（SQL 语句）交给数据库执行
-    #   CREATE TABLE IF NOT EXISTS 表名 (...) → 建一张表；IF NOT EXISTS = 表已存在就跳过（不报错），
-    #                                                保证这个脚本可以放心重复执行
-    #   每行定义一个字段，格式：字段名  数据类型  [约束]
-    #       INTEGER / TEXT / REAL / BLOB → 整数 / 文本 / 小数 / 二进制文件（如PDF、录音）
-    #       PRIMARY KEY  → 主键：本表的唯一编号，永不重复（见上一个问题的"身份证号"）
-    #       AUTOINCREMENT → 自增：插入时不用填 id，数据库自动取上一行 +1
-    #       NOT NULL     → 非空约束：这列必填，不填会报错
-    #       DEFAULT 值    → 默认值：插入时没给这个字段，就自动填默认值
-    #   "-- 注释" 是 SQL 的行内注释，数据库执行时会忽略
     # 用于存储个人用户信息
     cursor.execute('''
     CREATE TABLE IF NOT EXISTS users (
@@ -419,7 +380,6 @@ def _init_sqlite():
         interview_quota INTEGER DEFAULT 3,      -- 可用面试次数（个人版唯一配额项）
         -- 登录会话凭证：登录成功时生成随机 token 写入本列并下发给前端，
         -- 之后所有需要身份的接口凭请求头里的 token 反查本表确定"当前用户"。
-        -- 取代"前端传 user_id 就信谁"的伪登录（2026-10-06 修复未登录越权漏洞）
         auth_token TEXT                         -- 登录会话凭证（登出时置 NULL）
     )
     ''')
@@ -535,12 +495,9 @@ def _init_sqlite():
     )
     ''')
 
-    # ==================== 支付扩展表（原 create_payment_tables.py 并入） ====================
-    # payment_module.py（用户认证/配额/套餐/订单）运行时需要这些表。
-    # 2026-09-28 并入本脚本：由 db.py 的 init_db() 在程序启动时自动创建，
-    # 不再依赖手动执行独立脚本，避免"脚本在、表没建"的漂移。
-    # 注意：原脚本中的 users 表定义未搬入（与本脚本的定义冲突，以本脚本 +
-    # 上方迁移补列的方式对齐 payment_module 所需的 phone/user_type/status）。
+    # ==================== 支付扩展表 ====================
+    # payment_module.py（用户认证/配额/套餐/订单）运行时需要这些表，
+    # 由 db.py 的 init_db() 在程序启动时自动创建
 
     # 用户配额表（记录用户的免费额度和付费额度）
     cursor.execute('''
@@ -671,10 +628,7 @@ def _init_sqlite():
         ('年度会员', 'yearly_premium', '无限次面试+6000分钟语音合成，最划算', 'yearly', 1999, 3588, 999999, 6000, 1200, 365, 1, 6),
     ]
 
-    # 【? 占位符】VALUES 里的每个 ? 是"占位符"：SQL 里先留空位，
-    # 把具体值作为 cursor.execute 的第二个参数（plan 元组）按顺序传入。
-    # 好处：① 值和 SQL 代码分离，防 SQL 注入攻击 ② 6 条套餐共用一段 SQL，for 循环复用
-    # 注意 plan 元组里值的顺序必须和上面列清单一一对应
+    # ? 占位符参数化传值防注入；plan 元组值的顺序必须与列清单一一对应
     for plan in default_plans:
         cursor.execute('''
         INSERT OR IGNORE INTO pricing_plans
@@ -684,31 +638,19 @@ def _init_sqlite():
         ''', plan)
 
     # ==================== 数据库迁移和字段升级 ====================
-    # 【为什么需要这段】上面的 CREATE TABLE IF NOT EXISTS 只在"表不存在"时才建表；
-    # 如果库里已有旧版表（缺新字段），它会什么都不做——新旧结构就"漂移"了。
-    # 所以下面用「探测式迁移」给旧库补字段，让老数据无损升级。
-
-    # conn.commit() = 提交事务。数据库的修改默认先放在"暂存区"，commit 后才真正
-    # 写入 .db 文件（类比：编辑完文档必须按 Ctrl+S 才保存）
+    # 【为什么需要这段】CREATE TABLE IF NOT EXISTS 对缺新字段的已有表什么都不做；
+    # 下面用「探测式迁移」补列，让已有库无损升级。
     conn.commit()
 
-    # 【迁移模式逐行读】下面的每个 try/except 都是同一个四步套路：
+    # 探测式补列：SELECT 报 no such column 说明旧表缺列，
+    # ALTER TABLE ADD COLUMN 补上（新列对旧行自动填 NULL/默认值，不破坏原有数据）
     try:
-        # 第1步：故意查一下这个字段（LIMIT 1 = 只取1行，快速试探）
         cursor.execute("SELECT user_score FROM interview_questions LIMIT 1")
-        #   → 查成功 = 字段已存在，什么都不做，自动跳过 except
     except sqlite3.OperationalError:
-        # 第2步：查失败，抛出 OperationalError（报错信息是 no such column: xxx）
-        #        → 说明旧表缺这个字段，进入补偿逻辑
         print("添加 user_score 字段到 interview_questions 表...")
-        # 第3步：ALTER TABLE 表名 ADD COLUMN 字段名 类型 = 给已有的表加一列
-        #        （旧数据的新列自动填 NULL/默认值，不破坏原有数据）
         cursor.execute("ALTER TABLE interview_questions ADD COLUMN user_score REAL")
-        # 第4步：提交，补列才真正写入文件
         conn.commit()
         print("user_score 字段添加成功")
-
-    # （后面 7 个 try/except 块与此完全同模式，只是探测的字段和所属表不同）
 
     try:
         cursor.execute("SELECT feedback FROM interview_questions LIMIT 1")
@@ -782,9 +724,9 @@ def _init_sqlite():
         conn.commit()
         print("interview_quota 字段添加成功")
 
-    # 检查并添加 auth_token 字段到 users 表（登录会话凭证，2026-10-06 越权修复）
+    # 检查并添加 auth_token 字段到 users 表（登录会话凭证）
     # 与上面 interview_quota 同款探测式迁移：查询报错说明列不存在，补上即可。
-    # 老用户的存量账号该列默认 NULL = 未登录状态，首次登录时才写入 token
+    # 已有账号该列默认 NULL = 未登录状态，首次登录时才写入 token
     try:
         cursor.execute("SELECT auth_token FROM users LIMIT 1")
     except sqlite3.OperationalError:
@@ -794,9 +736,7 @@ def _init_sqlite():
         print("auth_token 字段添加成功")
 
     # ==================== 插入初始数据 ====================
-    # 【INSERT 语法】INSERT INTO 表名 (列1, 列2, ...) VALUES (值1, 值2, ...)
-    #   OR IGNORE = 冲突时忽略跳过，不报错 → 脚本重复执行时不会重复插入/报错，幂等
-    #   注意 values 前的列清单里没写 id 列 → 主键 AUTOINCREMENT 自动编号
+    # INSERT OR IGNORE：已存在则跳过，幂等；列清单不含 id，主键自增自动编号
     # 插入默认面试类型
     cursor.execute('''
     INSERT OR IGNORE INTO interview_types (name, description, difficulty_level, duration, question_count) VALUES
@@ -808,11 +748,8 @@ def _init_sqlite():
     ''')
 
 
-    # ==================== 完成 ====================
-    # 最后再 commit 一次：把建表后所有 INSERT 的内容一起写入 .db 文件
     conn.commit()
-    # 关闭连接：通道关闭，游标随之失效。不关的话 .db 文件一直被占用，
-    # Windows 上其他工具（如 DBCode）打开会报 database is locked
+    # 不关闭的话 .db 文件一直被占用，Windows 上其他工具打开会报 database is locked
     conn.close()
 
     print("个人用户版数据库和表已成功创建。")

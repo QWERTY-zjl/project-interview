@@ -23,16 +23,9 @@ router = APIRouter(tags=["面试报告"])
 
 @router.post("/api/evaluation/generate", summary="生成面试评价报告")
 # embed=True：告诉 FastAPI 这个参数嵌在 JSON 对象里（{"token": "..."}）而不是裸值（"..."）
-# 前端 interview.html 发的是对象形态，不加 embed 会 422（2026-10-01 测试报告回归 4.1）
+# 前端 interview.html 发的是对象形态，不加 embed 会 422
 def generate_evaluation(token: str = Body(None, embed=True)):
-    """生成面试评价报告（面试收尾环节，前端答完全部问题后调用）
-
-    Args:
-        token: 面试token
-
-    Returns:
-        JSONResponse: {"status": "success", "evaluation": 前端评价字段, "report": 完整存档报告}
-    """
+    """生成面试评价报告（面试收尾环节，前端答完全部问题后调用）"""
     conn = None
     try:
         # 函数内导入（与项目其他 ai_services 模块的导入惯例一致）
@@ -76,7 +69,7 @@ def generate_evaluation(token: str = Body(None, embed=True)):
 
         interview_id = interview['id']
 
-        # 个人版单用户，无候选人/岗位表（candidates/positions 为企业版遗留，已清理）。
+        # 个人版单用户，无候选人/岗位表。
         # 简历原文未入库，评估提示词只使用问题回答与表情数据；
         # 占位结构与 generate_questions 的个人版模拟数据保持一致
         candidate = {"name": "个人用户", "resume_content": ""}

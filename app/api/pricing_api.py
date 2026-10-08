@@ -24,14 +24,7 @@ except ImportError as e:
 
 @router.get("/api/pricing/plans", summary="获取套餐列表")
 async def api_get_plans(plan_type: str = Query(None)):
-    """获取套餐列表
-
-    Args:
-        plan_type: 套餐类型（可选，按类型筛选）
-
-    Returns:
-        JSONResponse: {"status": "success", "plans": 套餐列表}
-    """
+    """获取套餐列表（plan_type 可选，按类型筛选）"""
     if not PAYMENT_ENABLED:
         return JSONResponse(
             status_code=503,
@@ -49,14 +42,7 @@ async def api_get_plans(plan_type: str = Query(None)):
 
 @router.get("/api/pricing/plans/{plan_id}", summary="获取套餐详情")
 async def api_get_plan_detail(plan_id: int = Path(...)):
-    """获取套餐详情
-
-    Args:
-        plan_id: 套餐ID（路径参数）
-
-    Returns:
-        JSONResponse: {"status": "success", "plan": 套餐详情}
-    """
+    """获取套餐详情"""
     if not PAYMENT_ENABLED:
         return JSONResponse(
             status_code=503,

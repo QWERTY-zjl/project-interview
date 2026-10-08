@@ -4,12 +4,12 @@
 负责把上传的简历文件解析成文本（Markdown/纯文本）：
 - PDF：主路径调用本地 MinerU CLI（GPU 加速，输出 Markdown，保留表格/公式），
   降级路径用 pypdf 提取纯文本（MinerU 不可用 / 超时 / 失败 / 输出为空时自动切换）
-- DOCX：用 python-docx 提取段落与表格文本（新格式，2026-10-07 加入）
+- DOCX：用 python-docx 提取段落与表格文本
 - 其他（TXT/MD 等）：按纯文本解码（utf-8 → gbk 回退）
 - 完全失败则返回空字符串，由上层处理
 
 对外只暴露一个函数：extract_resume_text(file_bytes, filename)
-（parse_resume_to_markdown 保留，作为 PDF 分支的内部实现入口）
+（parse_resume_to_markdown 为 PDF 分支的内部实现入口）
 """
 
 import os
@@ -25,7 +25,7 @@ from app.config.config import TEMP_DIR
 
 logger = logging.getLogger(__name__)
 
-# python-docx：DOCX 简历解析用（纯 Python 轻量库）；缺失时不影响 PDF/TXT 链路
+# python-docx 缺失时仅 DOCX 链路不可用，不影响 PDF/TXT 链路
 try:
     import docx as docx_lib
     DOCX_SUPPORT = True
@@ -48,21 +48,8 @@ _IMAGE_REF_RE = re.compile(r"!\[[^\]]*\]\([^)]*\)")
 
 
 def _parse_by_mineru(pdf_bytes, work_dir):
-    """
-    用 MinerU CLI 解析 PDF，返回 markdown 文本。
-
-    Args:
-        pdf_bytes: PDF 文件的字节内容
-        work_dir: 本次解析用的工作目录（输入输出都放在这里，用后整体删除）
-
-    Returns:
-        str: MinerU 输出的 markdown 文本
-
-    Raises:
-        FileNotFoundError: mineru.exe 不存在
-        subprocess.TimeoutExpired: 解析超时
-        RuntimeError: 进程非零退出 / 输出目录中没有 markdown 文件
-    """
+    """用 MinerU CLI 解析 PDF，返回 markdown 文本
+    （work_dir 为本次解析的工作目录，输入输出都放在这里，用后整体删除）"""
     if not os.path.isfile(MINERU_CLI):
         raise FileNotFoundError(f"未找到 MinerU CLI: {MINERU_CLI}")
 
@@ -105,15 +92,7 @@ def _parse_by_mineru(pdf_bytes, work_dir):
 
 
 def _parse_by_pypdf(pdf_bytes):
-    """
-    降级方案：用 pypdf 提取 PDF 纯文本（丢失排版，但保证链路可用）。
-
-    Args:
-        pdf_bytes: PDF 文件的字节内容
-
-    Returns:
-        str: 提取的文本，失败返回空字符串
-    """
+    """降级方案：用 pypdf 提取 PDF 纯文本（丢失排版，但保证链路可用），失败返回空字符串"""
     try:
         from io import BytesIO
         from pypdf import PdfReader
@@ -150,12 +129,8 @@ def parse_resume_to_markdown(pdf_bytes, filename=""):
     """
     解析简历 PDF 为文本（对外入口）。
 
-    Args:
-        pdf_bytes: PDF 文件的字节内容
-        filename: 原始文件名（仅用于日志，不再参与实际路径）
-
-    Returns:
-        str: 解析出的 markdown / 纯文本；完全失败时返回空字符串
+    MinerU 主路径失败/输出为空时用 pypdf 降级，清洗截断后返回；
+    完全失败时返回空字符串，由上层决定如何响应。
     """
     if not pdf_bytes:
         logger.warning("[ResumeParser] 收到空的 PDF 内容")
@@ -199,15 +174,6 @@ def _parse_by_docx(file_bytes):
 
     提取顺序：先正文段落（保留换行，正则分析依赖段落结构），
     再表格（单元格用 " | " 拼接成一行，模拟简历里的表格排版）。
-
-    Args:
-        file_bytes: DOCX 文件的字节内容
-
-    Returns:
-        str: 提取的纯文本；完全提不出内容时返回空字符串
-
-    Raises:
-        RuntimeError: python-docx 未安装或解析失败
     """
     if not DOCX_SUPPORT:
         raise RuntimeError("python-docx 库未安装，无法解析 DOCX 文件")
@@ -243,13 +209,7 @@ def _decode_text(file_bytes):
     把纯文本类文件（TXT/MD 等）的字节解码成字符串。
 
     编码探测顺序：utf-8（最常见）→ gbk（Windows 记事本中文默认）→
-    utf-8 replace 模式（保底，坏字节替换为 �，不中断流程）。
-
-    Args:
-        file_bytes: 文件字节内容
-
-    Returns:
-        str: 解码后的文本
+    utf-8 replace 模式（保底，坏字节替换，不中断流程）。
     """
     try:
         return file_bytes.decode("utf-8")
@@ -271,13 +231,8 @@ def extract_resume_text(file_bytes, filename=""):
     - PK\x03\x04 → DOCX 链路（python-docx；docx 本质是 zip 容器）
     - 其他     → 纯文本解码（TXT/MD 等）
 
-    Args:
-        file_bytes: 简历文件的字节内容
-        filename: 原始文件名（仅用于日志）
-
-    Returns:
-        str: 解析出的文本（已清洗、截断到 MAX_TEXT_CHARS）；
-             完全解析失败时返回空字符串，由上层决定如何响应
+    返回已清洗、截断到 MAX_TEXT_CHARS 的文本；
+    完全解析失败时返回空字符串，由上层决定如何响应。
     """
     if not file_bytes:
         logger.warning("[ResumeParser] 收到空的文件内容: %s", filename or "未命名")

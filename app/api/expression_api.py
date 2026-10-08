@@ -6,15 +6,9 @@
 2. /api/interview/{token}/expression —— 把表情数据保存进 interview_expression_records 表
 3. /api/interview/{token}/expression_report —— 聚合某场面试的表情记录
 
-【2026-10-06 修复 400】原接口签名混用 File(None) + 多个 Body(None) 散参数：
-FastAPI 的规则是——只要函数里有 UploadFile/File 参数，整个请求就按
-multipart/form-data 解析，此时散装 Body 参数也从表单里找值，而不是从
-JSON body 里找。前端用 axios 发的是 application/json，所以所有字段
-永远收不到 → 100% 触发 400「请提供图片」。
-现在统一改为纯 JSON 接口（单标量 Body 加 embed=True，多标量 Body 组合
-成 JSON 对象），与前端发法一致。
-
-版权声明：仅供学习参考，禁止商用/二次分发/他用本代码申请软著
+本模块所有接口统一纯 JSON（单标量 Body 加 embed=True，多标量 Body 组合
+成 JSON 对象），与前端 axios 发法一致；函数签名不能混入 UploadFile/File
+参数，否则 FastAPI 会把整个请求按 multipart 解析，JSON 字段收不到。
 """
 
 import base64
@@ -39,15 +33,10 @@ router = APIRouter(tags=["表情分析"])
 async def analyze_expression_api(image_base64: str = Body(None, embed=True)):
     """分析图片中的表情（面试抓拍上报用，结果不存库）
 
-    Args:
-        image_base64: 图片base64编码（支持 dataURL 全串，前端 canvas.toDataURL 原样传入；
-                      单标量 Body 必须加 embed=True，否则 FastAPI 要求裸 JSON 值导致 422）
-
-    Returns:
-        JSONResponse: {"success": True, "expression": 表情, "expression_cn": 表情中文名,
-                       "emotion_status": 情绪状态, "emotion_score": 情绪得分, ...}
-        400 "未检测到人脸" 是正常业务响应（画面里没人脸，如用户离开座位），
-        前端据此静默更新面板文案，不当作错误刷屏
+    image_base64 支持 dataURL 全串，前端 canvas.toDataURL 原样传入；
+    单标量 Body 必须加 embed=True，否则 FastAPI 要求裸 JSON 值导致 422。
+    400 "未检测到人脸" 是正常业务响应（画面里没人脸，如用户离开座位），
+    前端据此静默更新面板文案，不当作错误刷屏。
     """
     try:
         if not image_base64:
@@ -109,23 +98,8 @@ async def save_interview_expression(
 
     数据来源两选一（优先级从上到下）：
     1. expression 非空：前端把 /analyze 的识别结果原样转交——直接入库，
-       不再重复调用大模型（原实现 image_base64 优先，导致同一次抓拍
-       识别两次、费钱且慢，2026-10-06 调整为复用结果优先）
+       不重复调用大模型（复用结果优先，避免同一次抓拍识别两次、费钱且慢）
     2. image_base64 非空：现场识别后再入库（兼容直接传图的调用方）
-
-    Args:
-        token: 面试token（路径参数），一场面试的对外门牌号
-        expression: 表情名（前端转交的分析结果）
-        expression_cn: 表情中文名
-        emotion_status: 情绪状态（积极/中性/消极）
-        emotion_score: 情绪得分
-        quality_score: 质量得分
-        final_score: 最终得分
-        suggestions: 改进建议列表
-        image_base64: 图片base64编码（仅在没转交结果时用于现场识别）
-
-    Returns:
-        JSONResponse: {"success": True, "expression": 表情, ...}，记录已入库
     """
     try:
         conn = get_db()
@@ -228,14 +202,7 @@ async def save_interview_expression(
 
 @router.get("/api/interview/{token}/expression_report", summary="获取表情报告")
 async def get_expression_report(token: str = Path(...)):
-    """获取面试表情分析报告
-
-    Args:
-        token: 面试token（路径参数）
-
-    Returns:
-        JSONResponse: {"success": True, "total_records": 记录数, "summary": 平均分与表情分布统计, "top_suggestions": 高频建议, "records": 表情记录明细}
-    """
+    """获取面试表情分析报告（总记录数、平均分与表情分布统计、高频建议、记录明细）"""
     try:
         conn = get_db()
         interview = conn.execute('SELECT id FROM interviews WHERE token = %s', (token,)).fetchone()

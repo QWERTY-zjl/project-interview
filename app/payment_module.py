@@ -93,8 +93,7 @@ def login_user(username_or_email, password):
         if user['status'] == 0:
             return False, "账号已被禁用", None
         
-        # 更新最后登录时间（个人版 users 表的列名是 last_login_at，
-        # 没有企业版的 updated_at 列，照搬会报 no such column: updated_at）
+        # 更新最后登录时间（users 表的列名是 last_login_at，无 updated_at 列）
         cursor.execute('''
             UPDATE users SET last_login_at = %s WHERE id = %s
         ''', (int(time.time()), user['id']))
@@ -514,7 +513,7 @@ def update_order_status(order_no, pay_status, trade_no=None, total_amount=None):
             WHERE order_no = %s
         ''', (pay_status, trade_no, int(time.time()), order_no))
         conn.commit()
-        # rowcount = 上一条语句影响了几行：0 行说明订单号在库里不存在
+        # rowcount=0 说明订单号不存在
         if cursor.rowcount == 0:
             return False, "订单不存在"
         return True, "订单状态已更新"
@@ -563,10 +562,8 @@ def update_order_payment(order_no, pay_method, pay_trade_no):
               plan['interviews_included'], plan['tts_minutes_included'], 
               plan['ai_analysis_included']))
         
-        # 更新用户类型为付费用户，并把套餐包含的面试次数加进个人版唯一配额列
-        # （interview_quota 是个人版真配额：大模型出题成功一场扣 1，见 question_service；
-        #   原实现只改 user_type 不加次数——企业版时代配额走 user_quotas/user_subscriptions
-        #   两张表，个人版前端只读 users.interview_quota，导致支付后配额纹丝不动）
+        # 更新用户类型为付费用户，并把套餐面试次数加进 users.interview_quota
+        # （个人版唯一配额列：大模型出题成功一场扣 1，见 question_service）
         cursor.execute('''
             UPDATE users
             SET user_type = 'premium',

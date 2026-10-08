@@ -1,18 +1,10 @@
 """
 表情分析服务模块
 ================
-负责分析面试摄像头抓拍画面中候选人的表情/情绪。
-
-【2026-10-06 重写：改用 qwen3-vl-flash 多模态模型】
-原先调用的 face-expression-detection 是企业版遗留的虚构模型（百炼上不存在，
-调用必 404）。现在改用百炼真实存在的最便宜视觉模型 qwen3-vl-flash
-（输入 0.15 元/百万 token，与文本模型 qwen-flash 同价），把抓拍图片发给
-大模型，让它按固定 JSON 格式返回表情和情绪判断。
-
-成本：一张 640x480 抓拍图约几百 token，单次分析不到 0.001 元；
-按每 5 秒抓拍一次算，一场 15 分钟面试约 0.1~0.2 元。
-
-版权声明：仅供学习参考，禁止商用/二次分发/他用本代码申请软著
+分析面试摄像头抓拍画面中候选人的表情/情绪：把抓拍图片发给百炼视觉模型
+qwen3-vl-flash（输入 0.15 元/百万 token），让它按固定 JSON 格式返回表情
+和情绪判断。一张 640x480 抓拍图单次分析不到 0.001 元，按每 5 秒抓拍一次
+算，一场 15 分钟面试约 0.1~0.2 元。
 """
 
 import base64
@@ -61,15 +53,11 @@ def analyze_face_expression(image_data):
     """
     分析面部表情（qwen3-vl-flash 多模态版）
 
-    Args:
-        image_data: 图像二进制数据（前端 canvas.toDataURL 去 dataURL 前缀后的原始字节）
-
-    Returns:
-        (分析结果, 错误信息)，成功时错误信息为None
-        成功时返回 faces 列表（保持与旧版返回结构兼容：
-        expression_api 取 faces[0] 的 expression/expression_cn/emotion_status/
-        emotion_score 字段，所以这里按同样的键组装）；
-        画面中没有人脸时返回空列表 []（expression_api 据此返回 400"未检测到人脸"）
+    image_data 为前端 canvas.toDataURL 去 dataURL 前缀后的原始字节。
+    返回 (分析结果, 错误信息)：成功时返回 faces 列表，expression_api 取
+    faces[0] 的 expression/expression_cn/emotion_status/emotion_score 字段；
+    画面中没有人脸时返回空列表 []
+    （expression_api 据此返回 400"未检测到人脸"）。
     """
     # 快速失败：没配密钥就不发请求（与出题/报告的检查逻辑一致）
     if not (os.getenv("DASHSCOPE_API_KEY") or DASHSCOPE_API_KEY):
@@ -82,8 +70,7 @@ def analyze_face_expression(image_data):
         image_base64 = base64.b64encode(image_data).decode('utf-8')
         data_url = f"data:image/jpeg;base64,{image_base64}"
 
-        # 多模态消息格式：content 是一个数组，图文混排
-        # （纯文本消息 content 是字符串，视觉消息 content 是 [{image_url}, {text}] 列表）
+        # 多模态消息：视觉消息的 content 是图文混排数组（非纯文本字符串）
         messages = [
             {"role": "system", "content": _ANALYSIS_PROMPT},
             {"role": "user", "content": [
@@ -124,8 +111,7 @@ def analyze_face_expression(image_data):
             print("[FACE] 画面中未检测到清晰人脸")
             return [], None
 
-        # 组装与旧接口兼容的结构：quality_score/final_score 是企业版遗留字段，
-        # 新链路没有真实来源，固定 0（不做假数据）
+        # quality_score/final_score 无真实数据来源，固定 0（不做假数据）
         face = {
             "expression": data.get("expression", ""),
             "expression_cn": data.get("expression_cn", ""),

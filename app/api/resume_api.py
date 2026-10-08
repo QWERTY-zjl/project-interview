@@ -38,22 +38,10 @@ async def upload_resume(
     work_experience: str = Form(...),
     target_position: str = Form(...)
 ):
-    """上传简历并分析，返回面试token
-
-    Args:
-        request: FastAPI 请求对象（从请求头 Authorization: Bearer <token> 鉴权）
-        resume: 上传的简历文件（支持 PDF / DOCX / TXT，内容级校验 + 按文件头自动分流解析）
-        work_experience: 工作经验年限
-        target_position: 目标岗位名称
-
-    Returns:
-        JSONResponse: {"status": "success", "token": "面试令牌", "interview_id": 面试ID}
-    """
+    """上传简历并分析，返回面试token（需登录；支持 PDF / DOCX / TXT，含内容级校验）"""
     logger.info("[Resume] 开始处理上传简历请求")
 
-    # 【2026-10-06 越权修复】开始面试必须登录：原来前端传 user_id 就采纳、
-    # 不传兜底 default_user——等于没登录也能面试且记录全混在一起。
-    # 现在身份只认请求头里的登录 token，未登录/凭证无效一律 401
+    # 开始面试必须登录：身份只认请求头里的登录 token，未登录/凭证无效一律 401
     user = get_auth_user(request)
     if user is None:
         return JSONResponse(
@@ -61,10 +49,9 @@ async def upload_resume(
             content={"status": "error", "message": "请先登录后再开始面试"}
         )
 
-    # 【2026-10-06 配额闸门】面试剩余次数为 0 不允许开新面试。
-    # 之前配额只在出题成功后扣减（question_service），纯展示——显示 0 也照样
-    # 能一直面试。闸门放在最前面：简历分析本身就调大模型花钱，配额用尽的
-    # 请求连分析都不该开始。or 0 兜底 interview_quota 为 NULL 的老数据
+    # 配额闸门：面试剩余次数为 0 不允许开新面试。闸门放在最前面——
+    # 简历分析本身就调大模型花钱，配额用尽的请求连分析都不该开始。
+    # or 0 兜底 interview_quota 为 NULL 的数据
     conn = get_db()
     quota_row = conn.execute(
         'SELECT interview_quota FROM users WHERE id = %s', (user['id'],)
@@ -166,10 +153,8 @@ async def upload_resume(
                                  "error_code": "RESUME_NOT_TEXT"}
                     )
         
-        # 解析简历文件为文本（按文件头自动分流：PDF→MinerU/pypdf，DOCX→python-docx，TXT→解码）
-        # 【2026-10-07 修复】旧链路直接把文件字节当文本喂给 analyze_resume，
-        # PDF 二进制 decode 出来是乱码、结构化信息几乎提不出来；现在统一走
-        # resume_parser 的 extract_resume_text，先出干净文本再做正则分析
+        # 解析简历文件为文本（按文件头自动分流：PDF→MinerU/pypdf，DOCX→python-docx，TXT→解码），
+        # 先出干净文本再做正则分析，避免二进制内容直接当文本喂给分析器
         logger.info("[Resume] 开始解析简历文件")
         try:
             resume_text = extract_resume_text(file_content, resume.filename or "")
@@ -208,7 +193,6 @@ async def upload_resume(
                 content={"status": "error", "message": f"分析简历失败: {str(e)}", "error_code": "RESUME_ANALYSIS_ERROR"}
             )
         
-        # 生成面试token
         try:
             token = generate_token()
             logger.info(f"[Resume] 生成token: {token}")
@@ -234,9 +218,8 @@ async def upload_resume(
                 content={"status": "error", "message": f"连接数据库失败: {str(e)}", "error_code": "DATABASE_CONNECTION_ERROR"}
             )
         
-        # 面试归属用户：登录态已在函数开头校验，这里直接取登录用户的 id。
-        # 【2026-10-06 修复】原来写死 user_id = 1 → 后改为信任前端传参 →
-        # 现在只认服务端会话：请求头 token 反查出的 user 才是真正的归属人
+        # 面试归属用户：登录态已在函数开头校验，归属人 = 请求头 token 反查出的
+        # 登录用户，不信任前端传参
         user_id = user['id']
         logger.info(f"[Resume] 面试归属用户: {user_id} ({user['username']})")
         
@@ -293,7 +276,6 @@ async def upload_resume(
         # 生成问题
         try:
             logger.info("[Resume] 开始生成面试问题")
-            # 将简历分析结果传递给 generate_questions 函数
             resume_analysis_info = f"\n\n简历分析结果：\n{json.dumps(analysis_result, ensure_ascii=False)}"
             logger.info(f"[Resume] 简历分析信息长度: {len(resume_analysis_info)}")
             logger.debug(f"[Resume] 简历分析信息: {resume_analysis_info[:200]}...")  # 只记录前200个字符

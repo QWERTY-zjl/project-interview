@@ -51,11 +51,7 @@ INTERVIEWER_VOICES = {
 
 @router.get("/api/tts/voices", summary="获取音色列表")
 async def get_tts_voices():
-    """获取可用面试官音色列表
-
-    Returns:
-        JSONResponse: {"voices": [{"id": 音色ID, "name": 音色名称, "description": 音色描述}]}
-    """
+    """获取可用面试官音色列表"""
     voices = []
     for key, config in INTERVIEWER_VOICES.items():
         voices.append({
@@ -71,14 +67,9 @@ async def get_tts_voices():
 
 @router.post("/api/tts/synthesize", summary="合成语音")
 async def synthesize_tts(text: str = Body(...), voice_type: str = Body("professional_male")):
-    """合成语音并返回 base64 音频
+    """合成语音并返回 base64 音频（voice_type 默认 professional_male）
 
-    Args:
-        text: 要合成的文本
-        voice_type: 音色类型（默认 professional_male）
-
-    Returns:
-        JSONResponse: {"status": "success", "audio": base64音频, "format": "mp3"}；模型额度不足时返回 use_browser_tts=True 提示前端改用浏览器合成
+    模型免费额度不足时返回 use_browser_tts=True，提示前端改用浏览器合成。
     """
     if not text:
         raise HTTPException(status_code=400, detail="文本不能为空")
@@ -88,7 +79,6 @@ async def synthesize_tts(text: str = Body(...), voice_type: str = Body("professi
     if error:
         # 检查是否是免费额度用完的错误
         if "AllocationQuota.FreeTierOnly" in error or "free tier" in error.lower():
-            # 免费额度用完，告诉前端使用浏览器内置语音合成
             return JSONResponse(
                 status_code=200,
                 content={
@@ -98,7 +88,6 @@ async def synthesize_tts(text: str = Body(...), voice_type: str = Body("professi
                 }
             )
         else:
-            # 其他错误，返回错误信息
             raise HTTPException(status_code=500, detail=error)
     
     if audio_data:
@@ -110,7 +99,7 @@ async def synthesize_tts(text: str = Body(...), voice_type: str = Body("professi
             content={
                 "status": "success",
                 "audio": audio_base64,
-                # 实测 synthesize_speech 产出的是 WAV（RIFF 文件头），此前误标 mp3
+                # synthesize_speech 实际产出 WAV（RIFF 文件头）
                 "format": "wav"
             }
         )
