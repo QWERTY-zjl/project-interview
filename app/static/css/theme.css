@@ -1,0 +1,650 @@
+/* =========================================================
+   Apple-inspired Design Tokens & Components
+   ========================================================= */
+
+:root {
+  /* ===== PRIMITIVE PALETTE ===== */
+
+  /* Brand - System Blue */
+  --brand-50: #e8f2ff;
+  --brand-100: #cfe5ff;
+  --brand-200: #9fcbff;
+  --brand-300: #66abff;
+  --brand-400: #2e8dff;
+  --brand-500: #007aff;
+  --brand-600: #0064d6;
+  --brand-700: #004fad;
+  --brand-800: #003b82;
+  --brand-900: #00275a;
+
+  /* Background */
+  --bg-50: #ffffff;
+  --bg-100: #f7f7fa;
+  --bg-200: #f2f2f7;
+  --bg-300: #e5e5ea;
+  --bg-400: #d1d1d6;
+  --bg-500: #aeaeb2;
+  --bg-600: #8e8e93;
+  --bg-700: #3a3a3c;
+  --bg-800: #1c1c1e;
+  --bg-900: #000000;
+
+  /* Text */
+  --text-50: #f5f5f7;
+  --text-100: #e3e3e8;
+  --text-200: #c7c7cc;
+  --text-300: #aeaeb2;
+  --text-400: #8e8e93;
+  --text-500: #6e6e73;
+  --text-600: #48484a;
+  --text-700: #3c3c43;
+  --text-800: #1d1d1f;
+  --text-900: #000000;
+
+  /* State colors */
+  --success-500: #34c759;
+  --success-100: #e9f9ee;
+  --error-500: #ff3b30;
+  --error-100: #ffecea;
+  --warning-500: #ff9500;
+  --warning-100: #fff4e5;
+
+  /* ===== SEMANTIC TOKENS ===== */
+
+  --bg-primary: var(--bg-50);
+  --bg-secondary: var(--bg-200);
+  --bg-tertiary: var(--bg-100);
+  --bg-elevated: var(--bg-50);
+
+  --text-primary: var(--text-800);
+  --text-secondary: var(--text-600);
+  --text-tertiary: var(--text-400);
+  --text-muted: var(--text-400);
+
+  --border-subtle: var(--bg-300);
+  --border-light: var(--bg-300);
+  --border-medium: var(--bg-400);
+
+  --accent-primary: var(--brand-500);
+  --accent-primary-hover: var(--brand-600);
+  --accent-secondary: var(--bg-200);
+
+  --success-fg: var(--success-500);
+  --success-bg: var(--success-100);
+  --success-border: rgba(52, 199, 89, 0.25);
+
+  --error-fg: var(--error-500);
+  --error-bg: var(--error-100);
+  --error-border: rgba(255, 59, 48, 0.25);
+
+  --warning-fg: var(--warning-500);
+  --warning-bg: var(--warning-100);
+  --warning-border: rgba(255, 149, 0, 0.25);
+
+  /* ===== TYPOGRAPHY ===== */
+
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text",
+    "Helvetica Neue", Helvetica, Arial, "PingFang SC", "Hiragino Sans GB",
+    "Microsoft YaHei", sans-serif;
+
+  --font-display: -apple-system, BlinkMacSystemFont, "SF Pro Display",
+    "Helvetica Neue", Helvetica, Arial, "PingFang SC", "Microsoft YaHei", sans-serif;
+
+  --font-mono: "SF Mono", Menlo, Monaco, Consolas, "Courier New", monospace;
+
+  /* Text sizes */
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.25rem;
+  --text-2xl: 1.5rem;
+  --text-3xl: 1.875rem;
+  --text-4xl: 2.25rem;
+
+  /* Font weights */
+  --fw-regular: 400;
+  --fw-medium: 500;
+  --fw-semibold: 600;
+  --fw-bold: 700;
+
+  /* ===== RADIUS ===== */
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-2xl: 24px;
+  --radius-full: 9999px;
+
+  /* ===== SHADOWS ===== */
+
+  --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.03);
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.04), 0 1px 3px -1px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 4px 8px -2px rgba(0, 0, 0, 0.06), 0 2px 4px -2px rgba(0, 0, 0, 0.04);
+  --shadow-lg: 0 10px 24px -8px rgba(0, 0, 0, 0.08), 0 4px 8px -4px rgba(0, 0, 0, 0.04);
+  --shadow-xl: 0 20px 40px -10px rgba(0, 0, 0, 0.10);
+
+  /* ===== SPACING ===== */
+
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-8: 2.5rem;
+  --space-10: 3rem;
+  --space-12: 4rem;
+  --space-16: 5rem;
+
+  /* ===== TRANSITIONS ===== */
+
+  --transition-fast: 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-base: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* =========================================================
+   Base Reset
+   ========================================================= */
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--text-primary);
+  background: var(--bg-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  letter-spacing: -0.01em;
+}
+
+a {
+  color: var(--accent-primary);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+
+a:hover {
+  color: var(--accent-primary-hover);
+}
+
+/* =========================================================
+   Button Components
+   ========================================================= */
+
+.gt-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  height: 44px;
+  padding: 0 20px;
+  border: none;
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  font-weight: var(--fw-semibold);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+  text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.gt-btn:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+
+.gt-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Primary */
+.gt-btn-primary {
+  background: var(--accent-primary);
+  color: #ffffff;
+  box-shadow: var(--shadow-sm);
+}
+
+.gt-btn-primary:hover:not(:disabled) {
+  background: var(--accent-primary-hover);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.gt-btn-primary:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+/* Secondary */
+.gt-btn-secondary {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  box-shadow: none;
+}
+
+.gt-btn-secondary:hover:not(:disabled) {
+  background: var(--bg-300);
+}
+
+/* Ghost / text */
+.gt-btn-ghost {
+  background: transparent;
+  color: var(--accent-primary);
+  box-shadow: none;
+}
+
+.gt-btn-ghost:hover:not(:disabled) {
+  background: rgba(0, 122, 255, 0.08);
+}
+
+/* Sizes */
+.gt-btn-sm {
+  height: 36px;
+  padding: 0 14px;
+  font-size: var(--text-sm);
+}
+
+.gt-btn-lg {
+  height: 56px;
+  padding: 0 28px;
+  font-size: var(--text-lg);
+}
+
+/* =========================================================
+   Input / Form Components
+   ========================================================= */
+
+.gt-input {
+  width: 100%;
+  height: 48px;
+  padding: 0 16px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  transition: all var(--transition-fast);
+  outline: none;
+}
+
+.gt-input:focus {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.12);
+  background: var(--bg-primary);
+}
+
+.gt-input::placeholder {
+  color: var(--text-tertiary);
+}
+
+.gt-input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+textarea.gt-input {
+  height: auto;
+  padding: 12px 16px;
+  resize: vertical;
+  line-height: 1.6;
+}
+
+.gt-form-label {
+  display: block;
+  font-size: var(--text-sm);
+  font-weight: var(--fw-medium);
+  color: var(--text-secondary);
+  margin-bottom: var(--space-2);
+}
+
+.gt-form-group {
+  margin-bottom: var(--space-4);
+}
+
+/* =========================================================
+   Card Component
+   ========================================================= */
+
+.gt-card {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-2xl);
+  padding: var(--space-6);
+  box-shadow: var(--shadow-sm);
+  transition: all var(--transition-base);
+}
+
+.gt-card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+
+/* =========================================================
+   Toggle / Switch
+   ========================================================= */
+
+.gt-toggle {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 26px;
+  flex-shrink: 0;
+}
+
+.gt-toggle input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.gt-toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  inset: 0;
+  background: var(--bg-300);
+  border-radius: var(--radius-full);
+  transition: all var(--transition-fast);
+}
+
+.gt-toggle-slider::before {
+  content: '';
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  left: 2px;
+  top: 2px;
+  background: #ffffff;
+  border-radius: 50%;
+  transition: all var(--transition-fast);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+}
+
+.gt-toggle input:checked + .gt-toggle-slider {
+  background: var(--success-500);
+}
+
+.gt-toggle input:checked + .gt-toggle-slider::before {
+  transform: translateX(18px);
+}
+
+/* =========================================================
+   Progress Bar
+   ========================================================= */
+
+.gt-progress-track {
+  height: 6px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.gt-progress-fill {
+  height: 100%;
+  background: var(--accent-primary);
+  border-radius: var(--radius-full);
+  transition: width var(--transition-slow);
+}
+
+/* =========================================================
+   Badge / Tag
+   ========================================================= */
+
+.gt-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+  font-weight: var(--fw-medium);
+  line-height: 1.4;
+}
+
+.gt-badge-primary {
+  background: rgba(0, 122, 255, 0.1);
+  color: var(--accent-primary);
+}
+
+.gt-badge-success {
+  background: var(--success-bg);
+  color: var(--success-fg);
+}
+
+.gt-badge-warning {
+  background: var(--warning-bg);
+  color: var(--warning-fg);
+}
+
+.gt-badge-error {
+  background: var(--error-bg);
+  color: var(--error-fg);
+}
+
+.gt-badge-muted {
+  background: var(--bg-secondary);
+  color: var(--text-tertiary);
+}
+
+/* =========================================================
+   Divider
+   ========================================================= */
+
+.gt-divider {
+  height: 1px;
+  background: var(--border-subtle);
+  margin: var(--space-6) 0;
+}
+
+/* =========================================================
+   Utility Classes
+   ========================================================= */
+
+.gt-text-primary { color: var(--text-primary); }
+.gt-text-secondary { color: var(--text-secondary); }
+.gt-text-tertiary { color: var(--text-tertiary); }
+.gt-text-muted { color: var(--text-muted); }
+.gt-text-accent { color: var(--accent-primary); }
+.gt-text-success { color: var(--success-fg); }
+.gt-text-error { color: var(--error-fg); }
+
+.gt-bg-primary { background: var(--bg-primary); }
+.gt-bg-secondary { background: var(--bg-secondary); }
+
+.gt-link {
+  color: var(--accent-primary);
+  font-weight: var(--fw-medium);
+  text-decoration: none;
+}
+
+.gt-link:hover {
+  text-decoration: underline;
+}
+
+/* ============================================================
+   SweetAlert2 弹窗 Apple 风格主题（全局覆盖）
+   作用：Swal.fire 默认样式（紫色按钮/小圆角/自带图标配色）与
+   本主题的 Apple HIG 风格冲突，这里统一换肤，所有引入 theme.css
+   的页面自动生效，无需逐处传 customClass。
+
+   覆盖原理（两层）：
+   1) 变量层（核心）：SweetAlert2 v11 的全部默认样式由 :root 上的
+      --swal2-* CSS 变量驱动，这里用 :root:root（特异性 0,2,0 >
+      Swal 注入的 :root 0,1,0，不依赖加载顺序）重定义变量换肤；
+   2) 规则层（补充）：变量管不到的字级/字距/悬停细节，用
+      .swal2-container 前缀提高特异性覆盖，不堆 !important。
+   ============================================================ */
+
+/* ===== 变量层：重定义 --swal2-* 为 Apple 风格 ===== */
+:root:root {
+  /* 弹窗主体：18px 大圆角 + 细边框 + 白底 + 留白 */
+  --swal2-border-radius: 18px;
+  --swal2-border: 1px solid rgba(0, 0, 0, 0.06);
+  --swal2-background: #ffffff;
+  --swal2-padding: 32px 28px 26px;
+  --swal2-width: 32em;
+  --swal2-color: var(--text-500);
+
+  /* 遮罩：macOS 风格轻遮罩 */
+  --swal2-backdrop: rgba(0, 0, 0, 0.35);
+
+  /* 标题/正文内边距归零（由弹窗主体统一留白） */
+  --swal2-title-padding: 0;
+  --swal2-html-container-padding: 0;
+
+  /* 按钮：System Blue / Apple 红 / iOS 灰，10px 圆角矩形 */
+  --swal2-confirm-button-background-color: var(--accent-primary);
+  --swal2-confirm-button-border-radius: 10px;
+  --swal2-deny-button-background-color: var(--error-fg);
+  --swal2-deny-button-border-radius: 10px;
+  --swal2-cancel-button-background-color: var(--bg-200);
+  --swal2-cancel-button-border-radius: 10px;
+  --swal2-button-transition: transform 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+
+  /* 键盘焦点环：Apple 风格蓝色柔光圈 */
+  --swal2-outline: 0 0 0 3px rgba(0, 122, 255, 0.25);
+
+  /* 关闭按钮：浅灰 */
+  --swal2-close-button-color: var(--text-tertiary);
+}
+
+/* ===== 规则层：字级、字距、悬停等变量覆盖不到的细节 ===== */
+
+/* 标题：深灰 19px 半粗，字距收紧 */
+.swal2-container .swal2-title {
+  font-size: 19px;
+  font-weight: var(--fw-semibold);
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
+  margin: 0 0 8px;
+}
+
+/* 正文：中灰 15px（#6e6e73，Apple 三级灰的中间档） */
+.swal2-container .swal2-html-container {
+  font-size: 15px;
+  font-weight: var(--fw-regular);
+  color: var(--text-500);
+  letter-spacing: -0.01em;
+  line-height: 1.55;
+}
+
+/* 弹窗轻投影（阴影不经变量，直接覆盖） */
+.swal2-container .swal2-popup {
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.18);
+  font-family: var(--font-sans);
+}
+
+/* 按钮区：间距 + 按钮字级 */
+.swal2-container .swal2-actions {
+  gap: 10px;
+  margin: 22px auto 0;
+}
+
+.swal2-container .swal2-confirm,
+.swal2-container .swal2-cancel,
+.swal2-container .swal2-deny {
+  font-weight: var(--fw-medium);
+  font-size: 15px;
+  letter-spacing: -0.01em;
+  padding: 9px 24px;
+}
+
+/* 确认：悬停轻微上浮 + 蓝色投影 */
+.swal2-container .swal2-confirm:hover,
+.swal2-container .swal2-confirm:focus {
+  background-color: var(--accent-primary-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(0, 122, 255, 0.28);
+  outline: none;
+}
+
+/* 取消：悬停加深一档灰 */
+.swal2-container .swal2-cancel:hover,
+.swal2-container .swal2-cancel:focus {
+  background-color: var(--bg-300);
+  transform: translateY(-1px);
+  box-shadow: none;
+  outline: none;
+  color: var(--text-primary);
+}
+
+/* 拒绝：悬停加深红 */
+.swal2-container .swal2-deny:hover,
+.swal2-container .swal2-deny:focus {
+  background-color: #e0342b;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(255, 59, 48, 0.28);
+  outline: none;
+}
+
+/* ===== 图标：五类全部对齐 Apple HIG 系统色 ===== */
+.swal2-container .swal2-icon {
+  border-width: 3px;
+}
+
+/* 警告：Apple 橙 */
+.swal2-container .swal2-icon.swal2-warning {
+  border-color: var(--warning-fg);
+}
+
+.swal2-container .swal2-icon.swal2-warning .swal2-icon-content {
+  color: var(--warning-fg);
+}
+
+/* 错误：Apple 红（叉线 + 外圈） */
+.swal2-container .swal2-icon.swal2-error {
+  border-color: var(--error-fg);
+}
+
+.swal2-container .swal2-icon.swal2-error [class^='swal2-x-mark-line'] {
+  background-color: var(--error-fg);
+}
+
+/* 成功：Apple 绿（对勾线 + 外圈；圆弧辅助块跟随弹窗底色避免残影） */
+.swal2-container .swal2-icon.swal2-success {
+  border-color: var(--success-fg);
+}
+
+.swal2-container .swal2-icon.swal2-success [class^='swal2-success-line'] {
+  background-color: var(--success-fg);
+}
+
+.swal2-container .swal2-icon.swal2-success .swal2-success-circular-line-left,
+.swal2-container .swal2-icon.swal2-success .swal2-success-circular-line-right,
+.swal2-container .swal2-icon.swal2-success .swal2-success-fix {
+  background-color: var(--bg-elevated);
+}
+
+.swal2-container .swal2-icon.swal2-success .swal2-success-ring {
+  border-color: rgba(52, 199, 89, 0.3);
+}
+
+/* 信息：System Blue */
+.swal2-container .swal2-icon.swal2-info {
+  border-color: var(--accent-primary);
+}
+
+.swal2-container .swal2-icon.swal2-info .swal2-icon-content {
+  color: var(--accent-primary);
+}
+
+/* 疑问：浅灰 */
+.swal2-container .swal2-icon.swal2-question {
+  border-color: var(--text-tertiary);
+}
+
+.swal2-container .swal2-icon.swal2-question .swal2-icon-content {
+  color: var(--text-tertiary);
+}

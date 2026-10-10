@@ -1,0 +1,386 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>登录 — AI 面试官</title>
+  <link href="../css/bootstrap.min.css" rel="stylesheet">
+  <link href="../css/theme.css" rel="stylesheet">
+  <script src="../js/vue.global.prod.js"></script>
+  <script src="../js/sweetalert2.js"></script>
+  <style>
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 48px 24px;
+      background: var(--bg-primary);
+      font-family: var(--font-sans);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    .auth-shell {
+      width: 100%;
+      max-width: 440px;
+    }
+
+    /* ===== 品牌 ===== */
+    .auth-brand {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+
+    .auth-brand-icon {
+      width: 56px;
+      height: 56px;
+      margin: 0 auto 20px;
+      border-radius: 14px;
+      background: var(--accent-primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 8px 24px rgba(0, 122, 255, 0.2);
+    }
+
+    .auth-brand-icon svg {
+      width: 28px;
+      height: 28px;
+      stroke: #ffffff;
+      stroke-width: 1.8;
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .auth-brand-title {
+      font-size: 26px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 6px;
+      letter-spacing: -0.02em;
+    }
+
+    .auth-brand-subtitle {
+      font-size: 14px;
+      color: var(--text-tertiary);
+      font-weight: 400;
+    }
+
+    /* ===== 卡片 ===== */
+    .auth-card {
+      background: var(--bg-primary);
+      border: 1px solid var(--border-light);
+      border-radius: 18px;
+      padding: 36px 32px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.03);
+    }
+
+    .auth-card-title {
+      font-size: 22px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 8px;
+      letter-spacing: -0.01em;
+    }
+
+    .auth-card-desc {
+      font-size: 14px;
+      color: var(--text-secondary);
+      margin-bottom: 28px;
+      line-height: 1.5;
+    }
+
+    /* ===== 免费体验徽章 ===== */
+    .free-badge-row {
+      margin-bottom: 24px;
+    }
+
+    .free-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 14px;
+      background: rgba(0, 122, 255, 0.06);
+      border: 1px solid rgba(0, 122, 255, 0.12);
+      border-radius: 10px;
+      font-size: 13px;
+      color: var(--accent-primary);
+      font-weight: 500;
+    }
+
+    .free-badge svg {
+      width: 16px;
+      height: 16px;
+      stroke: var(--accent-primary);
+      stroke-width: 2;
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      flex-shrink: 0;
+    }
+
+    /* ===== 表单 ===== */
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      margin-bottom: 8px;
+    }
+
+    .form-input {
+      width: 100%;
+      height: 46px;
+      padding: 0 14px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-light);
+      border-radius: 10px;
+      color: var(--text-primary);
+      font-family: var(--font-sans);
+      font-size: 15px;
+      transition: all 0.18s ease;
+      outline: none;
+    }
+
+    .form-input:focus {
+      border-color: var(--accent-primary);
+      box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.12);
+      background: var(--bg-primary);
+    }
+
+    .form-input::placeholder {
+      color: var(--text-tertiary);
+    }
+
+    /* ===== 登录按钮 ===== */
+    .btn-login {
+      width: 100%;
+      height: 48px;
+      font-size: 15px;
+      font-weight: 600;
+      margin-top: 8px;
+      border-radius: 10px;
+      background: var(--accent-primary);
+      color: #ffffff;
+      border: none;
+      cursor: pointer;
+      transition: all 0.18s ease;
+      font-family: var(--font-sans);
+    }
+
+    .btn-login:hover:not(:disabled) {
+      background: var(--accent-primary-hover);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0, 122, 255, 0.25);
+    }
+
+    .btn-login:active:not(:disabled) {
+      transform: translateY(0);
+    }
+
+    .btn-login:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    /* ===== 分隔线 ===== */
+    .auth-divider {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin: 32px 0 24px;
+    }
+
+    .auth-divider-line {
+      flex: 1;
+      height: 1px;
+      background: var(--border-light);
+    }
+
+    .auth-divider-text {
+      font-size: 12px;
+      color: var(--text-tertiary);
+      font-weight: 400;
+    }
+
+    /* ===== 底部链接 ===== */
+    .auth-footer {
+      text-align: center;
+    }
+
+    .auth-footer-row {
+      margin-bottom: 12px;
+      font-size: 14px;
+      color: var(--text-secondary);
+    }
+
+    .auth-footer-row:last-child {
+      margin-bottom: 0;
+    }
+
+    .auth-footer-row a {
+      color: var(--accent-primary);
+      font-weight: 500;
+      text-decoration: none;
+    }
+
+    .auth-footer-row a:hover {
+      text-decoration: underline;
+    }
+
+    /* ===== 响应式 ===== */
+    @media (max-width: 480px) {
+      body {
+        padding: 24px 20px;
+        align-items: flex-start;
+        padding-top: 48px;
+      }
+
+      .auth-brand {
+        margin-bottom: 32px;
+      }
+
+      .auth-card {
+        padding: 28px 24px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <div class="auth-shell">
+      <!-- 品牌区 -->
+      <div class="auth-brand">
+        <div class="auth-brand-icon">
+          <svg viewBox="0 0 24 24">
+            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+            <line x1="12" y1="19" x2="12" y2="23"/>
+            <line x1="8" y1="23" x2="16" y2="23"/>
+          </svg>
+        </div>
+        <div class="auth-brand-title">AI 面试官</div>
+        <div class="auth-brand-subtitle">智能模拟面试 · 提升求职表现</div>
+      </div>
+
+      <!-- 登录卡片 -->
+      <div class="auth-card">
+        <h1 class="auth-card-title">欢迎回来</h1>
+        <p class="auth-card-desc">登录后继续你的面试练习</p>
+
+        <div class="free-badge-row">
+          <span class="free-badge">
+            <svg viewBox="0 0 24 24">
+              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+            </svg>
+            新用户免费体验 3 次面试
+          </span>
+        </div>
+
+        <form @submit.prevent="handleLogin">
+          <div class="form-group">
+            <label class="form-label">用户名或邮箱</label>
+            <input
+              type="text"
+              class="form-input"
+              v-model="form.username"
+              placeholder="请输入用户名或邮箱"
+              required
+            >
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">密码</label>
+            <input
+              type="password"
+              class="form-input"
+              v-model="form.password"
+              placeholder="请输入密码"
+              required
+            >
+          </div>
+
+          <button type="submit" class="btn-login" :disabled="loading">
+            <span v-if="loading">登录中…</span>
+            <span v-else>登录</span>
+          </button>
+        </form>
+
+        <div class="auth-divider">
+          <div class="auth-divider-line"></div>
+          <span class="auth-divider-text">或</span>
+          <div class="auth-divider-line"></div>
+        </div>
+
+        <div class="auth-footer">
+          <p class="auth-footer-row">
+            还没有账号？ <a data-dom-id="nav-register" href="register.html">立即注册</a>
+          </p>
+          <p class="auth-footer-row">
+            <a href="pricing.html">查看套餐价格</a>
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const { createApp } = Vue;
+
+    createApp({
+      data() {
+        return {
+          form: {
+            username: '',
+            password: ''
+          },
+          loading: false
+        };
+      },
+      methods: {
+        async handleLogin() {
+          this.loading = true;
+
+          try {
+            const response = await fetch(`/api/auth/login`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(this.form)
+            });
+
+            const data = await response.json();
+
+            if (data.status === 'success') {
+              localStorage.setItem('currentUser', JSON.stringify(data.user));
+              localStorage.setItem('authToken', data.auth_token);
+
+              Swal.fire({
+                title: '登录成功',
+                text: '欢迎回来，' + data.user.username,
+                icon: 'success',
+                timer: 1500,
+                showConfirmButton: false
+              }).then(() => {
+                window.location.href = 'admin.html';
+              });
+            } else {
+              Swal.fire('登录失败', data.error || '用户名或密码错误', 'error');
+            }
+          } catch (error) {
+            console.error('登录错误:', error);
+            Swal.fire('错误', '登录过程中发生错误', 'error');
+          } finally {
+            this.loading = false;
+          }
+        }
+      }
+    }).mount('#app');
+  </script>
+</body>
+</html>

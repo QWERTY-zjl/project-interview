@@ -3,1547 +3,1435 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Web语音面试系统</title>
-    <!-- Bootstrap CSS -->
+    <title>面试中 — 智面无忧</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <link href="css/bootstrap.min.css" rel="stylesheet">
-    <!-- Vue 3 -->
+    <link href="css/theme.css" rel="stylesheet">
     <script src="js/vue.global.prod.js"></script>
-    <!-- Axios for HTTP requests -->
     <script src="js/axios.min.js"></script>
-    <!-- SweetAlert2 -->
     <script src="js/sweetalert2.js"></script>
+    <script src="js/report_download.js"></script>
     <style>
-        /* 全局样式 */
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
+        /* =========================================================
+           Apple-style Interview Page
+           ========================================================= */
+
         body {
-            background: #0f172a;
-            background-image: 
-                radial-gradient(circle at 25% 25%, rgba(79, 70, 229, 0.05) 0%, transparent 50%),
-                radial-gradient(circle at 75% 75%, rgba(59, 130, 246, 0.05) 0%, transparent 50%),
-                linear-gradient(rgba(30, 41, 59, 0.05) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(30, 41, 59, 0.05) 1px, transparent 1px);
-            background-size: 400px 400px, 400px 400px, 20px 20px, 20px 20px;
-            color: #e2e8f0;
+            background: var(--bg-secondary);
             min-height: 100vh;
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            padding: var(--space-6);
         }
-        
-        .container {
+
+        .app-shell {
             max-width: 1400px;
             margin: 0 auto;
         }
-        
-        /* 顶部导航栏 */
-        .navbar {
-            background: rgba(15, 23, 42, 0.9) !important;
-            backdrop-filter: blur(15px);
-            border: 1px solid rgba(59, 130, 246, 0.2);
-            border-radius: 16px;
-            margin: 20px 0;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-        }
-        
-        .navbar-brand {
-            color: var(--text-primary) !important;
-            font-weight: 600;
-            font-size: 1.125rem;
-            letter-spacing: -0.025em;
+
+        /* === 顶部导航 === */
+        .top-nav {
             display: flex;
             align-items: center;
-            gap: 8px;
+            justify-content: space-between;
+            padding: var(--space-3) var(--space-5);
+            background: var(--bg-primary);
+            border: 1px solid var(--border-light);
+            border-radius: var(--radius-2xl);
+            margin-bottom: var(--space-6);
+            box-shadow: var(--shadow-xs);
         }
-        
-        .navbar-brand::before {
-            content: '🎯';
-            font-size: 20px;
+
+        .nav-brand {
+            display: flex;
+            align-items: center;
+            gap: var(--space-3);
         }
-        
-        .navbar-nav .nav-link {
-            color: #94a3b8 !important;
-            font-weight: 500;
-            font-size: 1rem;
-            letter-spacing: 0;
-            position: relative;
-            transition: all 0.3s ease;
+
+        .nav-brand-mark {
+            width: 36px;
+            height: 36px;
+            border-radius: var(--radius-lg);
+            display: block;
         }
-        
-        .navbar-nav .nav-link:hover {
-            color: #3b82f6 !important;
-            transform: translateY(-1px);
+
+        .nav-brand-text {
+            font-family: var(--font-display);
+            font-size: var(--text-base);
+            font-weight: var(--fw-semibold);
+            color: var(--text-primary);
+            letter-spacing: -0.02em;
         }
-        
-        .navbar-nav .nav-link::after {
-            content: '';
-            position: absolute;
-            bottom: -2px;
-            left: 0;
-            width: 0;
-            height: 2px;
-            background: linear-gradient(90deg, #3b82f6 0%, #6366f1 100%);
-            transition: width 0.3s ease;
+
+        .nav-links {
+            display: flex;
+            gap: var(--space-2);
         }
-        
-        .navbar-nav .nav-link:hover::after {
-            width: 100%;
-        }
-        
-        .navbar-text {
-            color: #e2e8f0 !important;
-            font-weight: 400;
-            font-size: 0.875rem;
-            letter-spacing: 0;
-        }
-        
-        /* 状态信息栏 */
+
+        /* === 状态栏 === */
         .status-bar {
             display: flex;
-            justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
-            padding: 12px 20px;
-            background: rgba(15, 23, 42, 0.8);
-            border: 1px solid rgba(59, 130, 246, 0.2);
-            border-radius: 12px;
-            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+            justify-content: space-between;
+            padding: var(--space-4) var(--space-6);
+            background: var(--bg-primary);
+            border: 1px solid var(--border-light);
+            border-radius: var(--radius-2xl);
+            margin-bottom: var(--space-6);
+            flex-wrap: wrap;
+            gap: var(--space-4);
+            box-shadow: var(--shadow-xs);
         }
-        
+
         .status-item {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: var(--space-3);
         }
-        
+
+        .status-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: var(--radius-full);
+            background: var(--bg-secondary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+
         .status-label {
-            font-size: 0.875rem;
-            color: #94a3b8;
+            font-size: var(--text-xs);
+            color: var(--text-tertiary);
+            font-weight: var(--fw-regular);
         }
-        
+
         .status-value {
-            font-size: 0.875rem;
-            font-weight: 600;
-            color: #e2e8f0;
+            font-size: var(--text-sm);
+            font-weight: var(--fw-medium);
+            color: var(--text-primary);
+            font-family: var(--font-display);
         }
-        
-        /* 主要内容区域 */
-        .main-content {
-            display: grid;
-            grid-template-columns: 350px 1fr;
-            gap: 24px;
-            min-height: 70vh;
+
+        .status-value.recording {
+            color: var(--error-fg);
         }
-        
-        /* 左侧面板 */
-        .left-panel {
+
+        .status-value.ready {
+            color: var(--success-fg);
+        }
+
+        /* === 错误提示 === */
+        .error-banner {
+            padding: var(--space-4) var(--space-5);
+            background: var(--error-bg);
+            border: 1px solid var(--error-border);
+            border-radius: var(--radius-xl);
+            margin-bottom: var(--space-6);
+            text-align: center;
+        }
+
+        .error-banner-text {
+            font-size: var(--text-sm);
+            color: var(--error-fg);
+            margin-bottom: var(--space-3);
+        }
+
+        /* === 欢迎/开始页 === */
+        .welcome-card {
+            max-width: 520px;
+            margin: var(--space-16) auto;
+            text-align: center;
+            padding: var(--space-10);
+            background: var(--bg-primary);
+            border: 1px solid var(--border-light);
+            border-radius: var(--radius-2xl);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .welcome-icon {
+            width: 72px;
+            height: 72px;
+            margin: 0 auto var(--space-5);
+            border-radius: var(--radius-2xl);
+            background: var(--accent-primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            color: #fff;
+        }
+
+        .welcome-title {
+            font-family: var(--font-display);
+            font-size: var(--text-2xl);
+            font-weight: var(--fw-semibold);
+            color: var(--text-primary);
+            margin-bottom: var(--space-3);
+            letter-spacing: -0.02em;
+        }
+
+        .welcome-info {
             display: flex;
             flex-direction: column;
-            gap: 24px;
+            gap: var(--space-2);
+            margin-bottom: var(--space-8);
         }
-        
-        /* 摄像头容器 */
-        .camera-section {
-            background: rgba(15, 23, 42, 0.8);
-            border: 1px solid rgba(59, 130, 246, 0.3);
-            border-radius: 16px;
-            padding: 20px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-            position: relative;
-            overflow: hidden;
+
+        .welcome-info-row {
+            font-size: var(--text-sm);
+            color: var(--text-secondary);
         }
-        
-        .camera-section::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
+
+        .welcome-info-row strong {
+            color: var(--text-primary);
+            font-weight: var(--fw-medium);
+        }
+
+        .voice-select-group {
+            margin-bottom: var(--space-6);
+            text-align: left;
+        }
+
+        .voice-select-group label {
+            display: block;
+            font-size: var(--text-sm);
+            font-weight: var(--fw-medium);
+            color: var(--text-secondary);
+            margin-bottom: var(--space-2);
+        }
+
+        .voice-label-hint {
+            font-size: var(--text-xs);
+            font-weight: var(--fw-regular);
+            color: var(--text-tertiary);
+        }
+
+        /* 音色卡片网格：两列排布，选中的卡片主题色高亮 */
+        .voice-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: var(--space-3);
+        }
+
+        .voice-card {
+            padding: var(--space-3) var(--space-4);
+            background: var(--bg-secondary);
+            border: 1.5px solid var(--border-light);
+            border-radius: var(--radius-lg);
+            cursor: pointer;
+            transition: all var(--transition-fast);
+        }
+
+        .voice-card:hover {
+            border-color: var(--accent-primary);
+        }
+
+        .voice-card.selected {
+            border-color: var(--accent-primary);
+            background: var(--bg-primary);
+            box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.12);
+        }
+
+        .voice-card-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--space-1);
+        }
+
+        .voice-card-name {
+            font-size: var(--text-sm);
+            font-weight: var(--fw-medium);
+            color: var(--text-primary);
+        }
+
+        .voice-preview-btn {
+            border: none;
+            background: transparent;
+            color: var(--accent-primary);
+            font-size: var(--text-xs);
+            font-family: var(--font-sans);
+            cursor: pointer;
+            padding: 2px var(--space-2);
+            border-radius: var(--radius-sm);
+            transition: all var(--transition-fast);
+        }
+
+        .voice-preview-btn:hover {
+            background: var(--bg-tertiary);
+        }
+
+        .voice-preview-btn.playing {
+            color: var(--text-secondary);
+        }
+
+        .voice-card-desc {
+            font-size: var(--text-xs);
+            color: var(--text-tertiary);
+        }
+
+        .voice-select-hint {
+            font-size: var(--text-xs);
+            color: var(--text-tertiary);
+            margin-top: var(--space-2);
+        }
+
+        .btn-start-interview {
             width: 100%;
-            height: 4px;
-            background: linear-gradient(90deg, #3b82f6 0%, #6366f1 100%);
+            height: 52px;
+            font-size: var(--text-base);
         }
-        
-        .camera-title {
-            font-size: 1rem;
-            font-weight: 600;
-            color: #e2e8f0;
-            margin-bottom: 16px;
+
+        /* === 主内容双栏 === */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 360px 1fr;
+            gap: var(--space-6);
+        }
+
+        @media (max-width: 1024px) {
+            .main-grid { grid-template-columns: 1fr; }
+        }
+
+        .left-col, .right-col {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-6);
+        }
+
+        /* === 面板通用 === */
+        .panel {
+            background: var(--bg-primary);
+            border: 1px solid var(--border-light);
+            border-radius: var(--radius-2xl);
+            padding: var(--space-6);
+            box-shadow: var(--shadow-xs);
+        }
+
+        .panel-header {
             display: flex;
             align-items: center;
             justify-content: space-between;
+            margin-bottom: var(--space-5);
         }
-        
-        .camera-controls {
+
+        .panel-title {
+            font-family: var(--font-display);
+            font-size: var(--text-base);
+            font-weight: var(--fw-semibold);
+            color: var(--text-primary);
             display: flex;
-            gap: 8px;
+            align-items: center;
+            gap: var(--space-2);
+            letter-spacing: -0.01em;
         }
-        
-        .camera-control-btn {
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            border: 1px solid rgba(59, 130, 246, 0.3);
-            background: rgba(30, 41, 59, 0.6);
-            color: #94a3b8;
+
+        .panel-title-icon {
+            width: 28px;
+            height: 28px;
+            border-radius: var(--radius-md);
+            background: rgba(0, 122, 255, 0.1);
             display: flex;
             align-items: center;
             justify-content: center;
-            cursor: pointer;
-            transition: all 0.3s ease;
+            font-size: 13px;
         }
-        
-        .camera-control-btn:hover {
-            background: rgba(59, 130, 246, 0.2);
-            color: #3b82f6;
-            border-color: #3b82f6;
-        }
-        
-        .camera-container {
+
+        /* === 摄像头区 === */
+        .camera-wrap {
             position: relative;
             width: 100%;
-            height: 240px;
-            border-radius: 12px;
+            aspect-ratio: 4 / 3;
+            border-radius: var(--radius-xl);
             overflow: hidden;
-            background: #000;
-            border: 1px solid rgba(59, 130, 246, 0.3);
-            margin-bottom: 16px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-light);
+            margin-bottom: var(--space-4);
         }
-        
-        .camera-container video {
+
+        .camera-wrap video {
             width: 100%;
             height: 100%;
             object-fit: cover;
+            transform: scaleX(-1);
         }
-        
-        .camera-overlay {
+
+        .camera-placeholder {
             position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
+            inset: 0;
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
-            background: rgba(0,0,0,0.7);
-            color: #e2e8f0;
-            border: 2px dashed rgba(59, 130, 246, 0.5);
+            background: var(--bg-secondary);
+            border: 1.5px dashed var(--border-medium);
+            border-radius: inherit;
+            gap: var(--space-3);
         }
-        
-        .camera-overlay-content {
+
+        .camera-placeholder-icon {
+            font-size: 28px;
+            opacity: 0.4;
+        }
+
+        .camera-placeholder-text {
+            font-size: var(--text-sm);
+            color: var(--text-tertiary);
+        }
+
+        .camera-status {
             text-align: center;
+            font-size: var(--text-sm);
+            color: var(--success-fg);
+            font-weight: var(--fw-medium);
         }
-        
-        .camera-overlay-icon {
-            font-size: 2rem;
-            margin-bottom: 8px;
-            color: #3b82f6;
-        }
-        
-        .camera-overlay-text {
-            font-size: 0.875rem;
-            color: #94a3b8;
-        }
-        
-        /* 表情分析面板 */
-        .expression-section {
-            background: rgba(15, 23, 42, 0.8);
-            border: 1px solid rgba(59, 130, 246, 0.3);
-            border-radius: 16px;
-            padding: 20px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .expression-section::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 4px;
-            background: linear-gradient(90deg, #10b981 0%, #34d399 100%);
-        }
-        
-        .expression-title {
-            font-size: 1rem;
-            font-weight: 600;
-            color: #e2e8f0;
-            margin-bottom: 16px;
-        }
-        
+
+        /* === 表情分析 === */
         .expression-item {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 12px;
+            margin-bottom: var(--space-3);
         }
-        
+
         .expression-label {
-            font-size: 0.875rem;
-            color: #94a3b8;
+            font-size: var(--text-sm);
+            color: var(--text-secondary);
         }
-        
+
         .expression-value {
-            font-size: 0.875rem;
-            font-weight: 600;
-            color: #e2e8f0;
+            font-size: var(--text-sm);
+            font-weight: var(--fw-medium);
+            color: var(--text-primary);
         }
-        
-        .expression-value.excellent {
-            color: #4ade80;
-        }
-        
-        .expression-value.good {
-            color: #93c5fd;
-        }
-        
-        .expression-value.normal {
-            color: #fcd34d;
-        }
-        
-        .expression-value.poor {
-            color: #fca5a5;
-        }
-        
-        .expression-progress {
-            width: 100%;
-            height: 6px;
-            background: rgba(30, 41, 59, 0.6);
-            border-radius: 3px;
-            margin-top: 4px;
-            overflow: hidden;
-        }
-        
-        .expression-progress-bar {
-            height: 100%;
-            border-radius: 3px;
-            transition: width 0.3s ease;
-        }
-        
-        .expression-progress-bar.excellent {
-            background: linear-gradient(90deg, #10b981 0%, #34d399 100%);
-        }
-        
-        .expression-progress-bar.good {
-            background: linear-gradient(90deg, #3b82f6 0%, #60a5fa 100%);
-        }
-        
-        .expression-progress-bar.normal {
-            background: linear-gradient(90deg, #f59e0b 0%, #fbbf24 100%);
-        }
-        
-        .expression-progress-bar.poor {
-            background: linear-gradient(90deg, #ef4444 0%, #f87171 100%);
-        }
-        
-        /* 右侧面板 */
-        .right-panel {
-            display: flex;
-            flex-direction: column;
-            gap: 24px;
-        }
-        
-        /* AI面试官面板 */
-        .ai-interviewer-section {
-            background: rgba(15, 23, 42, 0.8);
-            border: 1px solid rgba(59, 130, 246, 0.3);
-            border-radius: 16px;
-            padding: 24px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .ai-interviewer-section::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
+
+        .expression-value.excellent { color: var(--success-fg); }
+        .expression-value.good { color: var(--accent-primary); }
+        .expression-value.normal { color: var(--warning-fg); }
+        .expression-value.poor { color: var(--error-fg); }
+
+        .expression-progress-track {
             height: 4px;
-            background: linear-gradient(90deg, #8b5cf6 0%, #a78bfa 100%);
+            background: var(--bg-secondary);
+            border-radius: var(--radius-full);
+            overflow: hidden;
+            margin-bottom: var(--space-4);
         }
-        
-        .ai-interviewer-header {
+
+        .expression-progress-fill {
+            height: 100%;
+            border-radius: var(--radius-full);
+            transition: width var(--transition-base);
+        }
+
+        .expression-progress-fill.excellent { background: var(--success-500); }
+        .expression-progress-fill.good { background: var(--accent-primary); }
+        .expression-progress-fill.normal { background: var(--warning-500); }
+        .expression-progress-fill.poor { background: var(--error-500); }
+
+        .expression-suggestion {
+            font-size: var(--text-xs);
+            color: var(--text-tertiary);
+            padding-top: var(--space-3);
+            border-top: 1px solid var(--border-subtle);
+            line-height: 1.5;
+        }
+
+        /* === AI 面试官区 === */
+        .ai-header {
             display: flex;
             align-items: center;
-            gap: 16px;
-            margin-bottom: 20px;
+            gap: var(--space-4);
+            margin-bottom: var(--space-5);
+            padding-bottom: var(--space-5);
+            border-bottom: 1px solid var(--border-subtle);
         }
-        
+
         .ai-avatar {
-            width: 64px;
-            height: 64px;
+            width: 52px;
+            height: 52px;
             border-radius: 50%;
-            background: linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%);
+            background: var(--accent-primary);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 2rem;
-            color: white;
-        }
-        
-        .ai-info {
-            flex: 1;
-        }
-        
-        .ai-name {
-            font-size: 1.125rem;
-            font-weight: 600;
-            color: #e2e8f0;
-            margin-bottom: 4px;
-        }
-        
-        .ai-title {
-            font-size: 0.875rem;
-            color: #94a3b8;
-        }
-        
-        .ai-status {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        
-        .ai-status-indicator {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: #4ade80;
-            animation: pulse 1.5s infinite;
-        }
-        
-        @keyframes pulse {
-            0% { opacity: 1; }
-            50% { opacity: 0.5; }
-            100% { opacity: 1; }
-        }
-        
-        .ai-status-text {
-            font-size: 0.875rem;
-            color: #4ade80;
-            font-weight: 500;
-        }
-        
-        /* 问题面板 */
-        .question-section {
-            background: rgba(15, 23, 42, 0.8);
-            border: 1px solid rgba(59, 130, 246, 0.3);
-            border-radius: 16px;
-            padding: 24px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            font-size: 22px;
+            color: #fff;
             position: relative;
-            overflow: hidden;
+            flex-shrink: 0;
         }
-        
-        .question-section::before {
+
+        .ai-avatar::after {
             content: '';
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 4px;
-            background: linear-gradient(90deg, #3b82f6 0%, #6366f1 100%);
-        }
-        
-        .question-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-        
-        .question-number {
-            font-size: 0.875rem;
-            font-weight: 600;
-            color: #3b82f6;
-            background: rgba(59, 130, 246, 0.1);
-            padding: 6px 12px;
-            border-radius: 9999px;
-            border: 1px solid rgba(59, 130, 246, 0.3);
-        }
-        
-        .question-voice-control {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        
-        .voice-control-label {
-            font-size: 0.875rem;
-            color: #94a3b8;
-        }
-        
-        .toggle-switch {
-            position: relative;
-            display: inline-block;
-            width: 50px;
-            height: 26px;
-        }
-        
-        .toggle-switch input {
-            opacity: 0;
-            width: 0;
-            height: 0;
-        }
-        
-        .slider {
-            position: absolute;
-            cursor: pointer;
-            top: 0;
-            left: 0;
-            right: 0;
             bottom: 0;
-            background-color: rgba(148, 163, 184, 0.3);
-            transition: .4s;
-            border-radius: 26px;
-        }
-        
-        .slider:before {
-            position: absolute;
-            content: "";
-            height: 20px;
-            width: 20px;
-            left: 3px;
-            bottom: 3px;
-            background-color: #e2e8f0;
-            transition: .4s;
+            right: 0;
+            width: 14px;
+            height: 14px;
             border-radius: 50%;
+            background: var(--success-500);
+            border: 2.5px solid var(--bg-primary);
         }
-        
-        input:checked + .slider {
-            background-color: #3b82f6;
+
+        .ai-info { flex: 1; min-width: 0; }
+
+        .ai-name {
+            font-family: var(--font-display);
+            font-size: var(--text-lg);
+            font-weight: var(--fw-semibold);
+            color: var(--text-primary);
+            margin-bottom: 2px;
+            letter-spacing: -0.01em;
         }
-        
-        input:checked + .slider:before {
-            transform: translateX(24px);
+
+        .ai-status {
+            font-size: var(--text-xs);
+            color: var(--success-fg);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: var(--fw-medium);
         }
-        
-        .voice-icon {
-            font-size: 1rem;
-            color: #94a3b8;
+
+        .ai-status-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--success-500);
         }
-        
+
+        /* === 问题展示区 === */
+        .question-meta {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: var(--space-4);
+        }
+
+        .question-number {
+            display: inline-flex;
+            align-items: center;
+            gap: var(--space-2);
+            padding: 0.35rem 0.85rem;
+            background: rgba(0, 122, 255, 0.1);
+            border-radius: var(--radius-full);
+            font-size: var(--text-xs);
+            font-weight: var(--fw-medium);
+            color: var(--accent-primary);
+        }
+
         .question-text {
-            font-size: 1.125rem;
-            font-weight: 500;
-            color: #e2e8f0;
+            font-family: var(--font-display);
+            font-size: var(--text-xl);
+            font-weight: var(--fw-medium);
+            color: var(--text-primary);
             line-height: 1.6;
-            margin-bottom: 24px;
+            margin-bottom: var(--space-5);
+            letter-spacing: -0.01em;
         }
-        
-        /* 提示面板 */
-        .hint-section {
-            background: rgba(59, 130, 246, 0.08);
-            border: 1px solid rgba(59, 130, 246, 0.2);
-            border-radius: 12px;
-            padding: 16px;
-            margin-bottom: 24px;
+
+        /* === 提示区 === */
+        .hint-box {
+            padding: var(--space-4) var(--space-5);
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-light);
+            border-radius: var(--radius-xl);
+            margin-bottom: var(--space-5);
         }
-        
+
         .hint-header {
             display: flex;
             align-items: center;
-            gap: 8px;
-            margin-bottom: 8px;
+            gap: var(--space-2);
+            margin-bottom: var(--space-2);
         }
-        
-        .hint-icon {
-            font-size: 1rem;
-            color: #3b82f6;
-        }
-        
+
+        .hint-icon { font-size: 15px; }
+
         .hint-title {
-            font-size: 0.875rem;
-            font-weight: 600;
-            color: #3b82f6;
+            font-size: var(--text-sm);
+            font-weight: var(--fw-semibold);
+            color: var(--text-primary);
         }
-        
+
         .hint-text {
-            font-size: 0.875rem;
-            color: #94a3b8;
-            line-height: 1.5;
+            font-size: var(--text-sm);
+            color: var(--text-secondary);
+            line-height: 1.6;
         }
-        
-        /* 答案输入面板 */
-        .answer-section {
-            background: rgba(15, 23, 42, 0.8);
-            border: 1px solid rgba(59, 130, 246, 0.3);
-            border-radius: 16px;
-            padding: 24px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-            position: relative;
-            overflow: hidden;
+
+        /* === 答题区 === */
+        .answer-mode-tabs {
+            display: inline-flex;
+            padding: 3px;
+            background: var(--bg-secondary);
+            border-radius: var(--radius-full);
+            margin-bottom: var(--space-5);
         }
-        
-        .answer-section::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 4px;
-            background: linear-gradient(90deg, #10b981 0%, #34d399 100%);
-        }
-        
-        .answer-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-        
-        .answer-title {
-            font-size: 1rem;
-            font-weight: 600;
-            color: #e2e8f0;
-        }
-        
-        .answer-mode-selector {
-            display: flex;
-            gap: 8px;
-        }
-        
-        .mode-btn {
-            padding: 6px 16px;
-            border-radius: 9999px;
-            border: 1px solid rgba(59, 130, 246, 0.3);
-            background: rgba(30, 41, 59, 0.6);
-            color: #94a3b8;
-            font-size: 0.875rem;
-            font-weight: 500;
+
+        .answer-mode-tab {
+            padding: 0.45rem 1.25rem;
+            font-size: var(--text-sm);
+            color: var(--text-tertiary);
+            border-radius: var(--radius-full);
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: all var(--transition-fast);
+            border: none;
+            background: transparent;
+            font-family: var(--font-sans);
+            font-weight: var(--fw-medium);
         }
-        
-        .mode-btn.active {
-            background: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%);
-            color: white;
-            border-color: #3b82f6;
+
+        .answer-mode-tab:hover {
+            color: var(--text-secondary);
         }
-        
-        .mode-btn:hover {
-            background: rgba(59, 130, 246, 0.2);
-            color: #3b82f6;
-            border-color: #3b82f6;
+
+        .answer-mode-tab.active {
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            box-shadow: var(--shadow-xs);
+            font-weight: var(--fw-semibold);
         }
-        
-        .mode-btn.active:hover {
-            background: linear-gradient(135deg, #2563eb 0%, #4f46e5 100%);
-            color: white;
-        }
-        
-        /* 语音答题区域 */
+
+        /* 语音答题 */
         .voice-answer-area {
             text-align: center;
-            padding: 32px 0;
+            padding: var(--space-8) 0;
         }
-        
-        .voice-answer-hint {
-            font-size: 0.875rem;
-            color: #94a3b8;
-            margin-bottom: 24px;
-        }
-        
+
         .record-btn {
             width: 80px;
             height: 80px;
             border-radius: 50%;
-            border: 3px solid rgba(239, 68, 68, 0.3);
-            background: rgba(239, 68, 68, 0.1);
-            color: #fca5a5;
-            font-size: 1.5rem;
+            border: 3px solid rgba(255, 59, 48, 0.2);
+            background: rgba(255, 59, 48, 0.08);
+            color: var(--error-500);
+            font-size: 26px;
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            transition: all 0.3s ease;
-            margin: 0 auto 16px;
+            transition: all var(--transition-base);
+            margin: 0 auto var(--space-4);
+            padding: 0;
         }
-        
+
         .record-btn:hover {
-            background: rgba(239, 68, 68, 0.2);
-            border-color: #ef4444;
-            transform: scale(1.05);
+            background: rgba(255, 59, 48, 0.15);
+            border-color: rgba(255, 59, 48, 0.4);
+            transform: scale(1.03);
         }
-        
+
         .record-btn.recording {
-            background: rgba(239, 68, 68, 0.3);
-            border-color: #ef4444;
-            animation: pulse 1.5s infinite;
+            background: rgba(255, 59, 48, 0.15);
+            border-color: var(--error-500);
+            animation: recordPulse 1.8s ease-in-out infinite;
         }
-        
+
+        @keyframes recordPulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(255, 59, 48, 0.25); }
+            50% { box-shadow: 0 0 0 14px rgba(255, 59, 48, 0); }
+        }
+
         .recording-time {
-            font-size: 1rem;
-            font-weight: 600;
-            color: #fca5a5;
+            font-size: var(--text-lg);
+            font-weight: var(--fw-semibold);
+            color: var(--error-fg);
+            font-variant-numeric: tabular-nums;
+            font-family: var(--font-display);
+            letter-spacing: -0.01em;
         }
-        
-        /* 打字答题区域 */
-        .text-answer-area {
-            margin-bottom: 16px;
+
+        .voice-hint {
+            font-size: var(--text-sm);
+            color: var(--text-tertiary);
+            margin-top: var(--space-4);
         }
-        
+
+        .voice-recognition-text {
+            font-size: var(--text-xs);
+            color: var(--text-tertiary);
+            margin-top: var(--space-3);
+        }
+
+        /* 文字答题 */
+        .text-answer-area { margin-bottom: var(--space-4); }
+
         .text-answer-input {
             width: 100%;
-            min-height: 120px;
-            padding: 16px;
-            border: 1px solid rgba(59, 130, 246, 0.3);
-            border-radius: 12px;
-            background: rgba(30, 41, 59, 0.6);
-            color: #e2e8f0;
-            font-size: 1rem;
-            line-height: 1.5;
+            min-height: 140px;
+            padding: var(--space-4);
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-light);
+            border-radius: var(--radius-xl);
+            color: var(--text-primary);
+            font-size: var(--text-base);
+            line-height: 1.6;
             resize: vertical;
-            transition: all 0.3s ease;
-        }
-        
-        .text-answer-input:focus {
+            font-family: var(--font-sans);
             outline: none;
-            border-color: #3b82f6;
-            background: rgba(30, 41, 59, 0.8);
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+            transition: all var(--transition-fast);
         }
-        
+
+        .text-answer-input:focus {
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.12);
+            background: var(--bg-primary);
+        }
+
+        .text-answer-input::placeholder {
+            color: var(--text-tertiary);
+        }
+
         .text-answer-footer {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-top: 8px;
+            margin-top: var(--space-2);
         }
-        
+
         .answer-length {
-            font-size: 0.875rem;
-            color: #94a3b8;
+            font-size: var(--text-xs);
+            color: var(--text-tertiary);
         }
-        
-        /* 控制按钮区域 */
-        .control-section {
+
+        /* 操作按钮 */
+        .control-row {
             display: flex;
-            justify-content: space-between;
             align-items: center;
-            gap: 12px;
+            justify-content: space-between;
+            gap: var(--space-3);
+            flex-wrap: wrap;
         }
-        
-        .control-btn {
-            padding: 10px 20px;
-            border-radius: 10px;
-            font-size: 0.875rem;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            border: 1px solid transparent;
+
+        .control-left, .control-right {
+            display: flex;
+            gap: var(--space-3);
         }
-        
-        .control-btn.primary {
-            background: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%);
-            color: white;
-            border-color: rgba(59, 130, 246, 0.3);
-        }
-        
-        .control-btn.primary:hover {
-            background: linear-gradient(135deg, #2563eb 0%, #4f46e5 100%);
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
-        }
-        
-        .control-btn.secondary {
-            background: rgba(30, 41, 59, 0.6);
-            color: #e2e8f0;
-            border: 1px solid rgba(59, 130, 246, 0.3);
-        }
-        
-        .control-btn.secondary:hover {
-            background: rgba(30, 41, 59, 0.8);
-            border-color: #3b82f6;
-        }
-        
+
         /* 进度条 */
-        .progress-section {
-            margin-top: 24px;
+        .progress-wrap {
+            margin-top: var(--space-6);
         }
-        
-        .progress-label {
-            font-size: 0.875rem;
-            color: #94a3b8;
-            margin-bottom: 8px;
+
+        .progress-label-row {
             display: flex;
             justify-content: space-between;
+            margin-bottom: var(--space-2);
+            font-size: var(--text-xs);
+            color: var(--text-tertiary);
         }
-        
-        .progress-bar-container {
-            width: 100%;
-            height: 8px;
-            background: rgba(30, 41, 59, 0.6);
-            border-radius: 4px;
+
+        /* === 评分报告 === */
+        .report-card {
+            padding: var(--space-8);
+        }
+
+        .report-header {
+            text-align: center;
+            margin-bottom: var(--space-8);
+        }
+
+        .report-title {
+            font-family: var(--font-display);
+            font-size: var(--text-3xl);
+            font-weight: var(--fw-bold);
+            color: var(--text-primary);
+            margin-bottom: var(--space-2);
+            letter-spacing: -0.02em;
+        }
+
+        .report-subtitle {
+            font-size: var(--text-sm);
+            color: var(--text-tertiary);
+        }
+
+        .score-overview {
+            display: flex;
+            align-items: center;
+            gap: var(--space-8);
+            padding: var(--space-6);
+            background: var(--bg-secondary);
+            border-radius: var(--radius-2xl);
+            margin-bottom: var(--space-6);
+        }
+
+        .score-circle {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--brand-400), var(--brand-600));
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            box-shadow: 0 8px 24px -8px rgba(0, 122, 255, 0.35);
+        }
+
+        .score-circle-num {
+            font-family: var(--font-display);
+            font-size: 2.5rem;
+            font-weight: var(--fw-bold);
+            color: #fff;
+            line-height: 1;
+            letter-spacing: -0.02em;
+        }
+
+        .score-circle-label {
+            font-size: var(--text-xs);
+            color: rgba(255, 255, 255, 0.8);
+            margin-top: 4px;
+            font-weight: var(--fw-medium);
+        }
+
+        .score-info { flex: 1; min-width: 0; }
+
+        .score-info-title {
+            font-family: var(--font-display);
+            font-size: var(--text-xl);
+            font-weight: var(--fw-semibold);
+            color: var(--text-primary);
+            margin-bottom: var(--space-2);
+            letter-spacing: -0.01em;
+        }
+
+        .score-info-desc {
+            font-size: var(--text-sm);
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        .score-actions {
+            display: flex;
+            gap: var(--space-3);
+            margin-top: var(--space-4);
+        }
+
+        .score-tabs {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: var(--space-4);
+            margin-bottom: var(--space-6);
+        }
+
+        .score-tab {
+            text-align: center;
+            padding: var(--space-5) var(--space-4);
+            background: var(--bg-secondary);
+            border-radius: var(--radius-xl);
+            transition: all var(--transition-base);
+        }
+
+        .score-tab:hover {
+            transform: translateY(-1px);
+        }
+
+        .score-tab-title {
+            font-size: var(--text-xs);
+            color: var(--text-tertiary);
+            margin-bottom: var(--space-2);
+            font-weight: var(--fw-medium);
+        }
+
+        .score-tab-value {
+            font-family: var(--font-display);
+            font-size: var(--text-3xl);
+            font-weight: var(--fw-bold);
+            color: var(--accent-primary);
+            letter-spacing: -0.02em;
+        }
+
+        /* 技能详情 */
+        .skills-section { margin-bottom: var(--space-6); }
+
+        .section-title {
+            font-size: var(--text-base);
+            font-weight: var(--fw-semibold);
+            color: var(--text-primary);
+            margin-bottom: var(--space-4);
+            font-family: var(--font-display);
+            letter-spacing: -0.01em;
+        }
+
+        .skill-item {
+            margin-bottom: var(--space-4);
+        }
+
+        .skill-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: var(--space-2);
+        }
+
+        .skill-name {
+            font-size: var(--text-sm);
+            color: var(--text-secondary);
+        }
+
+        .skill-score {
+            font-size: var(--text-sm);
+            font-weight: var(--fw-semibold);
+            color: var(--accent-primary);
+            font-family: var(--font-display);
+        }
+
+        .skill-bar-track {
+            height: 4px;
+            background: var(--bg-secondary);
+            border-radius: var(--radius-full);
             overflow: hidden;
         }
-        
-        .progress-bar {
+
+        .skill-bar-fill {
             height: 100%;
-            background: linear-gradient(90deg, #3b82f6 0%, #6366f1 100%);
-            border-radius: 4px;
-            transition: width 0.3s ease;
+            background: var(--accent-primary);
+            border-radius: var(--radius-full);
+            transition: width var(--transition-slow);
         }
-        
-        /* 加载状态 */
+
+        /* 反馈 */
+        .feedback-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--space-4);
+            margin-bottom: var(--space-6);
+        }
+
+        @media (max-width: 768px) {
+            .feedback-grid { grid-template-columns: 1fr; }
+        }
+
+        .feedback-card {
+            padding: var(--space-5);
+            background: var(--bg-secondary);
+            border-radius: var(--radius-xl);
+        }
+
+        .feedback-card-title {
+            font-size: var(--text-base);
+            font-weight: var(--fw-semibold);
+            margin-bottom: var(--space-4);
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+            font-family: var(--font-display);
+        }
+
+        .feedback-card-title.strength { color: var(--success-fg); }
+        .feedback-card-title.improve { color: var(--warning-fg); }
+
+        .feedback-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .feedback-list li {
+            font-size: var(--text-sm);
+            color: var(--text-secondary);
+            padding: var(--space-2) 0;
+            padding-left: var(--space-4);
+            position: relative;
+            line-height: 1.6;
+        }
+
+        .feedback-list li::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 12px;
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+        }
+
+        .feedback-card.strength .feedback-list li::before { background: var(--success-fg); }
+        .feedback-card.improve .feedback-list li::before { background: var(--warning-fg); }
+
+        /* 建议卡片 */
+        .recommendations-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: var(--space-4);
+        }
+
+        @media (max-width: 768px) {
+            .recommendations-grid { grid-template-columns: 1fr; }
+        }
+
+        .rec-card {
+            padding: var(--space-5);
+            background: var(--bg-secondary);
+            border-radius: var(--radius-xl);
+            text-align: center;
+            transition: all var(--transition-base);
+        }
+
+        .rec-card:hover {
+            transform: translateY(-2px);
+        }
+
+        .rec-icon {
+            width: 44px;
+            height: 44px;
+            margin: 0 auto var(--space-3);
+            border-radius: var(--radius-lg);
+            background: rgba(0, 122, 255, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            color: var(--accent-primary);
+        }
+
+        .rec-title {
+            font-size: var(--text-sm);
+            font-weight: var(--fw-semibold);
+            color: var(--text-primary);
+            margin-bottom: var(--space-2);
+        }
+
+        .rec-desc {
+            font-size: var(--text-xs);
+            color: var(--text-tertiary);
+            line-height: 1.5;
+        }
+
+        /* === 加载遮罩 === */
         .loading-overlay {
             position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(15, 23, 42, 0.8);
-            backdrop-filter: blur(10px);
+            inset: 0;
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
             display: flex;
             align-items: center;
             justify-content: center;
             z-index: 1000;
         }
-        
+
         .loading-content {
             text-align: center;
+            background: var(--bg-primary);
+            padding: var(--space-8);
+            border-radius: var(--radius-2xl);
+            box-shadow: var(--shadow-xl);
         }
-        
+
         .loading-spinner {
-            width: 60px;
-            height: 60px;
-            border: 3px solid rgba(59, 130, 246, 0.3);
-            border-top: 3px solid #3b82f6;
+            width: 44px;
+            height: 44px;
+            border: 3px solid var(--bg-secondary);
+            border-top-color: var(--accent-primary);
             border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 16px;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto var(--space-4);
         }
-        
+
         @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+            to { transform: rotate(360deg); }
         }
-        
+
         .loading-text {
-            font-size: 1rem;
-            color: #e2e8f0;
+            font-size: var(--text-sm);
+            color: var(--text-secondary);
         }
-        
-        /* 错误提示 */
-        .error-message {
-            background: rgba(239, 68, 68, 0.08);
-            border: 1px solid rgba(239, 68, 68, 0.2);
-            border-radius: 12px;
-            padding: 16px;
-            margin-bottom: 20px;
-            text-align: center;
-        }
-        
-        .error-icon {
-            font-size: 1.5rem;
-            color: #fca5a5;
-            margin-bottom: 8px;
-        }
-        
-        .error-text {
-            font-size: 0.875rem;
-            color: #fca5a5;
-        }
-        
-        /* 面试完成提示 */
-        .completed-section {
-            margin-top: 20px;
-        }
-        
-        .completed-card {
-            background: rgba(15, 23, 42, 0.8);
-            border: 1px solid rgba(59, 130, 246, 0.3);
-            border-radius: 16px;
-            padding: 24px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .completed-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 4px;
-            background: linear-gradient(90deg, #3b82f6 0%, #6366f1 100%);
-        }
-        
-        .completed-header {
-            margin-bottom: 24px;
-        }
-        
-        .completed-title {
-            font-size: 1.5rem;
-            font-weight: 600;
-            color: #e2e8f0;
-            margin-bottom: 4px;
-        }
-        
-        .completed-subtitle {
-            font-size: 0.875rem;
-            color: #94a3b8;
-        }
-        
-        .score-card {
-            background: rgba(30, 41, 59, 0.6);
-            border: 1px solid rgba(59, 130, 246, 0.2);
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 24px;
-            display: flex;
-            align-items: center;
-            gap: 24px;
-        }
-        
-        .score-circle {
-            width: 100px;
-            height: 100px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #3b82f6, #6366f1);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            color: white;
-        }
-        
-        .score-number {
-            font-size: 1.75rem;
-            font-weight: 700;
-        }
-        
-        .score-label {
-            font-size: 0.75rem;
-            opacity: 0.9;
-        }
-        
-        .score-text {
-            flex: 1;
-        }
-        
-        .score-title {
-            font-size: 1.125rem;
-            font-weight: 600;
-            color: #e2e8f0;
-            margin-bottom: 8px;
-        }
-        
-        .score-description {
-            font-size: 0.875rem;
-            color: #94a3b8;
-            line-height: 1.5;
-        }
-        
-        .score-buttons {
-            display: flex;
-            gap: 12px;
-        }
-        
-        .score-tabs {
-            display: flex;
-            gap: 16px;
-            margin-bottom: 24px;
-        }
-        
-        .score-tab {
-            flex: 1;
-            background: rgba(30, 41, 59, 0.6);
-            border: 1px solid rgba(59, 130, 246, 0.2);
-            border-radius: 12px;
-            padding: 16px;
-            text-align: center;
-        }
-        
-        .score-tab-title {
-            font-size: 0.875rem;
-            color: #94a3b8;
-            margin-bottom: 8px;
-        }
-        
-        .score-tab-value {
-            font-size: 1.5rem;
-            font-weight: 600;
-            color: #3b82f6;
-        }
-        
-        .skills-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 24px;
-            margin-bottom: 24px;
-        }
-        
-        .skills-left,
-        .skills-right {
-            background: rgba(30, 41, 59, 0.6);
-            border: 1px solid rgba(59, 130, 246, 0.2);
-            border-radius: 12px;
-            padding: 20px;
-        }
-        
-        .skills-title {
-            font-size: 1rem;
-            font-weight: 600;
-            color: #e2e8f0;
-            margin-bottom: 16px;
-        }
-        
-        .skills-chart {
-            height: 200px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: rgba(15, 23, 42, 0.4);
-            border-radius: 8px;
-        }
-        
-        .skills-placeholder {
-            color: #94a3b8;
-            font-size: 0.875rem;
-        }
-        
-        .skill-item {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 12px;
-        }
-        
-        .skill-name {
-            flex: 1;
-            font-size: 0.875rem;
-            color: #e2e8f0;
-        }
-        
-        .skill-bar {
-            flex: 2;
-            height: 8px;
-            background: rgba(15, 23, 42, 0.4);
-            border-radius: 4px;
-            overflow: hidden;
-        }
-        
-        .skill-progress {
-            height: 100%;
-            background: linear-gradient(90deg, #3b82f6, #6366f1);
-            border-radius: 4px;
-        }
-        
-        .skill-score {
-            font-size: 0.875rem;
-            color: #94a3b8;
-            min-width: 60px;
-            text-align: right;
-        }
-        
-        .feedback-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 24px;
-            margin-bottom: 24px;
-        }
-        
-        .feedback-left,
-        .feedback-right {
-            background: rgba(30, 41, 59, 0.6);
-            border: 1px solid rgba(59, 130, 246, 0.2);
-            border-radius: 12px;
-            padding: 20px;
-        }
-        
-        .feedback-title {
-            font-size: 1rem;
-            font-weight: 600;
-            color: #e2e8f0;
-            margin-bottom: 16px;
-        }
-        
-        .feedback-item {
-            display: flex;
-            align-items: flex-start;
-            gap: 12px;
-            margin-bottom: 12px;
-        }
-        
-        .feedback-item i {
-            margin-top: 2px;
-        }
-        
-        .feedback-item span {
-            font-size: 0.875rem;
-            color: #94a3b8;
-            line-height: 1.5;
-        }
-        
-        .recommendations-section {
-            margin-bottom: 24px;
-        }
-        
-        .recommendations-title {
-            font-size: 1rem;
-            font-weight: 600;
-            color: #e2e8f0;
-            margin-bottom: 16px;
-        }
-        
-        .recommendations-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 16px;
-        }
-        
-        .recommendation-card {
-            background: rgba(30, 41, 59, 0.6);
-            border: 1px solid rgba(59, 130, 246, 0.2);
-            border-radius: 12px;
-            padding: 20px;
-            text-align: center;
-        }
-        
-        .recommendation-icon {
-            width: 48px;
-            height: 48px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #3b82f6, #6366f1);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            margin: 0 auto 12px;
-        }
-        
-        .recommendation-icon i {
-            font-size: 1.25rem;
-        }
-        
-        .recommendation-title {
-            font-size: 0.875rem;
-            font-weight: 600;
-            color: #e2e8f0;
-            margin-bottom: 8px;
-        }
-        
-        .recommendation-description {
-            font-size: 0.75rem;
-            color: #94a3b8;
-            line-height: 1.5;
-        }
-        
-        /* 响应式设计 */
+
+        /* === 响应式 === */
         @media (max-width: 768px) {
-            .main-content {
-                grid-template-columns: 1fr;
-            }
-            
-            .left-panel {
-                order: 2;
-            }
-            
-            .right-panel {
-                order: 1;
-            }
+            body { padding: var(--space-4); }
+            .main-grid { grid-template-columns: 1fr; }
+            .left-col { order: 2; }
+            .right-col { order: 1; }
+            .score-overview { flex-direction: column; text-align: center; }
+            .score-actions { justify-content: center; }
+            .score-tabs { grid-template-columns: 1fr; }
+            .report-card { padding: var(--space-6) var(--space-4); }
+            .top-nav { padding: var(--space-3) var(--space-4); }
+            .status-bar { padding: var(--space-3) var(--space-4); }
         }
     </style>
 </head>
 <body>
-    <div id="app" class="container">
-        <!-- 顶部导航栏 -->
-        <nav class="navbar navbar-expand-lg">
-            <div class="container-fluid">
-                <a class="navbar-brand" href="#">AI面试系统</a>
-                <div class="navbar-nav ms-auto">
-                    <a class="nav-link" href="admin.html">管理后台</a>
-                    <a class="nav-link" href="pricing.html">购买套餐</a>
-                    <a class="nav-link" href="login.html">退出</a>
-                </div>
+    <div id="app" class="app-shell">
+        <!-- 顶部导航 -->
+        <nav class="top-nav">
+            <div class="nav-brand">
+                <img class="nav-brand-mark" src="img/logo.svg" alt="智面无忧">
+                <span class="nav-brand-text">智面无忧</span>
+            </div>
+            <div class="nav-links">
+                <a href="admin.html" class="gt-btn gt-btn-ghost gt-btn-sm">回到主页</a>
+                <a href="login.html" class="gt-btn gt-btn-ghost gt-btn-sm">退出</a>
             </div>
         </nav>
-        
-        <!-- 状态信息栏 -->
+
+        <!-- 状态栏 -->
         <div class="status-bar">
             <div class="status-item">
-                <span class="status-label">面试进度:</span>
-                <span class="status-value">{{ currentQuestionIndex + 1 }}/{{ totalQuestions }}</span>
+                <div>
+                    <div class="status-label">面试进度</div>
+                    <!-- 完成后不再显示"6/5"这类越界计数，改显示已完成 -->
+                    <div class="status-value" v-if="!isFinished">{{ currentQuestionIndex + 1 }} / {{ totalQuestions }}</div>
+                    <div class="status-value" v-else>已完成</div>
+                </div>
             </div>
             <div class="status-item">
-                <span class="status-label">剩余时间:</span>
-                <span class="status-value">08:30</span>
+                <div>
+                    <div class="status-label">录音状态</div>
+                    <div class="status-value" :class="{ recording: isRecording, ready: !isRecording }">
+                        {{ isRecording ? '录音中' : '已就绪' }}
+                    </div>
+                </div>
             </div>
             <div class="status-item">
-                <span class="status-label">网络状态:</span>
-                <span class="status-value">良好</span>
-            </div>
-            <div class="status-item">
-                <span class="status-label">录音状态:</span>
-                <span class="status-value" :class="isRecording ? 'text-danger' : 'text-success'">
-                    {{ isRecording ? '录音中' : '已就绪' }}
-                </span>
+                <div>
+                    <div class="status-label">网络状态</div>
+                    <div class="status-value">良好</div>
+                </div>
             </div>
         </div>
-        
+
         <!-- 错误提示 -->
-        <div v-if="error" class="error-message">
-            <div class="error-icon">
-                <i class="bi bi-exclamation-circle"></i>
-            </div>
-            <div class="error-text">{{ error }}</div>
-            <div v-if="error === 'token无效，请创建新的面试'" class="error-actions">
-                <button class="btn btn-primary" @click="createNewInterview">创建新面试</button>
+        <div v-if="error" class="error-banner">
+            <div class="error-banner-text">{{ error }}</div>
+            <div v-if="error && error.includes('主页')">
+                <a href="admin.html" class="gt-btn gt-btn-primary gt-btn-sm">回到主页</a>
             </div>
         </div>
 
-        <!-- 状态提示 -->
-        <div v-if="!error && interviewStatus === 0" class="card text-center interview-container">
-            <div class="card-body">
-                <h2 class="card-title mb-4">面试尚未开始</h2>
-                <p>您的面试尚未开始，请在约定时间再次访问此页面。</p>
-                <p><strong>面试时间:</strong> {{ interviewInfo.time }}</p>
-                <p><strong>面试岗位:</strong> {{ interviewInfo.position }}</p>
-                <p><strong>候选人:</strong> {{ interviewInfo.candidate }}</p>
+        <!-- 题目准备中（status=0：题还没出好——可能正在正常生成，也可能是后台出题
+              任务被服务器重启等意外打断的"死单"。给一个重新生成的自救按钮，
+              复用本场面试名额，不重复扣面试次数） -->
+        <div v-if="!error && interviewStatus === 0" class="welcome-card">
+            <h2 class="welcome-title">面试题目准备中</h2>
+            <div class="welcome-info">
+                <div class="welcome-info-row">面试时间：<strong>{{ interviewInfo.time }}</strong></div>
+                <div class="welcome-info-row">面试岗位：<strong>{{ interviewInfo.position }}</strong></div>
+                <div class="welcome-info-row">候选人：<strong>{{ interviewInfo.candidate }}</strong></div>
             </div>
+
+            <p class="voice-select-hint">
+                正常出题约需 1~2 分钟，可稍后刷新本页；若长时间停留在此页，说明出题已中断，
+                点下方按钮重新生成
+            </p>
+            <button class="gt-btn gt-btn-primary btn-start-interview"
+                    :disabled="regenerating"
+                    @click="regenerateQuestions">
+                {{ regenerating ? '正在重新生成题目，请稍候…' : '重新生成题目' }}
+            </button>
+            <p v-if="regenError" class="voice-select-hint" style="color: #FF3B30; margin-top: 10px;">
+                {{ regenError }}
+            </p>
         </div>
 
-        <!-- 初始提示框 - 只有当状态为1或2时才显示 -->
-        <div v-if="!error && !isInterviewStarted && (interviewStatus === 1 || interviewStatus === 2)" class="card text-center interview-container">
-            <div class="card-body">
-                <h2 class="card-title mb-4">欢迎参加面试</h2>
-                <p><strong>面试时间:</strong> {{ interviewInfo.time }}</p>
-                <p><strong>面试岗位:</strong> {{ interviewInfo.position }}</p>
-                <p><strong>候选人:</strong> {{ interviewInfo.candidate }}</p>
-                
-                <div class="mb-4 mt-4">
-                    <label class="form-label"><strong>选择面试官类型:</strong></label>
-                    <select v-model="selectedVoice" class="form-select" style="max-width: 400px; margin: 0 auto;">
-                        <option v-for="voice in availableVoices" :key="voice.id" :value="voice.id">
-                            {{ voice.name }} - {{ voice.description }}
-                        </option>
-                    </select>
-                    <small class="text-muted mt-2 d-block">选择后将锁定，面试过程中不可更改</small>
-                </div>
-                
-                <button class="btn btn-primary start-btn mt-4" @click="startInterview">开始面试</button>
+        <!-- 欢迎页（状态为1或2且未开始） -->
+        <div v-if="!error && !isInterviewStarted && (interviewStatus === 1 || interviewStatus === 2)" class="welcome-card">
+            <h2 class="welcome-title">欢迎参加面试</h2>
+            <div class="welcome-info">
+                <div class="welcome-info-row">面试时间：<strong>{{ interviewInfo.time }}</strong></div>
+                <div class="welcome-info-row">面试岗位：<strong>{{ interviewInfo.position }}</strong></div>
+                <div class="welcome-info-row">候选人：<strong>{{ interviewInfo.candidate }}</strong></div>
             </div>
-        </div>
 
-        <!-- 面试已完成提示 -->
-        <div v-if="!error  && (interviewStatus >= 3) " class="completed-section">
-            <div class="completed-card">
-                <div class="completed-header">
-                    <div class="completed-title">面试评分报告</div>
-                    <div class="completed-subtitle">面试时间: 2026-04-13 10:30-10:45</div>
-                </div>
-                
-                <div class="completed-content">
-                    <!-- 加载状态 -->
-                    <div v-if="interviewEvaluation.isLoading" class="text-center py-10">
-                        <div class="loading-spinner"></div>
-                        <div class="loading-text mt-4">AI正在生成面试评价...</div>
-                    </div>
-                    
-                    <!-- 评价内容 -->
-                    <div v-else>
-                        <div class="score-card">
-                            <div class="score-circle">
-                                <div class="score-number">{{ interviewEvaluation.averageScore }}</div>
-                                <div class="score-label">平均分</div>
-                            </div>
-                            <div class="score-text">
-                                <div class="score-title">面试完成！</div>
-                                <div class="score-description">{{ interviewEvaluation.description }}</div>
-                            </div>
-                            <div class="score-buttons">
-                                <button class="control-btn secondary">
-                                    <i class="bi bi-download me-1"></i>下载报告
-                                </button>
-                            </div>
-                        </div>
-                        
-                        <div class="score-tabs">
-                            <div class="score-tab">
-                                <div class="score-tab-title">专业技能</div>
-                                <div class="score-tab-value">{{ interviewEvaluation.scores.professional }}</div>
-                            </div>
-                            <div class="score-tab">
-                                <div class="score-tab-title">沟通表达</div>
-                                <div class="score-tab-value">{{ interviewEvaluation.scores.communication }}</div>
-                            </div>
-                            <div class="score-tab">
-                                <div class="score-tab-title">综合素质</div>
-                                <div class="score-tab-value">{{ interviewEvaluation.scores.comprehensive }}</div>
-                            </div>
-                        </div>
-                        
-                        <div class="skills-grid">
-                            <div class="skills-left">
-                                <div class="skills-title">六维能力图谱</div>
-                                <div class="skills-chart">
-                                    <!-- 这里可以添加六维能力图谱 -->
-                                    <div class="skills-placeholder">六维能力图谱</div>
-                                </div>
-                            </div>
-                            <div class="skills-right">
-                                <div class="skills-title">各项评分详情</div>
-                                <div v-for="skill in interviewEvaluation.detailedScores" :key="skill.name" class="skill-item">
-                                    <div class="skill-name">{{ skill.name }}</div>
-                                    <div class="skill-bar">
-                                        <div class="skill-progress" :style="{ width: skill.percentage + '%' }"></div>
-                                    </div>
-                                    <div class="skill-score">{{ skill.score }}/10</div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="feedback-grid">
-                            <div class="feedback-left">
-                                <div class="feedback-title">优势亮点</div>
-                                <div v-for="(strength, index) in interviewEvaluation.strengths" :key="index" class="feedback-item">
-                                    <i class="bi bi-check-circle text-success"></i>
-                                    <span>{{ strength }}</span>
-                                </div>
-                            </div>
-                            <div class="feedback-right">
-                                <div class="feedback-title">改进建议</div>
-                                <div v-for="(improvement, index) in interviewEvaluation.improvements" :key="index" class="feedback-item">
-                                    <i class="bi bi-exclamation-circle text-warning"></i>
-                                    <span>{{ improvement }}</span>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="recommendations-section">
-                            <div class="recommendations-title">AI个性化建议</div>
-                            <div class="recommendations-grid">
-                                <div v-for="(recommendation, index) in interviewEvaluation.recommendations" :key="index" class="recommendation-card">
-                                    <div class="recommendation-icon">
-                                        <i v-if="index === 0" class="bi bi-book"></i>
-                                        <i v-else-if="index === 1" class="bi bi-chat-dots"></i>
-                                        <i v-else class="bi bi-trending-up"></i>
-                                    </div>
-                                    <div class="recommendation-title">{{ recommendation.title }}</div>
-                                    <div class="recommendation-description">{{ recommendation.description }}</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- 面试界面 -->
-        <div v-if="isInterviewStarted && !isFinished" class="main-content">
-            <!-- 左侧面板 -->
-            <div class="left-panel">
-                <!-- 摄像头区域 -->
-                <div class="camera-section">
-                    <div class="camera-title">
-                        <span>表情捕捉</span>
-                        <div class="camera-controls">
-                            <button class="camera-control-btn" @click="startCamera" v-if="!cameraActive">
-                                <i class="bi bi-camera-video"></i>
+            <div class="voice-select-group">
+                <label>选择面试官音色 <span class="voice-label-hint">点击卡片选中，可先试听</span></label>
+                <div class="voice-grid">
+                    <div v-for="voice in availableVoices" :key="voice.id"
+                         class="voice-card" :class="{ selected: selectedVoice === voice.id }"
+                         @click="selectedVoice = voice.id">
+                        <div class="voice-card-top">
+                            <span class="voice-card-name">{{ voice.name }}</span>
+                            <button class="voice-preview-btn" type="button"
+                                    :class="{ playing: previewingVoice === voice.id }"
+                                    @click.stop="previewVoice(voice)">
+                                {{ previewingVoice === voice.id ? '♪ 停止' : '▶ 试听' }}
                             </button>
-                            <button class="camera-control-btn" @click="stopCamera" v-else>
-                                <i class="bi bi-stop"></i>
+                        </div>
+                        <div class="voice-card-desc">{{ voice.description }}</div>
+                    </div>
+                </div>
+                <p class="voice-select-hint">选择后将锁定，面试过程中不可更改</p>
+            </div>
+
+            <button class="gt-btn gt-btn-primary btn-start-interview" @click="startInterview">
+                开始面试
+            </button>
+        </div>
+
+        <!-- 评分报告页 -->
+        <div v-if="!error && (interviewStatus >= 3)" class="panel report-card">
+            <div class="report-header">
+                <div class="report-title">面试评分报告</div>
+                <div class="report-subtitle">面试时间：{{ interviewInfo.time || '--' }}</div>
+            </div>
+
+            <!-- 加载中 -->
+            <div v-if="interviewEvaluation.isLoading" style="text-align: center; padding: 40px 0;">
+                <div class="loading-spinner" style="margin: 0 auto 16px;"></div>
+                <div class="loading-text">AI 正在生成面试评价…</div>
+            </div>
+
+            <div v-else>
+                <!-- 总分概览 -->
+                <div class="score-overview">
+                    <div class="score-circle">
+                        <div class="score-circle-num">{{ interviewEvaluation.averageScore }}</div>
+                        <div class="score-circle-label">综合得分</div>
+                    </div>
+                    <div class="score-info">
+                        <div class="score-info-title">面试完成！</div>
+                        <div class="score-info-desc">{{ interviewEvaluation.description }}</div>
+                        <div class="score-actions">
+                            <button class="gt-btn gt-btn-secondary" @click="downloadReport">
+                                下载报告
                             </button>
                         </div>
                     </div>
-                    <div class="camera-container">
+                </div>
+
+                <!-- 三项得分 -->
+                <div class="score-tabs">
+                    <div class="score-tab">
+                        <div class="score-tab-title">专业技能</div>
+                        <div class="score-tab-value">{{ interviewEvaluation.scores.professional }}</div>
+                    </div>
+                    <div class="score-tab">
+                        <div class="score-tab-title">沟通表达</div>
+                        <div class="score-tab-value">{{ interviewEvaluation.scores.communication }}</div>
+                    </div>
+                    <div class="score-tab">
+                        <div class="score-tab-title">综合素质</div>
+                        <div class="score-tab-value">{{ interviewEvaluation.scores.comprehensive }}</div>
+                    </div>
+                </div>
+
+                <!-- 各项评分详情 -->
+                <div class="skills-section">
+                    <div class="section-title">各项评分详情</div>
+                    <div v-for="skill in interviewEvaluation.detailedScores" :key="skill.name" class="skill-item">
+                        <div class="skill-row">
+                            <span class="skill-name">{{ skill.name }}</span>
+                            <span class="skill-score">{{ skill.score }} / 10</span>
+                        </div>
+                        <div class="skill-bar-track">
+                            <div class="skill-bar-fill" :style="{ width: skill.percentage + '%' }"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 优势与改进 -->
+                <div class="feedback-grid">
+                    <div class="feedback-card strength">
+                        <div class="feedback-card-title strength">✓ 优势亮点</div>
+                        <ul class="feedback-list">
+                            <li v-for="(s, i) in interviewEvaluation.strengths" :key="i">{{ s }}</li>
+                        </ul>
+                    </div>
+                    <div class="feedback-card improve">
+                        <div class="feedback-card-title improve">△ 待改进</div>
+                        <ul class="feedback-list">
+                            <li v-for="(s, i) in interviewEvaluation.improvements" :key="i">{{ s }}</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- 建议 -->
+                <div class="section-title" style="margin-top: 8px;">AI 个性化建议</div>
+                <div class="recommendations-grid">
+                    <div v-for="(rec, index) in interviewEvaluation.recommendations" :key="index" class="rec-card">
+                        <div class="rec-title">{{ rec.title }}</div>
+                        <div class="rec-desc">{{ rec.description }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 面试主界面 -->
+        <div v-if="isInterviewStarted && !isFinished" class="main-grid">
+            <!-- 左侧栏 -->
+            <div class="left-col">
+                <!-- 表情捕捉 -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <div class="panel-title">
+                            表情捕捉
+                        </div>
+                        <button v-if="!cameraActive" class="gt-btn gt-btn-secondary gt-btn-sm" @click="startCamera">
+                            启用
+                        </button>
+                        <button v-else class="gt-btn gt-btn-ghost gt-btn-sm" @click="stopCamera">
+                            停止
+                        </button>
+                    </div>
+                    <div class="camera-wrap">
                         <video ref="cameraVideo" autoplay playsinline muted></video>
-                        <div v-if="!cameraActive" class="camera-overlay">
-                            <div class="camera-overlay-content">
-                                <div class="camera-overlay-icon">
-                                    <i class="bi bi-camera-video-off"></i>
-                                </div>
-                                <div class="camera-overlay-text">点击启用摄像头</div>
-                            </div>
+                        <div v-if="!cameraActive" class="camera-placeholder">
+                            <div class="camera-placeholder-text">点击启用摄像头</div>
                         </div>
                     </div>
-                    <button v-if="!cameraActive" 
-                            class="control-btn primary w-100" 
-                            @click="startCamera">
-                        <i class="bi bi-camera-video me-2"></i>启用表情捕捉
-                    </button>
-                    <div v-else class="text-center">
-                        <span class="text-success"><i class="bi bi-check-circle me-1"></i>表情捕捉已启用</span>
+                    <div v-if="cameraActive" class="camera-status">
+                        ✓ 表情捕捉已启用
                     </div>
                 </div>
-                
-                <!-- 表情分析面板 -->
-                <div class="expression-section">
-                    <div class="expression-title">表情分析</div>
+
+                <!-- 表情分析 -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <div class="panel-title">
+                            表情分析
+                        </div>
+                    </div>
                     <div class="expression-item">
                         <span class="expression-label">当前表情</span>
-                        <span class="expression-value">{{ expressionData.expression_cn || '检测中...' }}</span>
+                        <span class="expression-value">{{ expressionData.expression_cn || '检测中…' }}</span>
                     </div>
                     <div class="expression-item">
                         <span class="expression-label">情绪状态</span>
-                        <span class="expression-value" :class="getScoreClass(expressionData.emotion_score)">{{ expressionData.emotion_status || '--' }}</span>
+                        <span class="expression-value" :class="getScoreClass(expressionData.emotion_score)">
+                            {{ expressionData.emotion_status || '--' }}
+                        </span>
                     </div>
-                    <div class="expression-progress">
-                        <div class="expression-progress-bar" :class="getScoreClass(expressionData.emotion_score)" :style="{ width: (expressionData.emotion_score || 0) + '%' }"></div>
+                    <div class="expression-progress-track">
+                        <div
+                            class="expression-progress-fill"
+                            :class="getScoreClass(expressionData.emotion_score)"
+                            :style="{ width: (expressionData.emotion_score || 0) + '%' }"
+                        ></div>
                     </div>
-                    <div class="expression-item mt-4">
-                        <span class="expression-label">语言表达</span>
-                        <span class="expression-value" :class="getScoreClass(expressionData.language_score)">{{ expressionData.language_score || '--' }}</span>
-                    </div>
-                    <div class="expression-progress">
-                        <div class="expression-progress-bar" :class="getScoreClass(expressionData.language_score)" :style="{ width: (expressionData.language_score || 0) + '%' }"></div>
-                    </div>
-                    <div class="expression-item mt-4">
-                        <span class="expression-label">综合评分</span>
-                        <span class="expression-value" :class="getScoreClass(expressionData.final_score)">{{ expressionData.final_score || '--' }}</span>
-                    </div>
-                    <div class="expression-progress">
-                        <div class="expression-progress-bar" :class="getScoreClass(expressionData.final_score)" :style="{ width: (expressionData.final_score || 0) + '%' }"></div>
-                    </div>
-                    <div v-if="expressionData.suggestions && expressionData.suggestions.length > 0" class="mt-4">
-                        <small class="text-muted"><i class="bi bi-lightbulb me-1"></i>{{ expressionData.suggestions[0] }}</small>
+                    <div v-if="expressionData.suggestions && expressionData.suggestions.length > 0" class="expression-suggestion">
+                        {{ expressionData.suggestions[0] }}
                     </div>
                 </div>
             </div>
-            
-            <!-- 右侧面板 -->
-            <div class="right-panel">
-                <!-- AI面试官面板 -->
-                <div class="ai-interviewer-section">
-                    <div class="ai-interviewer-header">
-                        <div class="ai-avatar">
-                            <i class="bi bi-robot"></i>
-                        </div>
+
+            <!-- 右侧栏 -->
+            <div class="right-col">
+                <!-- AI 面试官 -->
+                <div class="panel">
+                    <div class="ai-header">
+                        <div class="ai-avatar">AI</div>
                         <div class="ai-info">
-                            <div class="ai-name">AI面试官</div>
-                            <div class="ai-title">前端开发专家</div>
-                        </div>
-                        <div class="ai-status">
-                            <div class="ai-status-indicator"></div>
-                            <div class="ai-status-text">在线</div>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- 问题面板 -->
-                <div class="question-section">
-                    <div class="question-header">
-                        <div class="question-number">
-                            <i class="bi bi-question-circle me-1"></i> 问题 {{ currentQuestionIndex + 1 }}/{{ totalQuestions }}
-                        </div>
-                        <div class="question-voice-control">
-                            <span class="voice-control-label">朗读问题</span>
-                            <label class="toggle-switch">
-                                <input type="checkbox" v-model="voiceReadingEnabled"  @change="toggleVoiceReading">
-                                <span class="slider"></span>
-                            </label>
-                            <i class="bi voice-icon" :class="isPlayingAudio ? 'bi-volume-up-fill text-primary' : (voiceReadingEnabled ? 'bi-volume-up' : 'bi-volume-mute')"></i>
+                            <div class="ai-name">AI 面试官</div>
+                            <div class="ai-status">
+                                <span class="ai-status-dot"></span>
+                                在线 · 准备提问
+                            </div>
                         </div>
                     </div>
-                    <div class="question-text">{{ currentQuestion?.text || '加载问题中...' }}</div>
-                    
-                    <!-- 提示面板 -->
-                    <div class="hint-section">
+
+                    <div class="question-meta">
+                        <span class="question-number">
+                            第 {{ currentQuestionIndex + 1 }} 题
+                        </span>
+                    </div>
+
+                    <div class="question-text">
+                        {{ currentQuestion ? currentQuestion.text : '正在加载题目…' }}
+                    </div>
+
+                    <!-- 提示区 -->
+                    <div class="hint-box">
                         <div class="hint-header">
-                            <i class="bi bi-lightbulb hint-icon"></i>
                             <span class="hint-title">答题提示</span>
                         </div>
                         <div class="hint-text">
-                            请结合个人经历，突出技术热情和专业技能，使用STAR法则（情境、任务、行动、结果）结构回答。
+                            请仔细思考后作答，建议使用 STAR 法则（情境-任务-行动-结果）组织答案。回答完毕后点击"下一题"继续。
                         </div>
                     </div>
                 </div>
-                
-                <!-- 答案输入面板 -->
-                <div class="answer-section">
-                    <div class="answer-header">
-                        <div class="answer-title">回答问题</div>
-                        <div class="answer-mode-selector">
-                            <button class="mode-btn" :class="answerMode === 'voice' ? 'active' : ''" @click="answerMode = 'voice'">
-                                <i class="bi bi-mic me-1"></i>语音作答
-                            </button>
-                            <button class="mode-btn" :class="answerMode === 'text' ? 'active' : ''" @click="answerMode = 'text'">
-                                <i class="bi bi-pencil me-1"></i>打字作答
-                            </button>
+
+                <!-- 答题区 -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <div class="panel-title">
+                            我的回答
                         </div>
                     </div>
-                    
-                    <!-- 语音答题区域 -->
+
+                    <div class="answer-mode-tabs">
+                        <button
+                            class="answer-mode-tab"
+                            :class="{ active: answerMode === 'voice' }"
+                            @click="answerMode = 'voice'"
+                        >
+                            语音
+                        </button>
+                        <button
+                            class="answer-mode-tab"
+                            :class="{ active: answerMode === 'text' }"
+                            @click="answerMode = 'text'"
+                        >
+                            文字
+                        </button>
+                    </div>
+
+                    <!-- 语音答题 -->
                     <div v-if="answerMode === 'voice'" class="voice-answer-area">
-                        <div class="voice-answer-hint">
-                            点击下方按钮开始录音，回答完成后点击"作答完毕"提交
+                        <button
+                            class="record-btn"
+                            :class="{ recording: isRecording }"
+                            @click="isRecording ? stopRecording() : startRecording()"
+                        >
+                            {{ isRecording ? '停止' : '录音' }}
+                        </button>
+                        <div class="recording-time">{{ formatTime(recordingTime) }}</div>
+                        <div class="voice-hint">
+                            {{ isRecording ? '正在录音，再次点击结束' : '点击按钮开始录音答题' }}
                         </div>
-                        <button v-if="!isRecording" 
-                                class="record-btn" 
-                                @click="startRecording" 
-                                :disabled="loading">
-                            <i class="bi bi-mic-fill"></i>
-                        </button>
-                        <button v-if="isRecording" 
-                                class="record-btn recording" 
-                                @click="stopRecording">
-                            <i class="bi bi-stop-circle-fill"></i>
-                        </button>
-                        <div v-if="isRecording" class="recording-time">
-                            {{ formatTime(recordingTime) }}
+                        <div v-if="isRecognizing" class="voice-recognition-text">
+                            语音识别中…
                         </div>
                     </div>
-                    
-                    <!-- 打字答题区域 -->
-                    <div v-if="answerMode === 'text'" class="text-answer-area">
-                        <textarea 
-                            class="text-answer-input" 
-                            rows="8" 
+
+                    <!-- 文字答题 -->
+                    <div v-else class="text-answer-area">
+                        <textarea
+                            class="text-answer-input"
                             v-model="textAnswer"
-                            placeholder="请在此输入您的答案..."
-                            :disabled="loading"
+                            placeholder="请在此输入你的回答…"
                         ></textarea>
                         <div class="text-answer-footer">
-                            <span class="answer-length">
-                                <i class="bi bi-info-circle me-1"></i>
-                                已输入 {{ textAnswer?.length || 0 }} 字
-                            </span>
+                            <span class="answer-length">{{ textAnswer.length }} 字</span>
                         </div>
                     </div>
-                    
-                    <!-- 控制按钮区域 -->
-                    <div class="control-section">
-                        <button class="control-btn secondary" @click="skipQuestion">
-                            <i class="bi bi-skip-forward me-1"></i>跳过
-                        </button>
-                        <button class="control-btn secondary" @click="useAIAssist">
-                            <i class="bi bi-robot me-1"></i>AI辅助
-                        </button>
-                        <button 
-                            class="control-btn primary" 
-                            @click="handleSubmit" 
-                            :disabled="loading || (answerMode === 'text' && !textAnswer?.trim())">
-                            <i class="bi bi-check-circle me-1"></i>
-                            <span v-if="!loading">{{ answerMode === 'voice' ? '作答完毕' : '提交答案' }}</span>
-                            <span v-else>提交中...</span>
-                        </button>
+
+                    <!-- 操作按钮 -->
+                    <div class="control-row">
+                        <div class="control-left">
+                            <button class="gt-btn gt-btn-secondary gt-btn-sm" @click="skipQuestion">
+                                跳过此题
+                            </button>
+                            <button class="gt-btn gt-btn-secondary gt-btn-sm" @click="useAIAssist">
+                                AI 辅助
+                            </button>
+                        </div>
+                        <div class="control-right">
+                            <button class="gt-btn gt-btn-primary" @click="handleSubmit">
+                                下一题 →
+                            </button>
+                        </div>
                     </div>
-                    
+
                     <!-- 进度条 -->
-                    <div class="progress-section">
-                        <div class="progress-label">
+                    <div class="progress-wrap">
+                        <div class="progress-label-row">
                             <span>面试进度</span>
                             <span>{{ progressPercentage }}%</span>
                         </div>
-                        <div class="progress-bar-container">
-                            <div class="progress-bar" :style="{ width: progressPercentage + '%' }"></div>
+                        <div class="gt-progress-track">
+                            <div class="gt-progress-fill" :style="{ width: progressPercentage + '%' }"></div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-        
-        <!-- 加载状态 -->
+
+        <!-- 全屏加载遮罩 -->
         <div v-if="loading" class="loading-overlay">
             <div class="loading-content">
                 <div class="loading-spinner"></div>
-                <div class="loading-text">{{ loadingMessage }}</div>
+                <div class="loading-text">{{ loadingMessage || '加载中…' }}</div>
             </div>
         </div>
     </div>
@@ -1567,18 +1455,18 @@
                 const error = ref('');
                 const recordingTime = ref(0);
                 const timerInterval = ref(null);
-                const baseURL =  (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.protocol === 'file:')
-                ? 'http://127.0.0.1:10009/'   // dev
-                : 'https://www.en9.cn/'; // prd
-                
+
                 const interviewStatus = ref(1);
+
+                // 题目语音朗读固定开启（无界面开关），预生成的语音自动播放
                 const voiceReadingEnabled = ref(true);
                 const selectedVoice = ref('professional_male');
                 const availableVoices = ref([]);
+                // 当前正在试听的音色 id（null = 没在试听），驱动试听按钮的「▶ 试听/♪ 停止」状态
+                const previewingVoice = ref(null);
                 const isPlayingAudio = ref(false);
                 const currentAudioPlayer = ref(null);
-                
-                // 面试评价数据
+
                 const interviewEvaluation = ref({
                     averageScore: 76,
                     description: '您在本次面试中表现良好，综合得分为76分，表明您有中上水平，有很大提升空间。',
@@ -1611,53 +1499,13 @@
                     ],
                     isLoading: false
                 });
-                
-                // 从URL获取token并验证
-                //url 形如 /interview.html?token=1234567890
+
                 const getTokenFromUrl = () => {
                     const url = new URL(window.location.href);
                     return url.searchParams.get('token');
                 };
                 const token = ref(getTokenFromUrl());
 
-                // 创建新面试
-
-
-                // 创建新面试
-
-
-                // 验证token是否有效，如果无效则创建新面试
-                const validateToken = async () => {
-                    console.log('开始验证token:', token.value);
-                    if (!token.value) {
-                        console.log('没有token，创建新面试...');
-                        try {
-                            const result = await createNewInterview();
-                            console.log('创建新面试结果:', result);
-                        } catch (err) {
-                            console.error('创建新面试失败:', err);
-                        }
-                        return;
-                    }
-                    
-                    try {
-                        console.log('验证token是否有效...');
-                        console.log('调用 /api/interview/${token.value}/info 端点...');
-                        const response = await axios.get(`${baseURL}api/interview/${token.value}/info`);
-                        console.log('token有效:', response.data);
-                    } catch (err) {
-                        console.error('token无效:', err);
-                        console.log('创建新面试...');
-                        try {
-                            const result = await createNewInterview();
-                            console.log('创建新面试结果:', result);
-                        } catch (err) {
-                            console.error('创建新面试失败:', err);
-                        }
-                    }
-                };
-
-                // 面试信息
                 const interviewInfo = ref({
                     time: '',
                     position: '',
@@ -1666,52 +1514,19 @@
                     question_count: 10
                 });
 
-
-                // 计算进度百分比
                 const progressPercentage = computed(() => {
                      return Math.round((   (currentQuestionIndex.value + 1) / totalQuestions.value) * 100);
                 });
 
-           
-
-                // 创建新面试
-                const createNewInterview = async () => {
-                    try {
-                        console.log('创建新面试...');
-                        const response = await axios.post(`${baseURL}api/interview/create`, {
-                            user_id: 1,
-                            interview_type_id: 1,
-                            question_count: 5,
-                            voice_reading: 1,
-                            voice_type: 'professional_male'
-                        });
-                        
-                        if (response.data.status === 'success') {
-                            console.log('创建面试成功，新token:', response.data.token);
-                            return response.data.token;
-                        } else {
-                            console.error('创建面试失败:', response.data.message);
-                            error.value = '创建面试失败，请刷新页面重试';
-                            return null;
-                        }
-                    } catch (err) {
-                        console.error('创建面试失败:', err);
-                        error.value = '创建面试失败，请刷新页面重试';
-                        return null;
-                    }
-                };
-
-                // 页面加载时获取面试信息
                 onMounted(async () => {
                     console.log('页面加载开始...');
                     console.log('token.value:', token.value);
                     try {
-                        // 检查token是否有效
                         let tokenValid = false;
                         if (token.value) {
                             try {
                                 console.log('验证token是否有效...');
-                                const response = await axios.get(`${baseURL}api/interview/${token.value}/info`);
+                                const response = await axios.get(`/api/interview/${token.value}/info`);
                                 console.log('token有效:', response.data);
                                 tokenValid = true;
                             } catch (err) {
@@ -1719,15 +1534,14 @@
                                 tokenValid = false;
                             }
                         }
-                        
-                        // 如果token无效，创建新面试
+
                         if (!tokenValid) {
-                            console.log('创建新面试...');
-                            // 直接重定向到创建面试的API，然后重定向回面试页面
-                            window.location.href = `${baseURL}api/interview/create_and_redirect`;
+                            console.log('token无效，提示回主页...');
+                            error.value = '面试链接无效或已过期，请回到主页重新上传简历开始面试';
+                            loading.value = false;
                             return;
                         }
-                        
+
                         if (token.value) {
                             console.log('调用 fetchInterviewInfo...');
                             await fetchInterviewInfo();
@@ -1735,15 +1549,18 @@
                             console.log('调用 fetchAvailableVoices...');
                             await fetchAvailableVoices();
                             console.log('fetchAvailableVoices 调用成功');
-                            // 自动开始面试
                             console.log('interviewStatus.value:', interviewStatus.value);
                             if (interviewStatus.value === 1 || interviewStatus.value === 2) {
                                 console.log('调用 startInterview...');
                                 startInterview();
                                 console.log('startInterview 调用成功');
+                            } else if (interviewStatus.value >= 3) {
+                                // 面试已完成（3=已答完，4=报告已生成）：自动拉取真实评估报告，
+                                // 避免报告页一直显示初始占位假数据
+                                console.log('面试已完成，拉取评估报告...');
+                                generateInterviewEvaluation();
                             }
                         } else {
-                            // 没有token时显示友好提示
                             error.value = '请通过面试链接访问此页面，或在URL中添加token参数';
                             loading.value = false;
                         }
@@ -1754,534 +1571,311 @@
                     }
                 });
 
-                // 获取可用音色列表
                 const fetchAvailableVoices = async () => {
                     try {
-                        const response = await axios.get(`${baseURL}api/tts/voices`);
+                        const response = await axios.get(`/api/tts/voices`);
                         availableVoices.value = response.data.voices || [];
                     } catch (err) {
                         console.error('获取音色列表失败:', err);
-                        // 后端服务器不可用时，使用模拟数据
                         availableVoices.value = [
-                            { id: 'zh-CN-YunxiNeural', name: '云溪' },
-                            { id: 'zh-CN-YunxiaNeural', name: '云夏' },
-                            { id: 'zh-CN-YunyangNeural', name: '云阳' },
-                            { id: 'zh-CN-YunfengNeural', name: '云峰' }
+                            { id: 'zh-CN-YunxiNeural', name: '云溪', description: '专业男声' },
+                            { id: 'zh-CN-YunxiaNeural', name: '云夏', description: '温和女声' },
+                            { id: 'zh-CN-YunyangNeural', name: '云阳', description: '沉稳男声' },
+                            { id: 'zh-CN-YunfengNeural', name: '云峰', description: '活力男声' }
                         ];
                     }
                 };
 
-
-
                 const fetchInterviewInfo = async () => {
-                    loading.value = true;
-                    loadingMessage.value = '获取面试信息...';
                     try {
-                        const response = await axios.get(`${baseURL}api/interview/${token.value}/info`);
-                        interviewInfo.value = response.data;
-                        // 获取面试状态
-                        if (response.data.status !== undefined) {
-                            interviewStatus.value = response.data.status;
+                        const response = await axios.get(`/api/interview/${token.value}/info`);
+                        const data = response.data;
+                        // 后端 info 接口返回顶层字段：time（已格式化的字符串）、position、candidate、
+                        // status、question_count、voice_type（工作台/欢迎页选定的面试官音色）
+                        interviewInfo.value = {
+                            time: data.time || '',
+                            position: data.position || '模拟面试',
+                            candidate: data.candidate || '候选人',
+                            question_count: data.question_count || 10
+                        };
+                        // 同步音色：从工作台进来时欢迎页不出现，实时合成的朗读必须
+                        // 跟随库内保存的音色，否则永远落在默认男声
+                        if (data.voice_type) {
+                            selectedVoice.value = data.voice_type;
                         }
-                        
-                        // 设置语音朗读状态（默认开启）
-                        if (response.data.voice_reading !== undefined && response.data.voice_reading !== null) {
-                            voiceReadingEnabled.value = Boolean(response.data.voice_reading);
-                        } else {
-                            voiceReadingEnabled.value = true;
-                        }
-                        console.log('语音朗读状态:', voiceReadingEnabled.value);
-                        
-                        if (response.data.voice_type) {
-                            selectedVoice.value = response.data.voice_type;
-                        }
-                        
-                        if (interviewStatus.value === 3) {
-                            isFinished.value = true;
-                            // 生成面试评价
-                            generateInterviewEvaluation();
-                        }
-
-                        // 获取问题总数
-                        if (response.data.question_count !== undefined) {
-                            totalQuestions.value = response.data.question_count;
-                        }
-                        
+                        totalQuestions.value = data.question_count || 10;
+                        interviewStatus.value = data.status !== undefined ? data.status : 1;
                     } catch (err) {
                         console.error('获取面试信息失败:', err);
-                        console.error('错误类型:', err.type);
-                        console.error('错误消息:', err.message);
-                        console.error('错误堆栈:', err.stack);
-                        // 尝试创建新面试
-                        console.log('尝试创建新面试...');
-                        (async () => {
-                            try {
-                                const success = await createNewInterview();
-                                console.log('创建新面试结果:', success);
-                                if (success) {
-                                    // 重新获取面试信息
-                                    console.log('重新获取面试信息...');
-                                    await fetchInterviewInfo();
-                                }
-                            } catch (err) {
-                                console.error('调用 createNewInterview 失败:', err);
-                            }
-                        })();
-                        // 后端服务器不可用时，使用模拟数据
                         interviewInfo.value = {
-                            id: 'mock-interview-id',
-                            title: '前端开发面试',
-                            description: '模拟前端开发面试',
-                            position: '前端开发工程师',
-                            candidate: '模拟候选人',
-                            status: 1,
-                            voice_reading: true,
-                            voice_type: 'zh-CN-YunxiNeural',
-                            question_count: 5
+                            time: '',
+                            position: '模拟面试',
+                            candidate: '候选人',
+                            question_count: 10
                         };
-                        interviewStatus.value = 1;
-                        voiceReadingEnabled.value = true;
-                        selectedVoice.value = 'zh-CN-YunxiNeural';
-                        totalQuestions.value = 5;
-                        error.value = null;
-                    } finally {
-                        // 确保loading.value被设置为false
-                        console.log('设置loading.value为false');
-                        loading.value = false;
                     }
                 };
-                
-                // 停止当前音频播放
+
                 const stopCurrentAudio = () => {
                     if (currentAudioPlayer.value) {
-                        try {
-                            currentAudioPlayer.value.pause();
-                            currentAudioPlayer.value.currentTime = 0;
-                            currentAudioPlayer.value = null;
-                        } catch (e) {
-                            console.log('停止音频失败:', e);
-                        }
+                        currentAudioPlayer.value.pause();
+                        currentAudioPlayer.value = null;
                     }
-                    window.speechSynthesis.cancel();
                     isPlayingAudio.value = false;
                 };
 
-            
-
-                // 切换语音朗读状态
-                const toggleVoiceReading = async () => {
+                // 音色试听：现场合成一句固定试听语并播放，帮用户在开始面试前选出音色
+                // 同一音色播放中再点 = 停止；切换试听其他音色时先停掉当前播放
+                const previewVoice = async (voice) => {
+                    if (previewingVoice.value === voice.id && currentAudioPlayer.value) {
+                        stopCurrentAudio();
+                        previewingVoice.value = null;
+                        return;
+                    }
+                    stopCurrentAudio();
+                    previewingVoice.value = voice.id;
                     try {
-                        const response = await axios.post(
-                            `${baseURL}api/interview/${token.value}/toggle_voice_reading`, 
-                            { enabled: voiceReadingEnabled.value }
-                        );
-                        if (voiceReadingEnabled.value) {
-                            readQuestionAloud(currentQuestion.value.text);
+                        const response = await axios.post(`/api/tts/synthesize`, {
+                            text: '你好，我是本次的AI面试官，很高兴见到你。我们可以开始了。',
+                            voice_type: voice.id
+                        });
+                        const audioBase64 = response.data.audio;
+                        if (!audioBase64) {
+                            previewingVoice.value = null;
+                            return;
                         }
+                        const audio = new Audio(`data:audio/wav;base64,${audioBase64}`);
+                        currentAudioPlayer.value = audio;
+                        isPlayingAudio.value = true;
+                        audio.onended = () => {
+                            isPlayingAudio.value = false;
+                            if (currentAudioPlayer.value === audio) {
+                                currentAudioPlayer.value = null;
+                                previewingVoice.value = null;
+                            }
+                        };
+                        audio.onerror = () => {
+                            previewingVoice.value = null;
+                        };
+                        audio.play();
                     } catch (err) {
-                        console.error('更新语音朗读设置失败:', err);
-                        // 后端服务器不可用时，直接使用前端状态
-                        if (voiceReadingEnabled.value && currentQuestion.value) {
-                            readQuestionAloud(currentQuestion.value.text);
-                        }
+                        console.error('音色试听失败:', err);
+                        previewingVoice.value = null;
                     }
                 };
 
-                // 开始面试
                 const startInterview = async () => {
-                    console.log('开始面试');
-                    // 先保存选择的面试官类型
+                    loading.value = true;
+                    loadingMessage.value = '正在开始面试...';
+
                     try {
-                        await axios.post(`${baseURL}api/interview/${token.value}/set_voice`, {
-                            voice_type: selectedVoice.value
-                        });
+                        // 后端没有 /start 接口：开始面试 = 保存面试官音色（set_voice）+ 拉取第一题
+                        // set_voice 失败不阻断开始面试（音色只是朗读发音，答题不依赖它）
+                        try {
+                            await axios.post(`/api/interview/${token.value}/set_voice`, {
+                                voice_type: selectedVoice.value
+                            });
+                        } catch (voiceErr) {
+                            console.error('保存面试官音色失败:', voiceErr);
+                        }
+
+                        isInterviewStarted.value = true;
+                        interviewStatus.value = 2;
+                        await fetchQuestion();
                     } catch (err) {
-                        console.error('保存面试官类型失败:', err);
-                        // 后端服务器不可用时，继续执行
-                    }
-                    
-                    // 生成面试问题
-                    try {
-                        loading.value = true;
-                        loadingMessage.value = '生成面试问题中...';
-                        const response = await axios.post(`${baseURL}api/interview/${token.value}/generate_questions`);
-                        console.log('生成面试问题成功:', response.data);
-                    } catch (err) {
-                        console.error('生成面试问题失败:', err);
-                        // 后端服务器不可用时，继续执行
+                        console.error('开始面试失败:', err);
+                        error.value = '开始面试失败，请刷新页面重试';
                     } finally {
                         loading.value = false;
                     }
-                    
-                    // 只有当状态为1(试题已备好)或2(面试进行中)时才允许开始面试
-                    if (interviewStatus.value === 1 || interviewStatus.value === 2) {
-                        isInterviewStarted.value = true;
-                        try {
-                            await fetchQuestion();
-                        } catch (err) {
-                            console.error('获取问题失败:', err);
-                            loading.value = false;
+                };
+
+                // 重新生成题目（status=0 卡住时的自救入口）：
+                // POST generate_questions 是同步接口——出题要调大模型（几十秒），
+                // 响应返回时题已入库；后端对已有题目的面试有幂等保护（直接跳过不出重复题）。
+                // 成功后重新拉取面试信息，status 变 1 → 与页面加载时的逻辑一致，直接开始面试
+                const regenerating = ref(false);
+                const regenError = ref('');
+                const regenerateQuestions = async () => {
+                    if (regenerating.value) return;
+                    regenerating.value = true;
+                    regenError.value = '';
+                    try {
+                        await axios.post(`/api/interview/${token.value}/generate_questions`);
+                        await fetchInterviewInfo();
+                        if (interviewStatus.value === 1 || interviewStatus.value === 2) {
+                            startInterview();
                         }
-                    } else {
-                        error.value = '当前状态无法开始面试';
+                    } catch (err) {
+                        console.error('重新生成题目失败:', err);
+                        regenError.value = '题目生成失败，请稍后重试，或回到工作台重新上传简历开一场新面试';
+                    } finally {
+                        regenerating.value = false;
                     }
                 };
 
-                // 获取面试问题
                 const fetchQuestion = async () => {
-                    console.log('开始获取面试问题...');
-                    loading.value = true;
-                    loadingMessage.value = '获取问题中...';
-                    stopCurrentAudio();
                     try {
-                        console.log('调用API获取问题:', `${baseURL}api/interview/${token.value}/get_question`);
-                        console.log('当前问题ID:', currentQuestion.value ? currentQuestion.value.id : 0);
-                        const response = await axios.get(`${baseURL}api/interview/${token.value}/get_question`, {
-                            params: {
-                                current_id: currentQuestion.value ? currentQuestion.value.id : 0
-                            }
+                        // 后端接口为 get_question（GET），query 参数 current_id 传当前题 id，
+                        // 0 表示取第一题；响应为平铺结构 {id, text, audio, use_pre_generated}，
+                        // 约定 id=0 表示"面试已完成"
+                        const currentId = currentQuestion.value ? currentQuestion.value.id : 0;
+                        const response = await axios.get(`/api/interview/${token.value}/get_question`, {
+                            params: { current_id: currentId }
                         });
-                        console.log('API响应:', response.data);
-                        
-                        if (response.data.id === 0) {
-                            console.log('面试完成，没有更多问题');
+
+                        const q = response.data;
+                        if (q && q.id && q.id !== 0) {
+                            currentQuestion.value = q;
+
+                            // 朗读开启时：出题阶段已预生成语音 → 直接播放（快、零额外成本）；
+                            // 播放失败自动降级浏览器合成；没有预生成音频才走实时 TTS 合成
+                            if (voiceReadingEnabled.value) {
+                                if (q.audio && q.use_pre_generated) {
+                                    playPreGeneratedAudio(q.audio, q.text);
+                                } else if (q.text) {
+                                    readQuestionAloud(q.text);
+                                }
+                            }
+                        } else {
+                            // id=0：所有题目已答完 → 进入完成态并生成报告
                             isFinished.value = true;
                             interviewStatus.value = 3;
-                            // 生成面试评价
+                            loading.value = false;
                             generateInterviewEvaluation();
-                        } else {
-                            console.log('获取问题成功:', response.data.text);
-                            currentQuestion.value = response.data;
-                            if (voiceReadingEnabled.value) {
-                                // 优先使用预生成的语音
-                                if (response.data.use_pre_generated && response.data.audio) {
-                                    console.log('使用预生成的语音');
-                                    playPreGeneratedAudio(response.data.audio);
-                                } else {
-                                    // 没有预生成语音，实时合成
-                                    console.log('没有预生成语音，使用实时合成');
-                                    readQuestionAloud(currentQuestion.value.text);
-                                }
-                            }
                         }
                     } catch (err) {
-                        console.error('获取问题失败:', err);
-                        console.error('错误类型:', err.name);
-                        console.error('错误消息:', err.message);
-                        console.error('错误堆栈:', err.stack);
-                        
-                        // 后端服务器不可用时，使用模拟数据
-                        try {
-                            console.log('使用模拟数据...');
-                            const mockQuestions = [
-                                {
-                                    id: 1,
-                                    text: '请介绍一下你自己，包括你的专业背景和工作经验。',
-                                    type: 'self_introduction'
-                                },
-                                {
-                                    id: 2,
-                                    text: '你为什么选择前端开发这个职业？',
-                                    type: 'career_choice'
-                                },
-                                {
-                                    id: 3,
-                                    text: '请解释一下什么是闭包，以及它在JavaScript中的应用。',
-                                    type: 'technical'
-                                },
-                                {
-                                    id: 4,
-                                    text: '你如何处理浏览器兼容性问题？',
-                                    type: 'technical'
-                                },
-                                {
-                                    id: 5,
-                                    text: '请描述一下你的项目开发流程。',
-                                    type: 'process'
-                                }
-                            ];
-                            
-                            let nextQuestion = null;
-                            if (currentQuestion.value) {
-                                const currentId = currentQuestion.value.id;
-                                nextQuestion = mockQuestions.find(q => q.id > currentId) || null;
-                            } else {
-                                // 如果currentQuestion为null，获取第一个问题
-                                nextQuestion = mockQuestions[0] || null;
-                            }
-                            
-                            if (!nextQuestion) {
-                                console.log('模拟数据也没有更多问题，面试完成');
-                                isFinished.value = true;
-                                interviewStatus.value = 3;
-                            } else {
-                                console.log('使用模拟问题:', nextQuestion.text);
-                                currentQuestion.value = nextQuestion;
-                                // 更新currentQuestionIndex
-                                currentQuestionIndex.value = mockQuestions.findIndex(q => q.id === nextQuestion.id);
-                                if (voiceReadingEnabled.value) {
-                                    readQuestionAloud(currentQuestion.value.text);
-                                }
-                            }
-                            error.value = null;
-                        } catch (mockErr) {
-                            console.error('使用模拟数据失败:', mockErr);
-                            console.error('模拟数据错误类型:', mockErr.name);
-                            console.error('模拟数据错误消息:', mockErr.message);
-                            error.value = '获取问题失败，请刷新页面重试';
-                        }
-                    } finally {
-                        // 确保loading.value被设置为false
-                        console.log('设置loading.value为false');
-                        loading.value = false;
+                        console.error('获取题目失败:', err);
+                        error.value = '获取题目失败，请刷新页面重试';
                     }
                 };
-                
-                // 播放预生成的音频
-                const playPreGeneratedAudio = (audioBase64) => {
-                    try {
-                        isPlayingAudio.value = true;
-                        console.log('播放预生成音频');
-                        
-                        const audioData = atob(audioBase64);
-                        const arrayBuffer = new ArrayBuffer(audioData.length);
-                        const view = new Uint8Array(arrayBuffer);
-                        for (let i = 0; i < audioData.length; i++) {
-                            view[i] = audioData.charCodeAt(i);
+
+                const playPreGeneratedAudio = (audioBase64, fallbackText) => {
+                    stopCurrentAudio();
+                    const audioBlob = b64toBlob(audioBase64, 'audio/wav');
+                    const audioUrl = URL.createObjectURL(audioBlob);
+                    const audio = new Audio(audioUrl);
+                    currentAudioPlayer.value = audio;
+                    isPlayingAudio.value = true;
+                    audio.onended = () => {
+                        isPlayingAudio.value = false;
+                        currentAudioPlayer.value = null;
+                    };
+                    audio.play().catch(err => {
+                        // 常见失败：页面自动进入面试时无用户手势，被浏览器自动播放策略拦截
+                        //（NotAllowedError）。降级用浏览器语音合成尝试朗读，不再无声失败
+                        console.error('播放预生成音频失败，尝试浏览器合成:', err);
+                        isPlayingAudio.value = false;
+                        if (fallbackText) {
+                            useBrowserSpeechSynthesis(fallbackText);
                         }
-                        
-                        const audioBlob = new Blob([arrayBuffer], { type: 'audio/mp3' });
+                    });
+                };
+
+                const b64toBlob = (b64Data, contentType = '', sliceSize = 512) => {
+                    const byteCharacters = atob(b64Data);
+                    const byteArrays = [];
+                    for (let offset = 0; offset < byteCharacters.length; offset += sliceSize) {
+                        const slice = byteCharacters.slice(offset, offset + sliceSize);
+                        const byteNumbers = new Array(slice.length);
+                        for (let i = 0; i < slice.length; i++) {
+                            byteNumbers[i] = slice.charCodeAt(i);
+                        }
+                        const byteArray = new Uint8Array(byteNumbers);
+                        byteArrays.push(byteArray);
+                    }
+                    return new Blob(byteArrays, { type: contentType });
+                };
+
+                const readQuestionAloud = async (text) => {
+                    try {
+                        stopCurrentAudio();
+                        // 后端 /api/tts/synthesize 返回 JSON：{status, audio(base64), format}
+                        // 或额度不足时 {use_browser_tts: true}——不能按 blob 直接当音频播放
+                        //（旧代码 responseType:'blob' 把 JSON 当音频源 → NotSupportedError）
+                        const response = await axios.post(`/api/tts/synthesize`, {
+                            text: text,
+                            voice_type: selectedVoice.value   // 后端参数名是 voice_type（旧代码误写 voice_id，音色永远落在默认值）
+                        });
+                        playSynthesizedAudio(response.data, text);
+                    } catch (err) {
+                        console.error('TTS合成失败，使用浏览器语音:', err);
+                        useBrowserSpeechSynthesis(text);
+                    }
+                };
+
+                // 统一处理 TTS 接口的两种成功响应：
+                // 有 audio 字段 → base64 解码按嗅探格式播放；use_browser_tts → 降级浏览器合成
+                const playSynthesizedAudio = (data, fallbackText) => {
+                    if (data && data.audio) {
+                        stopCurrentAudio();
+                        // 按字节嗅探音频格式：base64 解码后头 4 字节是 RIFF 即 WAV
+                        //（后端 format 字段曾误标 mp3，实际产出 WAV，嗅探比信字段稳）
+                        const head = atob(data.audio.slice(0, 8)).slice(0, 4);
+                        const mime = head === 'RIFF' ? 'audio/wav' : 'audio/mpeg';
+                        const audioBlob = b64toBlob(data.audio, mime);
                         const audioUrl = URL.createObjectURL(audioBlob);
                         const audio = new Audio(audioUrl);
                         currentAudioPlayer.value = audio;
-                        
+                        isPlayingAudio.value = true;
                         audio.onended = () => {
-                            console.log('预生成音频播放结束');
                             isPlayingAudio.value = false;
                             currentAudioPlayer.value = null;
-                            URL.revokeObjectURL(audioUrl);
                         };
-                        
-                        audio.onerror = (e) => {
-                            console.error('预生成音频播放错误:', e);
+                        audio.play().catch(err => {
+                            console.error('播放语音失败:', err);
                             isPlayingAudio.value = false;
-                            currentAudioPlayer.value = null;
-                            URL.revokeObjectURL(audioUrl);
-                            // 播放失败，回退到实时合成
-                            readQuestionAloud(currentQuestion.value.text);
-                        };
-                        
-                        audio.play();
-                        console.log('预生成音频开始播放');
-                    } catch (err) {
-                        console.error('播放预生成音频失败:', err);
-                        isPlayingAudio.value = false;
-                        // 播放失败，回退到实时合成
-                        readQuestionAloud(currentQuestion.value.text);
+                            useBrowserSpeechSynthesis(fallbackText);
+                        });
+                    } else if (data && data.use_browser_tts) {
+                        useBrowserSpeechSynthesis(fallbackText);
+                    } else {
+                        useBrowserSpeechSynthesis(fallbackText);
                     }
                 };
 
-                // 使用语音朗读问题
-                const readQuestionAloud = async (text) => {
-                    console.log('开始语音朗读...');
-                    if (!voiceReadingEnabled.value) {
-                        console.log('语音朗读已禁用');
-                        return;
-                    }
-                    
-                    // 停止当前正在播放的音频
-                    stopCurrentAudio();
-                    
-                    try {
-                        isPlayingAudio.value = true;
-                        console.log('开始语音朗读:', text);
-                        console.log('语音朗读状态:', voiceReadingEnabled.value);
-                        console.log('当前选择的音色:', selectedVoice.value);
-                        
-                        // 直接使用服务器TTS，测试cosyvoice-v3-flash
-                        console.log('直接使用服务器TTS');
-                        const ttsSuccess = await fallbackToServerTTS(text);
-                        if (!ttsSuccess) {
-                            console.log('服务器TTS失败，使用浏览器语音合成');
-                            useBrowserSpeechSynthesis(text);
-                        }
-                    } catch (err) {
-                        console.error('语音朗读失败:', err);
-                        console.error('错误类型:', err.name);
-                        console.error('错误消息:', err.message);
-                        console.error('错误堆栈:', err.stack);
-                        isPlayingAudio.value = false;
-                        // 不显示错误，避免打扰用户
-                    }
-                };
-                
-                // 服务器TTS方案：使用大模型TTS
                 const fallbackToServerTTS = async (text) => {
-                    console.log('开始使用服务器大模型TTS...');
                     try {
-                        console.log('调用TTS API:', `${baseURL}api/tts/synthesize`);
-                        console.log('TTS参数:', { text: text, voice_type: selectedVoice.value });
-                        const response = await axios.post(`${baseURL}api/tts/synthesize`, {
+                        const response = await axios.post(`/api/tts/synthesize`, {
                             text: text,
                             voice_type: selectedVoice.value
                         });
-                        
-                        console.log('TTS API响应状态:', response.status);
-                        console.log('TTS API响应数据:', response.data);
-                        
-                        if (response.data.status === 'success') {
-                            if (response.data.use_browser_tts) {
-                                // 服务器建议使用浏览器内置语音合成
-                                console.log('服务器建议使用浏览器内置语音合成:', response.data.message);
-                                return useBrowserSpeechSynthesis(text);
-                            } else if (response.data.audio) {
-                                // 服务器返回了音频数据
-                                console.log('服务器TTS成功，开始播放音频');
-                                try {
-                                    const audioData = atob(response.data.audio);
-                                    const arrayBuffer = new ArrayBuffer(audioData.length);
-                                    const view = new Uint8Array(arrayBuffer);
-                                    for (let i = 0; i < audioData.length; i++) {
-                                        view[i] = audioData.charCodeAt(i);
-                                    }
-                                    
-                                    const audioBlob = new Blob([arrayBuffer], { type: 'audio/mp3' });
-                                    const audioUrl = URL.createObjectURL(audioBlob);
-                                    const audio = new Audio(audioUrl);
-                                    currentAudioPlayer.value = audio;
-                                    
-                                    audio.onended = () => {
-                                        console.log('服务器音频播放结束');
-                                        isPlayingAudio.value = false;
-                                        currentAudioPlayer.value = null;
-                                        URL.revokeObjectURL(audioUrl);
-                                    };
-                                    
-                                    audio.onerror = (e) => {
-                                        console.error('服务器音频播放错误:', e);
-                                        isPlayingAudio.value = false;
-                                        currentAudioPlayer.value = null;
-                                        URL.revokeObjectURL(audioUrl);
-                                    };
-                                    
-                                    await audio.play();
-                                    console.log('服务器音频播放开始');
-                                    return true; // TTS成功
-                                } catch (audioErr) {
-                                    console.error('服务器音频处理失败:', audioErr);
-                                    console.error('音频处理错误类型:', audioErr.name);
-                                    console.error('音频处理错误消息:', audioErr.message);
-                                    return useBrowserSpeechSynthesis(text);
-                                }
-                            } else {
-                                // 服务器返回成功但没有音频数据，使用浏览器内置语音
-                                console.log('服务器返回成功但没有音频数据，使用浏览器内置语音');
-                                return useBrowserSpeechSynthesis(text);
-                            }
-                        } else {
-                            console.error('TTS API返回失败:', response.data);
-                            // 服务器TTS失败，使用浏览器内置语音
-                            console.log('服务器TTS失败，使用浏览器内置语音');
-                            return useBrowserSpeechSynthesis(text);
-                        }
-                    } catch (ttsErr) {
-                        console.error('服务器TTS失败:', ttsErr);
-                        console.error('TTS错误类型:', ttsErr.name);
-                        console.error('TTS错误消息:', ttsErr.message);
-                        console.error('TTS错误堆栈:', ttsErr.stack);
-                        // 服务器TTS失败，使用浏览器内置语音
-                        console.log('服务器TTS失败，使用浏览器内置语音');
-                        return useBrowserSpeechSynthesis(text);
-                    }
-                };
-                
-                // 使用浏览器内置语音合成
-                const useBrowserSpeechSynthesis = (text) => {
-                    if ('speechSynthesis' in window) {
-                        console.log('使用浏览器内置语音合成');
-                        
-                        // 检查语音合成是否准备就绪
-                        if (window.speechSynthesis.paused && window.speechSynthesis.speaking) {
-                            window.speechSynthesis.resume();
-                        }
-                        
-                        const utterance = new SpeechSynthesisUtterance(text);
-                        utterance.lang = 'zh-CN';
-                        utterance.rate = 1.0;
-                        utterance.pitch = 1.0;
-                        utterance.volume = 1.0;
-                        
-                        // 根据选择的音色调整语音参数
-                        switch(selectedVoice.value) {
-                            case 'professional_male':
-                                utterance.pitch = 0.9;
-                                utterance.rate = 0.95;
-                                break;
-                            case 'professional_female':
-                                utterance.pitch = 1.1;
-                                utterance.rate = 1.0;
-                                break;
-                            case 'friendly_male':
-                                utterance.pitch = 1.0;
-                                utterance.rate = 1.05;
-                                break;
-                            case 'friendly_female':
-                                utterance.pitch = 1.2;
-                                utterance.rate = 1.1;
-                                break;
-                            case 'strict_male':
-                                utterance.pitch = 0.8;
-                                utterance.rate = 0.9;
-                                break;
-                            case 'strict_female':
-                                utterance.pitch = 1.0;
-                                utterance.rate = 0.9;
-                                break;
-                        }
-                        
-                        utterance.onstart = () => {
-                            console.log('浏览器语音开始播放');
-                            isPlayingAudio.value = true;
-                        };
-                        
-                        utterance.onend = () => {
-                            console.log('浏览器语音播放结束');
-                            isPlayingAudio.value = false;
-                        };
-                        
-                        utterance.onerror = (e) => {
-                            console.error('浏览器语音错误:', e);
-                            isPlayingAudio.value = false;
-                        };
-                        
-                        console.log('准备播放浏览器语音:', utterance);
-                        window.speechSynthesis.speak(utterance);
-                        console.log('浏览器语音播放命令已发送');
-                        return true;
-                    } else {
-                        console.error('浏览器不支持语音合成');
-                        isPlayingAudio.value = false;
-                        error.value = '语音朗读失败，浏览器不支持语音合成';
-                        return false;
+                        playSynthesizedAudio(response.data, text);
+                    } catch (err) {
+                        console.error('服务器TTS也失败:', err);
+                        useBrowserSpeechSynthesis(text);
                     }
                 };
 
-                // 格式化时间
+                const useBrowserSpeechSynthesis = (text) => {
+                    if ('speechSynthesis' in window) {
+                        window.speechSynthesis.cancel();
+                        const utterance = new SpeechSynthesisUtterance(text);
+                        utterance.lang = 'zh-CN';
+                        utterance.rate = 0.9;
+                        isPlayingAudio.value = true;
+                        utterance.onend = () => {
+                            isPlayingAudio.value = false;
+                        };
+                        utterance.onerror = () => {
+                            isPlayingAudio.value = false;
+                        };
+                        window.speechSynthesis.speak(utterance);
+                    }
+                };
+
                 const formatTime = (seconds) => {
                     const mins = Math.floor(seconds / 60);
                     const secs = seconds % 60;
-                    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+                    return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
                 };
 
-                // 开始录音计时
                 const startTimer = () => {
-                    recordingTime.value = 0;
                     timerInterval.value = setInterval(() => {
                         recordingTime.value++;
                     }, 1000);
                 };
 
-                // 停止录音计时
                 const stopTimer = () => {
                     if (timerInterval.value) {
                         clearInterval(timerInterval.value);
@@ -2289,29 +1883,31 @@
                     }
                 };
 
-                // WAV格式录音相关变量
                 const audioContext = ref(null);
                 const mediaStream = ref(null);
                 const scriptProcessor = ref(null);
                 const audioBuffers = ref([]);
                 const sampleRate = 16000;
 
-                // 将PCM数据转换为WAV格式
                 const createWavBlob = (audioBuffers, sampleRate) => {
                     const length = audioBuffers.reduce((acc, buf) => acc + buf.length, 0);
-                    const buffer = new ArrayBuffer(44 + length * 2);
+                    const data = new Int16Array(length);
+                    let offset = 0;
+                    for (const buf of audioBuffers) {
+                        data.set(buf, offset);
+                        offset += buf.length;
+                    }
+                    const buffer = new ArrayBuffer(44 + data.length * 2);
                     const view = new DataView(buffer);
-                    
-                    const writeString = (view, offset, string) => {
+                    const writeString = (offset, string) => {
                         for (let i = 0; i < string.length; i++) {
                             view.setUint8(offset + i, string.charCodeAt(i));
                         }
                     };
-                    
-                    writeString(view, 0, 'RIFF');
-                    view.setUint32(4, 36 + length * 2, true);
-                    writeString(view, 8, 'WAVE');
-                    writeString(view, 12, 'fmt ');
+                    writeString(0, 'RIFF');
+                    view.setUint32(4, 36 + data.length * 2, true);
+                    writeString(8, 'WAVE');
+                    writeString(12, 'fmt ');
                     view.setUint32(16, 16, true);
                     view.setUint16(20, 1, true);
                     view.setUint16(22, 1, true);
@@ -2319,355 +1915,286 @@
                     view.setUint32(28, sampleRate * 2, true);
                     view.setUint16(32, 2, true);
                     view.setUint16(34, 16, true);
-                    writeString(view, 36, 'data');
-                    view.setUint32(40, length * 2, true);
-                    
-                    let offset = 44;
-                    for (const buf of audioBuffers) {
-                        for (let i = 0; i < buf.length; i++) {
-                            const s = Math.max(-1, Math.min(1, buf[i]));
-                            view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
-                            offset += 2;
-                        }
+                    writeString(36, 'data');
+                    view.setUint32(40, data.length * 2, true);
+                    let dataOffset = 44;
+                    for (let i = 0; i < data.length; i++) {
+                        view.setInt16(dataOffset, data[i], true);
+                        dataOffset += 2;
                     }
-                    
                     return new Blob([buffer], { type: 'audio/wav' });
                 };
 
-                // 语音识别对象
                 const speechRecognition = ref(null);
                 const isRecognizing = ref(false);
-                
-                // 开始录音（使用 Web Speech API）
+                // 浏览器语音识别的 network 错误只弹一次提示的标记（普通变量即可，无需响应式）
+                let speechNetWarned = false;
+
                 const startRecording = async () => {
-                    if (isRecording.value || isRecognizing.value) return;
-                    
-                    loading.value = true;
-                    loadingMessage.value = '准备录音...';
-                    error.value = '';
-                    
                     try {
-                        // 检查浏览器是否支持语音识别
-                        if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-                            error.value = '您的浏览器不支持语音识别功能，请使用打字作答';
-                            loading.value = false;
-                            return;
-                        }
-                        
-                        // 先请求麦克风权限
-                        try {
+                        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
                             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                            stream.getTracks().forEach(track => track.stop());
-                        } catch (permErr) {
-                            error.value = '无法访问麦克风，请检查权限设置';
-                            loading.value = false;
-                            return;
-                        }
-                        
-                        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-                        const recognition = new SpeechRecognition();
-                        speechRecognition.value = recognition;
-                        
-                        // 配置语音识别
-                        recognition.continuous = true; // 连续识别模式，提高检测成功率
-                        recognition.interimResults = true;
-                        recognition.lang = 'zh-CN';
-                        recognition.maxAlternatives = 3;
-                        recognition.timeout = 5000; // 设置超时时间
-                        recognition.maxDuration = 30000; // 最大录音时间
-                        
-                        // 配置语音识别选项（如果支持）
-                        if ('continuous' in recognition) {
-                            recognition.continuous = true;
-                        }
-                        if ('interimResults' in recognition) {
-                            recognition.interimResults = true;
-                        }
-                        if ('maxAlternatives' in recognition) {
-                            recognition.maxAlternatives = 3;
-                        }
-                        if ('timeout' in recognition) {
-                            recognition.timeout = 5000;
-                        }
-                        // 不设置 grammars，避免类型错误
-                        // if ('grammars' in recognition) {
-                        //     recognition.grammars = null; // 这会导致类型错误
-                        // }
-                        
-                        let finalTranscript = '';
-                        let hasSpeech = false;
-                        let recognitionStartTime = Date.now();
-                        
-                        // 识别结果回调
-                        recognition.onresult = (event) => {
-                            hasSpeech = true;
-                            let interimTranscript = '';
-                            
-                            console.log('识别结果事件:', event);
-                            
-                            for (let i = event.resultIndex; i < event.results.length; ++i) {
-                                const result = event.results[i];
-                                console.log(`结果 ${i}:`, result);
-                                
-                                if (result.isFinal) {
-                                    finalTranscript += result[0].transcript;
-                                    console.log('最终识别结果:', finalTranscript);
-                                    console.log('置信度:', result[0].confidence);
-                                } else {
-                                    interimTranscript += result[0].transcript;
-                                    console.log('临时识别结果:', interimTranscript);
+                            mediaStream.value = stream;
+
+                            const AudioContext = window.AudioContext || window.webkitAudioContext;
+                            audioContext.value = new AudioContext({ sampleRate: sampleRate });
+                            const source = audioContext.value.createMediaStreamSource(stream);
+                            scriptProcessor.value = audioContext.value.createScriptProcessor(4096, 1, 1);
+
+                            audioBuffers.value = [];
+
+                            scriptProcessor.value.onaudioprocess = (e) => {
+                                const data = e.inputBuffer.getChannelData(0);
+                                const int16Data = new Int16Array(data.length);
+                                for (let i = 0; i < data.length; i++) {
+                                    int16Data[i] = Math.max(-1, Math.min(1, data[i])) * 0x7FFF;
+                                }
+                                audioBuffers.value.push(int16Data);
+                            };
+
+                            source.connect(scriptProcessor.value);
+                            scriptProcessor.value.connect(audioContext.value.destination);
+
+                            isRecording.value = true;
+                            recordingTime.value = 0;
+                            startTimer();
+
+                            if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+                                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                                speechRecognition.value = new SpeechRecognition();
+                                speechRecognition.value.continuous = true;
+                                speechRecognition.value.interimResults = true;
+                                speechRecognition.value.lang = 'zh-CN';
+
+                                speechRecognition.value.onresult = (event) => {
+                                    let transcript = '';
+                                    for (let i = event.resultIndex; i < event.results.length; i++) {
+                                        transcript += event.results[i][0].transcript;
+                                    }
+                                    textAnswer.value = transcript;
+                                };
+
+                                speechRecognition.value.onerror = (event) => {
+                                    console.error('语音识别错误:', event.error);
+                                    isRecognizing.value = false;
+                                    // network 错误 = 浏览器内置识别连不上它的语音服务
+                                    // （Chrome 会把录音送往境外服务器，国内网络常态性失败）。
+                                    // 识别挂了不影响录音提交流程，弹一次提示引导手动输入即可
+                                    if (event.error === 'network' && !speechNetWarned) {
+                                        speechNetWarned = true;
+                                        Swal.fire({
+                                            title: '语音识别暂不可用',
+                                            text: '浏览器内置语音识别服务当前网络无法访问，请直接用键盘输入回答，其余功能不受影响',
+                                            icon: 'info',
+                                            confirmButtonText: '知道了'
+                                        });
+                                    }
+                                };
+
+                                speechRecognition.value.onend = () => {
+                                    isRecognizing.value = false;
+                                };
+
+                                try {
+                                    speechRecognition.value.start();
+                                    isRecognizing.value = true;
+                                } catch (e) {
+                                    console.error('启动语音识别失败:', e);
                                 }
                             }
-                        };
-                        
-                        // 识别开始回调
-                        recognition.onstart = () => {
-                            console.log('语音识别已开始');
-                            loading.value = false;
-                        };
-                        
-                        // 识别结束回调
-                        recognition.onend = () => {
-                            console.log('语音识别已结束');
-                            isRecording.value = false;
-                            isRecognizing.value = false;
-                            stopTimer();
-                            loading.value = false;
-                            
-                            const recognitionDuration = Date.now() - recognitionStartTime;
-                            console.log(`识别持续时间: ${recognitionDuration}ms`);
-                            console.log(`最终识别结果: "${finalTranscript}"`);
-                            console.log(`是否检测到语音: ${hasSpeech}`);
-                            
-                            if (finalTranscript.trim()) {
-                                // 直接使用识别结果作为答案
-                                textAnswer.value = finalTranscript;
-                                console.log('自动提交答案:', finalTranscript);
-                                // 自动提交
-                                submitTextAnswer();
-                            } else if (hasSpeech) {
-                                error.value = '语音识别结果为空，请重新录音并确保发音清晰';
-                            } else if (recognitionDuration < 2000) {
-                                error.value = '录音时间太短，请说话时间长一些（至少2秒）';
-                            } else {
-                                error.value = '未检测到语音，请靠近麦克风并清晰说话，确保环境安静';
-                            }
-                        };
-                        
-                        // 识别错误回调
-                        recognition.onerror = (event) => {
-                            console.error('语音识别错误:', event.error, event);
-                            isRecording.value = false;
-                            isRecognizing.value = false;
-                            stopTimer();
-                            loading.value = false;
-                            
-                            if (event.error === 'no-speech') {
-                                error.value = '未检测到语音，请靠近麦克风并清晰说话';
-                            } else if (event.error === 'audio-capture') {
-                                error.value = '无法访问麦克风，请检查权限设置';
-                            } else if (event.error === 'not-allowed') {
-                                error.value = '麦克风权限被拒绝，请在浏览器设置中允许麦克风访问';
-                            } else if (event.error === 'aborted') {
-                                error.value = '语音识别被中止，请重试';
-                            } else if (event.error === 'network') {
-                                error.value = '网络连接问题，请检查网络';
-                            } else {
-                                error.value = '语音识别失败: ' + event.error;
-                            }
-                        };
-                        
-                        // 音频开始回调
-                        recognition.onaudiostart = () => {
-                            console.log('音频捕获已开始');
-                        };
-                        
-                        // 音频结束回调
-                        recognition.onaudioend = () => {
-                            console.log('音频捕获已结束');
-                        };
-                        
-                        // 开始识别
-                        console.log('开始语音识别');
-                        recognition.start();
-                        isRecording.value = true;
-                        isRecognizing.value = true;
-                        startTimer();
-                        
+                        }
                     } catch (err) {
-                        console.error('录音启动失败:', err);
-                        error.value = '录音启动失败: ' + err.message;
-                    } finally {
-                        // 确保loading.value被设置为false
-                        setTimeout(() => {
-                            loading.value = false;
-                        }, 500);
+                        console.error('启动录音失败:', err);
+                        Swal.fire({
+                            title: '录音失败',
+                            text: '无法访问麦克风，请确保您已授予麦克风权限',
+                            icon: 'error'
+                        });
                     }
                 };
 
-                // 停止录音
                 const stopRecording = () => {
-                    if (!isRecording.value) return;
-                    
+                    isRecording.value = false;
+                    stopTimer();
+
                     if (speechRecognition.value) {
                         try {
                             speechRecognition.value.stop();
-                        } catch (e) {
-                            console.log('停止语音识别失败:', e);
-                        }
+                        } catch (e) {}
+                        isRecognizing.value = false;
                     }
-                    
-                    isRecording.value = false;
-                    isRecognizing.value = false;
-                    stopTimer();
+
+                    if (scriptProcessor.value) {
+                        scriptProcessor.value.disconnect();
+                        scriptProcessor.value = null;
+                    }
+                    if (mediaStream.value) {
+                        mediaStream.value.getTracks().forEach(track => track.stop());
+                        mediaStream.value = null;
+                    }
+                    if (audioContext.value) {
+                        audioContext.value.close();
+                        audioContext.value = null;
+                    }
                 };
 
-                // 处理提交按钮点击
                 const handleSubmit = () => {
-                    console.log('处理提交按钮点击');
-                    console.log('answerMode:', answerMode.value);
-                    console.log('loading:', loading.value);
-                    console.log('textAnswer:', textAnswer.value);
-                    console.log('isRecording:', isRecording.value);
-                    if (answerMode.value === 'voice') {
-                        if (isRecording.value) {
-                            stopRecording();
-                        } else {
-                            // 如果没有开始录音，直接提交空答案
-                            submitTextAnswer();
-                        }
+                    if (answerMode.value === 'text') {
+                        submitTextAnswer();
                     } else {
+                        if (!textAnswer.value || textAnswer.value.trim() === '') {
+                            Swal.fire({
+                                title: '提示',
+                                text: '您还没有输入回答内容，请先录音或切换到文字模式输入',
+                                icon: 'warning'
+                            });
+                            return;
+                        }
                         submitTextAnswer();
                     }
                 };
 
-                // 提交手写题答案
-                const submitTextAnswer = async () => {
-                    console.log('提交答案按钮被点击');
-                    console.log('textAnswer.value:', textAnswer.value);
-                    console.log('textAnswer.value.trim():', textAnswer.value.trim());
-                    console.log('currentQuestion.value:', currentQuestion.value);
-                    console.log('answerMode:', answerMode.value);
-                    
-                    // 只有在打字作答模式下才检查答案是否为空
-                    if (answerMode.value === 'text' && (!textAnswer.value || !textAnswer.value.trim())) {
-                        error.value = '请输入答案后再提交';
-                        console.log('错误：请输入答案后再提交');
-                        return;
-                    }
-                    
-                    if (!currentQuestion.value) {
-                        error.value = '当前问题不存在';
-                        console.log('错误：当前问题不存在');
-                        return;
-                    }
-                    
-                    stopCurrentAudio();
-                    loading.value = true;
-                    loadingMessage.value = '提交答案中...';
-                    console.log('开始提交答案');
-                    
+                const transcribeRecording = async () => {
+                    // 把本次录音打包成 WAV 上传后端转写（浏览器语音识别失败时的兜底链路）
                     try {
-                        const questionId = currentQuestion.value.id;
-                        console.log('问题ID:', questionId);
-                        
-                        // 提交答案
-                        const response = await axios.post(`${baseURL}api/interview/${token.value}/submit_text_answer`, {
-                            question_id: questionId,
+                        const wavBlob = createWavBlob(audioBuffers.value, sampleRate);
+                        const formData = new FormData();
+                        formData.append('file', wavBlob, 'answer.wav');
+                        const response = await axios.post('/api/tts/transcribe', formData, {
+                            headers: { 'Content-Type': 'multipart/form-data' },
+                            timeout: 60000
+                        });
+                        if (response.data.status === 'success' && response.data.text) {
+                            return response.data.text;
+                        }
+                        return '';
+                    } catch (err) {
+                        console.error('录音转写失败:', err);
+                        return '';
+                    }
+                };
+
+                const submitTextAnswer = async () => {
+                    // 语音模式且浏览器识别没产出文本 → 上传录音让后端转写兜底
+                    if (answerMode.value === 'voice'
+                        && (!textAnswer.value || !textAnswer.value.trim())
+                        && audioBuffers.value.length > 0) {
+                        const transcribed = await transcribeRecording();
+                        if (transcribed) {
+                            textAnswer.value = transcribed;
+                        }
+                    }
+
+                    if (!textAnswer.value || textAnswer.value.trim() === '') {
+                        Swal.fire({
+                            title: '提示',
+                            text: '请先输入您的回答',
+                            icon: 'warning'
+                        });
+                        return;
+                    }
+
+                    loading.value = true;
+                    loadingMessage.value = '正在提交答案...';
+
+                    try {
+                        // 后端接口为 submit_text_answer（请求体 {"question_id", "answer_text"}）
+                        const response = await axios.post(`/api/interview/${token.value}/submit_text_answer`, {
+                            question_id: currentQuestion.value ? currentQuestion.value.id : null,
                             answer_text: textAnswer.value
                         });
-                        console.log('提交答案成功:', response.data);
-                        
-                        // 获取下一个问题
-                        await fetchQuestion();
-                        
-                        // 重置答案
-                        textAnswer.value = '';
-                        answerMode.value = 'voice';
-                        error.value = null;
+
+                        if (response.data.status === 'success') {
+                            textAnswer.value = '';
+                            // 录音计时器归零，避免下一题沿用上一题的时长
+                            recordingTime.value = 0;
+                            currentQuestionIndex.value++;
+
+                            if (currentQuestionIndex.value >= totalQuestions.value) {
+                                isFinished.value = true;
+                                interviewStatus.value = 3;
+                                loading.value = false;
+                                generateInterviewEvaluation();
+                            } else {
+                                await fetchQuestion();
+                                loading.value = false;
+                            }
+                        } else {
+                            Swal.fire('提交失败', response.data.message || '提交答案失败，请重试', 'error');
+                            loading.value = false;
+                        }
                     } catch (err) {
                         console.error('提交答案失败:', err);
-                        error.value = '提交答案失败，请刷新页面重试';
-                    } finally {
-                        console.log('设置loading.value为false');
-                        // 确保loading.value被设置为false
+                        Swal.fire('错误', '提交答案失败，请重试', 'error');
                         loading.value = false;
                     }
                 };
 
-                // ========== 表情捕捉功能 ==========
                 const cameraActive = ref(false);
                 const expressionData = ref({
-                    expression: '',
                     expression_cn: '',
                     emotion_status: '',
-                    final_score: null,
+                    emotion_score: 0,
                     suggestions: []
                 });
                 const cameraStream = ref(null);
                 const expressionInterval = ref(null);
                 const expressionVideo = ref(null);
 
-                // 获取表情图标
-                const getExpressionIcon = (expression) => {
-                    const iconMap = {
-                        'happiness': 'bi-emoji-smile',
-                        'neutral': 'bi-emoji-neutral',
-                        'surprise': 'bi-emoji-surprise',
-                        'sadness': 'bi-emoji-frown',
-                        'anger': 'bi-emoji-angry',
-                        'fear': 'bi-emoji-dizzy',
-                        'disgust': 'bi-emoji-frown',
-                        'pouty': 'bi-emoji-smile-upside-down',
-                        'grimace': 'bi-emoji-expressionless'
-                    };
-                    return iconMap[expression] || 'bi-emoji-neutral';
-                };
-
-                // 获取评分样式类
                 const getScoreClass = (score) => {
-                    if (!score) return '';
                     if (score >= 80) return 'excellent';
                     if (score >= 60) return 'good';
                     if (score >= 40) return 'normal';
                     return 'poor';
                 };
-                
-                // 跳过问题
+
                 const skipQuestion = () => {
                     Swal.fire({
                         title: '确认跳过',
-                        text: '确定要跳过当前问题吗？',
+                        text: '确定要跳过这道题吗？跳过后无法返回。',
                         icon: 'warning',
                         showCancelButton: true,
-                        confirmButtonText: '确定',
+                        confirmButtonText: '确认跳过',
                         cancelButtonText: '取消'
                     }).then((result) => {
                         if (result.isConfirmed) {
-                            fetchQuestion();
+                            textAnswer.value = '（用户跳过此题）';
+                            submitTextAnswer();
                         }
                     });
                 };
-                
-                // 使用AI辅助
-                const useAIAssist = () => {
-                    Swal.fire({
-                        title: 'AI辅助',
-                        text: 'AI正在为您分析问题...',
-                        icon: 'info',
-                        showConfirmButton: false,
-                        timer: 2000
-                    }).then(() => {
-                        Swal.fire({
-                            title: 'AI辅助提示',
-                            text: '建议您从以下几个方面回答：\n1. 介绍您的专业背景\n2. 分享相关项目经验\n3. 突出您的技术优势\n4. 表达对该岗位的兴趣',
-                            icon: 'success',
-                            confirmButtonText: '明白了'
+
+                const useAIAssist = async () => {
+                    if (!currentQuestion.value) return;
+
+                    loading.value = true;
+                    loadingMessage.value = 'AI 正在生成提示...';
+
+                    try {
+                        const response = await axios.post(`/api/interview/${token.value}/hint`, {
+                            question_id: currentQuestion.value.id
                         });
-                    });
+
+                        // 后端成功时返回 {hint, degraded}，没有 status 字段——
+                        // 旧代码检查 status==='success' 永远不成立，导致 AI 辅助一直误报失败
+                        if (response.data.hint) {
+                            Swal.fire({
+                                title: response.data.degraded ? 'AI 辅助提示（简化版）' : 'AI 辅助提示',
+                                text: response.data.hint,
+                                icon: 'info',
+                                confirmButtonText: '知道了'
+                            });
+                        } else {
+                            Swal.fire('提示失败', response.data.message || '获取提示失败', 'error');
+                        }
+                    } catch (err) {
+                        console.error('获取AI提示失败:', err);
+                        Swal.fire('错误', '获取AI提示失败，请重试', 'error');
+                    } finally {
+                        loading.value = false;
+                    }
                 };
-                
-                // 停止摄像头
+
                 const stopCamera = () => {
                     if (cameraStream.value) {
                         cameraStream.value.getTracks().forEach(track => track.stop());
@@ -2676,14 +2203,13 @@
                     }
                 };
 
-                // 启动摄像头
                 const startCamera = async () => {
                     try {
                         cameraStream.value = await navigator.mediaDevices.getUserMedia({
                             video: { width: 320, height: 240, facingMode: 'user' },
                             audio: false
                         });
-                        
+
                         const videoElement = document.querySelector('video');
                         if (videoElement && cameraStream.value) {
                             videoElement.srcObject = cameraStream.value;
@@ -2696,61 +2222,84 @@
                     }
                 };
 
-                // 开始表情捕捉（每5秒分析一次）
                 const startExpressionCapture = () => {
                     if (expressionInterval.value) {
                         clearInterval(expressionInterval.value);
                     }
-                    
+
                     captureAndAnalyzeExpression();
-                    
+
+                    // 表情抓拍周期：2.5 秒一帧（用户反馈 5 秒间隔太稀，情绪变化捕捉不到）
                     expressionInterval.value = setInterval(() => {
                         captureAndAnalyzeExpression();
-                    }, 5000);
+                    }, 2500);
                 };
 
-                // 捕获画面并分析表情
+                // 防重入标志：单次视觉模型分析约 2~4 秒，比 2.5 秒的抓拍周期还长，
+                // 上一帧没分析完又触发下一帧会导致请求堆积（打爆模型额度、情绪记录乱序）
+                let expressionAnalyzing = false;
+
                 const captureAndAnalyzeExpression = async () => {
                     if (!cameraActive.value) return;
-                    
+                    // 上一帧还在分析中 → 跳过本轮，等下个周期再抓
+                    if (expressionAnalyzing) return;
+
+                    expressionAnalyzing = true;
                     try {
                         const videoElement = document.querySelector('video');
                         if (!videoElement || !videoElement.srcObject) return;
-                        
+
                         const canvas = document.createElement('canvas');
                         canvas.width = videoElement.videoWidth || 320;
                         canvas.height = videoElement.videoHeight || 240;
                         const ctx = canvas.getContext('2d');
                         ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
-                        
+
                         const imageBase64 = canvas.toDataURL('image/jpeg', 0.8);
-                        
-                        const response = await axios.post(`${baseURL}api/expression/analyze`, {
+
+                        const response = await axios.post(`/api/expression/analyze`, {
                             image_base64: imageBase64
                         }, {
                             timeout: 10000
                         });
-                        
+
                         if (response.data.success) {
                             expressionData.value = {
                                 expression: response.data.expression || '',
                                 expression_cn: response.data.expression_cn || '',
                                 emotion_status: response.data.emotion_status || '',
-                                final_score: response.data.final_score,
+                                emotion_score: response.data.final_score,
                                 suggestions: response.data.suggestions || []
                             };
-                            
+
                             saveExpressionRecord(expressionData.value, imageBase64);
                         }
                     } catch (err) {
+                        if (err.response && err.response.status === 400) {
+                            expressionData.value = {
+                                expression_cn: (err.response.data && err.response.data.error) || '未检测到人脸'
+                            };
+                            return;
+                        }
+                        if (err.response && err.response.status === 500) {
+                            expressionData.value = { expression_cn: '表情分析暂不可用' };
+                            if (expressionInterval.value) {
+                                clearInterval(expressionInterval.value);
+                                expressionInterval.value = null;
+                            }
+                            console.error('表情分析模型不可用，已停止自动抓拍:', (err.response.data && err.response.data.error) || err.message);
+                            return;
+                        }
                         console.error('表情分析失败:', err);
+                    } finally {
+                        // 无论成功/失败/提前 return 都要释放，否则标志卡死、后续不再抓拍
+                        expressionAnalyzing = false;
                     }
                 };
 
-                // 保存表情记录到服务器
                 const saveExpressionRecord = async (data, imageBase64) => {
                     try {
-                        await axios.post(`${baseURL}api/interview/${token.value}/expression`, {
+                        await axios.post(`/api/interview/${token.value}/expression`, {
                             image_base64: imageBase64,
                             expression: data.expression,
                             expression_cn: data.expression_cn,
@@ -2763,7 +2312,6 @@
                     }
                 };
 
-                // 停止表情捕捉
                 const stopExpressionCapture = () => {
                     if (expressionInterval.value) {
                         clearInterval(expressionInterval.value);
@@ -2775,23 +2323,53 @@
                     }
                     cameraActive.value = false;
                 };
-                
-                // 调用大模型API生成面试评价
-                const generateInterviewEvaluation = async () => {
+
+                const downloadReport = () => {
+                    if (interviewEvaluation.value.isLoading || interviewEvaluation.value.averageScore === undefined) {
+                        Swal.fire({
+                            title: '提示',
+                            text: '报告还未生成完成，请稍后再试',
+                            icon: 'warning',
+                            confirmButtonText: '好的'
+                        });
+                        return;
+                    }
+                    const e = interviewEvaluation.value;
+                    downloadInterviewReport({
+                        position: interviewInfo.value.position || '模拟面试',
+                        time: interviewInfo.value.time || '',
+                        totalScore: e.averageScore,
+                        recommendation: e.recommendation || '',
+                        scores: e.scores || {},
+                        detailedScores: e.detailedScores || [],
+                        description: e.description || '',
+                        strengths: e.strengths || [],
+                        improvements: e.improvements || [],
+                        recommendations: e.recommendations || [],
+                        questions: (e.question_evaluations || []).map(q => ({
+                            text: q.question,
+                            answer: q.answer,
+                            score: q.score,
+                            comment: q.comments
+                        }))
+                    });
+                };
+
+                // retryCount：报告生成失败时的自动重试计数（最多重试 1 次）。
+                // LLM 输出偶发解析失败/网络抖动，重试大多能成功；
+                // 重试仍失败时提示刷新——后端 status 仍是 3，刷新后页面加载会再触发生成（自愈）
+                const generateInterviewEvaluation = async (retryCount = 0) => {
                     interviewEvaluation.value.isLoading = true;
                     try {
                         console.log('开始生成面试评价');
-                        // 模拟API调用延迟
                         await new Promise(resolve => setTimeout(resolve, 2000));
-                        
-                        // 调用大模型API生成评价
-                        const response = await axios.post(`${baseURL}api/evaluation/generate`, {
+
+                        const response = await axios.post(`/api/evaluation/generate`, {
                             token: token.value
                         });
-                        
+
                         if (response.data.status === 'success') {
                             console.log('大模型API返回成功:', response.data);
-                            // 更新面试评价数据
                             interviewEvaluation.value = {
                                 ...interviewEvaluation.value,
                                 ...response.data.evaluation,
@@ -2799,7 +2377,6 @@
                             };
                         } else {
                             console.error('大模型API返回失败:', response.data);
-                            // 使用默认评价数据
                             interviewEvaluation.value = {
                                 ...interviewEvaluation.value,
                                 averageScore: 76,
@@ -2836,40 +2413,26 @@
                         }
                     } catch (err) {
                         console.error('生成面试评价失败:', err);
-                        // 后端服务器不可用时，使用默认评价数据
-                        interviewEvaluation.value = {
-                            ...interviewEvaluation.value,
-                            averageScore: 76,
-                            description: '您在本次面试中表现良好，综合得分为76分，表明您有中上水平，有很大提升空间。',
-                            scores: {
-                                professional: 80,
-                                communication: 68,
-                                comprehensive: 75
-                            },
-                            detailedScores: [
-                                {"name": "专业知识", "score": 8.5, "percentage": 85},
-                                {"name": "行业认知", "score": 7.5, "percentage": 75},
-                                {"name": "表达能力", "score": 7.0, "percentage": 70},
-                                {"name": "沟通能力", "score": 6.5, "percentage": 65},
-                                {"name": "思维逻辑", "score": 8.0, "percentage": 80}
-                            ],
-                            strengths: [
-                                "基础知识扎实，能够回答大部分专业问题",
-                                "专业技能突出，有相关项目经验",
-                                "逻辑思维清晰，能有条理地分析问题"
-                            ],
-                            improvements: [
-                                "在某些领域的知识深度不够，如算法优化",
-                                "表达能力有待提高，回答问题时不够流畅",
-                                "对行业最新趋势了解不足，需要加强学习"
-                            ],
-                            recommendations: [
-                                {"title": "学习提升", "description": "建议学习算法优化和系统设计，提升专业深度"},
-                                {"title": "表达训练", "description": "加强表达能力训练，提高回答问题的流畅度"},
-                                {"title": "行业洞察", "description": "关注行业最新趋势，了解前沿技术发展"}
-                            ],
-                            isLoading: false
-                        };
+                        // 【2026-10-07 修复】失败不再填充硬编码假报告（76 分假数据误导用户），
+                        // 改为：isLoading 复位 + 自动重试一次，仍失败提示刷新页面重新生成
+                        interviewEvaluation.value.isLoading = false;
+                        if (retryCount < 1) {
+                            Swal.fire({
+                                title: '报告生成中断',
+                                text: '正在自动重试…',
+                                icon: 'info',
+                                timer: 2000,
+                                showConfirmButton: false
+                            });
+                            setTimeout(() => generateInterviewEvaluation(retryCount + 1), 2500);
+                        } else {
+                            Swal.fire({
+                                title: '报告生成失败',
+                                text: '题目作答已全部保存。请稍后刷新本页，系统会重新生成报告',
+                                icon: 'error',
+                                confirmButtonText: '好的'
+                            });
+                        }
                     }
                 };
 
@@ -2890,24 +2453,27 @@
                     error,
                     recordingTime,
                     interviewStatus,
-                    voiceReadingEnabled,
                     selectedVoice,
                     availableVoices,
                     isPlayingAudio,
                     formatTime,
                     startInterview,
+                    regenerateQuestions,
+                    regenerating,
+                    regenError,
                     startRecording,
                     stopRecording,
                     submitTextAnswer,
                     handleSubmit,
-                    toggleVoiceReading,
+                    previewVoice,
+                    previewingVoice,
                     cameraActive,
                     expressionData,
                     startCamera,
                     stopCamera,
                     skipQuestion,
                     useAIAssist,
-                    getExpressionIcon,
+                    downloadReport,
                     getScoreClass,
                     speechRecognition,
                     isRecognizing,
@@ -2918,8 +2484,7 @@
         }).mount('#app');
     </script>
 
-    <!-- Bootstrap JS and Icons -->
     <script src="js/bootstrap.bundle.min.js"></script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="css/bootstrap-icons.css">
 </body>
-</html> 
+</html>

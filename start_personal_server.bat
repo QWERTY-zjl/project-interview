@@ -1,30 +1,25 @@
 @echo off
+REM Launch the interview simulator server (FastAPI).
+cd /d "%~dp0"
 
-REM 启动个人用户版面试模拟系统服务器
-cd /d "%~dp0\app"
-
-REM 检查Python是否安装
-python --version >nul 2>&1
-if %errorlevel% neq 0 (
-    echo Python 未安装，请先安装 Python 3.7 或更高版本
+REM Interpreter priority: bundled portable Python - project venv - system python.
+if exist runtime\python\python.exe (
+    set "PY=runtime\python\python.exe"
+    echo Bundled Python runtime detected. Starting ...
+) else if exist app\venv\Scripts\python.exe (
+    set "PY=app\venv\Scripts\python.exe"
+    echo Using project virtualenv app\venv ...
+) else (
+    echo Python not found. Please run setup.bat first.
     pause
     exit /b 1
 )
 
-REM 检查依赖是否安装
-pip list | findstr "Flask" >nul 2>&1
-if %errorlevel% neq 0 (
-    echo 正在安装依赖...
-    pip install -r requirements.txt
-    if %errorlevel% neq 0 (
-        echo 依赖安装失败，请检查网络连接
-        pause
-        exit /b 1
-    )
-)
+REM Isolate from user-level site-packages so the bundled deps stay untouched.
+set "PYTHONNOUSERSITE=1"
 
-REM 启动服务器
-echo 启动个人用户版面试模拟系统服务器...
-python server.py
+REM API key is read from .env in the project root (bundled with the package).
+echo Starting server ... open http://127.0.0.1:10009 in your browser.
+%PY% -m app.main
 
 pause

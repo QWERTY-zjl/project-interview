@@ -29,6 +29,12 @@ env/
 # IDE相关
 .idea/
 .vscode/
+.trae/
+# 本地演示 PPT 工作目录（pptxgenjs）与 Node 依赖
+slides/
+node_modules/
+package.json
+package-lock.json
 *.swp
 *.swo
 *~
@@ -63,13 +69,15 @@ logs/
 
 # SSL 证书私钥（绝不能提交）
 nginx/ssl/
+docker/nginx/ssl/
 
 # 临时文件
 temp/
 
-# Uploaded files
+# Uploaded files（/resumes/ 锚定仓库根目录的运行时上传简历；
+# 不加斜杠会把 docs/resumes/ 示例简历也挡在 git 外）
 uploads/
-resumes/
+/resumes/
 
 # Test files
 test_*.py
@@ -79,6 +87,9 @@ test_*.py
 *.pid
 *.seed
 *.pid.lock
+
+# 便携 Python 运行时（几十 MB 二进制，由打包脚本追加进作品包，不入 git）
+runtime/
 
 # Coverage
 htmlcov/

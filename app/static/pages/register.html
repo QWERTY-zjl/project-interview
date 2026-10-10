@@ -1,0 +1,396 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>注册 — AI 面试官</title>
+  <link href="../css/bootstrap.min.css" rel="stylesheet">
+  <link href="../css/theme.css" rel="stylesheet">
+  <script src="../js/vue.global.prod.js"></script>
+  <script src="../js/sweetalert2.js"></script>
+  <style>
+    /* ===== 页面基础布局 ===== */
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: var(--space-6);
+      background: var(--bg-primary);
+      font-family: var(--font-sans);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* ===== 容器 ===== */
+    .auth-shell {
+      width: 100%;
+      max-width: 480px;
+    }
+
+    /* ===== 品牌区 ===== */
+    .auth-brand {
+      text-align: center;
+      margin-bottom: var(--space-8);
+    }
+
+    .auth-brand-icon {
+      width: 56px;
+      height: 56px;
+      margin: 0 auto var(--space-3);
+      border-radius: var(--radius-full);
+      background: var(--accent-primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #ffffff;
+      font-size: 24px;
+      box-shadow: 0 4px 14px rgba(0, 122, 255, 0.25);
+    }
+
+    .auth-brand-title {
+      font-size: var(--text-xl);
+      font-weight: var(--fw-semibold);
+      color: var(--text-primary);
+      margin-bottom: var(--space-1);
+      letter-spacing: -0.02em;
+    }
+
+    .auth-brand-subtitle {
+      font-size: var(--text-sm);
+      color: var(--text-tertiary);
+      font-weight: var(--fw-regular);
+    }
+
+    /* ===== 注册卡片 ===== */
+    .auth-card {
+      background: var(--bg-primary);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-2xl);
+      padding: var(--space-8);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .auth-card-header {
+      margin-bottom: var(--space-6);
+      text-align: center;
+    }
+
+    .auth-card-title {
+      font-size: var(--text-xl);
+      font-weight: var(--fw-semibold);
+      color: var(--text-primary);
+      margin-bottom: var(--space-2);
+      letter-spacing: -0.01em;
+    }
+
+    .auth-card-desc {
+      font-size: var(--text-sm);
+      color: var(--text-secondary);
+    }
+
+    /* ===== 权益卡片 ===== */
+    .benefits-card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-xl);
+      padding: var(--space-5);
+      margin-bottom: var(--space-6);
+    }
+
+    .benefits-header {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      margin-bottom: var(--space-4);
+    }
+
+    .benefits-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: var(--radius-lg);
+      background: rgba(0, 122, 255, 0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+    }
+
+    .benefits-title {
+      font-size: var(--text-sm);
+      font-weight: var(--fw-semibold);
+      color: var(--text-primary);
+    }
+
+    .benefits-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--space-2) var(--space-4);
+    }
+
+    .benefits-list li {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      font-size: var(--text-sm);
+      color: var(--text-secondary);
+    }
+
+    .benefits-check {
+      color: var(--success-fg);
+      font-size: 12px;
+      flex-shrink: 0;
+      font-weight: var(--fw-bold);
+    }
+
+    /* ===== 表单 ===== */
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--space-4);
+    }
+
+    .form-group {
+      margin-bottom: var(--space-5);
+    }
+
+    .gt-form-label {
+      margin-bottom: var(--space-2);
+    }
+
+    .gt-input {
+      height: 46px;
+    }
+
+    .form-label-optional {
+      color: var(--text-tertiary);
+      font-weight: var(--fw-regular);
+      font-size: var(--text-xs);
+    }
+
+    /* ===== 注册按钮 ===== */
+    .btn-register {
+      width: 100%;
+      height: 50px;
+      font-size: var(--text-base);
+      font-weight: var(--fw-semibold);
+      margin-top: var(--space-2);
+      border-radius: var(--radius-full);
+    }
+
+    /* ===== 底部 ===== */
+    .auth-footer {
+      text-align: center;
+      margin-top: var(--space-6);
+      padding-top: var(--space-6);
+      border-top: 1px solid var(--border-light);
+    }
+
+    .auth-footer-text {
+      font-size: var(--text-sm);
+      color: var(--text-secondary);
+    }
+
+    /* ===== 响应式 ===== */
+    @media (max-width: 520px) {
+      body {
+        padding: var(--space-4);
+        align-items: flex-start;
+        padding-top: var(--space-8);
+      }
+
+      .auth-brand {
+        margin-bottom: var(--space-6);
+      }
+
+      .auth-card {
+        padding: var(--space-6);
+      }
+
+      .form-row {
+        grid-template-columns: 1fr;
+        gap: 0;
+      }
+
+      .benefits-list {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <div class="auth-shell">
+      <div class="auth-brand">
+        <div class="auth-brand-icon">🎙️</div>
+        <div class="auth-brand-title">AI 面试官</div>
+        <div class="auth-brand-subtitle">开启你的智能面试之旅</div>
+      </div>
+
+      <div class="auth-card">
+        <div class="auth-card-header">
+          <div class="auth-card-title">创建账号</div>
+          <div class="auth-card-desc">填写以下信息，立即开始免费体验</div>
+        </div>
+
+        <!-- 注册权益 -->
+        <div class="benefits-card">
+          <div class="benefits-header">
+            <div class="benefits-icon">🎁</div>
+            <div class="benefits-title">注册即享免费权益</div>
+          </div>
+          <ul class="benefits-list">
+            <li><span class="benefits-check">✓</span>3 次 AI 面试</li>
+            <li><span class="benefits-check">✓</span>语音合成时长</li>
+            <li><span class="benefits-check">✓</span>表情分析报告</li>
+            <li><span class="benefits-check">✓</span>多种面试官音色</li>
+          </ul>
+        </div>
+
+        <form @submit.prevent="handleRegister">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="gt-form-label">用户名</label>
+              <input
+                type="text"
+                class="gt-input"
+                v-model="form.username"
+                placeholder="2-20 个字符"
+                required
+                minlength="2"
+                maxlength="20"
+              >
+            </div>
+            <div class="form-group">
+              <label class="gt-form-label">邮箱</label>
+              <input
+                type="email"
+                class="gt-input"
+                v-model="form.email"
+                placeholder="your@email.com"
+                required
+              >
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="gt-form-label">密码</label>
+              <input
+                type="password"
+                class="gt-input"
+                v-model="form.password"
+                placeholder="至少 6 位"
+                required
+                minlength="6"
+              >
+            </div>
+            <div class="form-group">
+              <label class="gt-form-label">确认密码</label>
+              <input
+                type="password"
+                class="gt-input"
+                v-model="form.confirmPassword"
+                placeholder="再次输入"
+                required
+              >
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="gt-form-label">手机号 <span class="form-label-optional">（可选）</span></label>
+            <input
+              type="tel"
+              class="gt-input"
+              v-model="form.phone"
+              placeholder="请输入手机号"
+            >
+          </div>
+
+          <button type="submit" class="gt-btn gt-btn-primary btn-register" :disabled="loading">
+            <span v-if="loading">注册中…</span>
+            <span v-else>立即注册</span>
+          </button>
+        </form>
+
+        <div class="auth-footer">
+          <p class="auth-footer-text">
+            已有账号？ <a data-dom-id="nav-login" href="login.html" class="gt-link">立即登录</a>
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const { createApp } = Vue;
+
+    createApp({
+      data() {
+        return {
+          form: {
+            username: '',
+            email: '',
+            password: '',
+            confirmPassword: '',
+            phone: ''
+          },
+          loading: false
+        };
+      },
+      methods: {
+        async handleRegister() {
+          if (this.form.password !== this.form.confirmPassword) {
+            Swal.fire('错误', '两次输入的密码不一致', 'error');
+            return;
+          }
+
+          if (this.form.password.length < 6) {
+            Swal.fire('错误', '密码长度至少6位', 'error');
+            return;
+          }
+
+          this.loading = true;
+
+          try {
+            const response = await fetch(`/api/auth/register`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                username: this.form.username,
+                email: this.form.email,
+                password: this.form.password,
+                phone: this.form.phone || null
+              })
+            });
+
+            const data = await response.json();
+
+            if (data.status === 'success') {
+              Swal.fire({
+                title: '注册成功',
+                text: '欢迎加入AI面试系统，您已获得免费试用额度',
+                icon: 'success',
+                timer: 2000,
+                showConfirmButton: false
+              }).then(() => {
+                window.location.href = 'login.html';
+              });
+            } else {
+              Swal.fire('注册失败', data.error || '注册过程中发生错误', 'error');
+            }
+          } catch (error) {
+            console.error('注册错误:', error);
+            Swal.fire('错误', '注册过程中发生错误', 'error');
+          } finally {
+            this.loading = false;
+          }
+        }
+      }
+    }).mount('#app');
+  </script>
+</body>
+</html>

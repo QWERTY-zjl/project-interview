@@ -1,0 +1,29 @@
+# 构建镜像时的「排除名单」（路径相对构建上下文 = 仓库根）
+# 目的：镜像又小又安全 —— 不带 venv（几个GB）、不带密钥、不带数据和文档
+
+# 密钥：绝不能进镜像层（这是 COPY . . 之前的安全网）
+.env
+
+# 版本库与文档（镜像里用不到）
+.git
+docs/
+dailylogs/
+docker/
+nginx/
+
+# 虚拟环境与 Python 缓存
+app/venv
+**/__pycache__
+*.pyc
+**/.pytest_cache
+
+# 运行时产物（日志、临时文件、数据库——数据不属于镜像，属于挂载的卷）
+app/logs
+app/log
+app/temp
+app/db/*.db
+app/db/*.db-wal
+app/db/*.db-shm
+
+# 系统垃圾文件
+.DS_Store

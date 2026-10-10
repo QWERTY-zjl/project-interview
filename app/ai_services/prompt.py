@@ -15,9 +15,6 @@ def get_default_questions():
 
     当大模型调用失败时使用此函数返回默认问题
     （设计目的：保证面试流程"永远有题可问"，不因网络/密钥/解析问题而中断）
-
-    Returns:
-        list: 包含5个默认问题的列表
     """
     default_q = {
         "question": "大模型调用失败",
@@ -25,8 +22,7 @@ def get_default_questions():
         "question_type": "voice"  # 语音题：与正常问题的三字段结构保持一致，
                                   # 这样入库、前端渲染、语音合成都不会因结构不同而报错
     }
-    # 必须用 .copy()：若直接 append 同一个 dict，列表里 5 个元素是同一个对象的引用，
-    # 修改其中一个会导致"5 个全变"；copy() 让每个元素相互独立
+    # .copy() 让列表里 5 个元素相互独立，避免共享引用导致改一个全变
     return [default_q.copy() for _ in range(5)]
 
 
@@ -34,24 +30,15 @@ def build_interview_prompt(candidate: dict, position: dict, resume_analysis: str
     """
     构建 OpenAI 格式（messages 列表）的提示词，用于生成面试问题
 
-    Args:
-        candidate: 候选人信息字典。来源：用户在开始面试页填写的表单，
-                   经 server.py 透传，如 {"name": "张三", "experience": "3年"}
-        position: 职位信息字典。来源：用户创建面试时选择的岗位（存于 positions 表），
-                  如 {"name": "Web开发工程师", "requirements": "...", "responsibilities": "..."}
-        resume_analysis: 简历分析结果文本（可选）。来源：resume_analyzer 的分析结论，
-                         作为出题侧重点；不传时默认空串
-
-    Returns:
-        list: OpenAI Chat Completions 接口的 messages 列表，固定两条消息：
-              [0] system —— 设定面试官角色 + 规定 JSON 输出格式
-              [1] user   —— 本次出题的具体素材（候选人/岗位/简历分析）
+    candidate/position 来自开始面试表单与用户所选岗位；resume_analysis 为
+    简历分析结论（可选，作为出题侧重点，不传时默认空串）。
+    返回固定两条消息的 messages 列表：system（角色设定 + JSON 输出格式约定）+
+    user（本次出题素材：候选人/岗位/简历分析）。
     """
     # system 消息：给模型定"人设"和"规矩"
     # 1) 角色设定（资深面试官）让提问更专业；2) 事先约定 JSON 结构，程序才能可靠解析
     system_prompt = (
         f"你是一位资深的{position.get('name', '未提供')}的面试官，擅长根据候选人简历和岗位需求生成针对性的面试问题。"#未提供是为了防止没有岗位名称时的err
-        # ↑ .get('name', '未提供')：键不存在时返回默认值而不是抛 KeyError，防缺字段报错
         "要求问题专业、有区分度，并给出评分标准。总字数不能超过2000字。"
         "必须以 JSON 格式返回，结构为："
         '{"questions": [{"question": "问题内容", "score_standard": "评分标准", "question_type": "voice"}]}'# question_type为voice表示语音问题
@@ -59,22 +46,27 @@ def build_interview_prompt(candidate: dict, position: dict, resume_analysis: str
     )
 
     # user 消息：本次出题的全部"素材"，逐项列出便于模型针对性出题
+    # 【权重设计】个人版没有 positions 表，岗位只有名称（要求/职责均为"未提供"），
+    # 简历分析结果才是最丰富的真实素材——所以指令明确"简历优先、岗位定方向"，
+    # 防止模型只看岗位名泛泛出题、完全无视简历内容
     user_prompt = (
         f"候选人信息：\n"
         f"- 姓名：{candidate.get('name', '未提供')}\n"
         f"- 工作经验：{candidate.get('experience', '未提供')}\n\n"
-        f"应聘职位：{position.get('name', '未提供')}\n"
-        f"岗位要求：{position.get('requirements', '未提供')}\n"
-        f"岗位职责：{position.get('responsibilities', '未提供')}\n\n"
-        f"简历分析结果：\n{resume_analysis or '未提供简历分析信息'}\n\n"
-        # ↑ or 兜底：resume_analysis 为 None/空串时显示占位文案，避免出现空白段落
-        f"请根据以上信息生成 5 个高质量的面试问题，每个问题需包含评分标准。"
+        f"应聘职位：{position.get('name', '未提供')}（岗位要求/职责未提供，仅供方向参考）\n\n"
+        f"简历分析结果（出题的核心依据）：\n{resume_analysis or '未提供简历分析信息'}\n\n"
+        f"请根据以上信息生成 5 个高质量的面试问题，每个问题需包含评分标准。\n"
+        f"出题要求（按优先级排列）：\n"
+        f"1. 以简历分析结果为核心依据：围绕候选人的真实项目经历、技术栈、工作内容提问，考察真实深度；\n"
+        f"2. 应聘职位仅用于确定考察方向和专业边界；\n"
+        f"3. 若简历经历与应聘职位方向不一致，以简历实际经历为主出题，"
+        f"并加入 1 个关于职业方向或转岗动机的问题；\n"
+        f"4. 不要出与简历和岗位都无关的泛泛的概念题。"
         # ↑ 明确数量要求（5个），与 question_service.validate_questions 的 valid[:5] 上限一致
     )
 
-    # OpenAI 格式的 messages 列表
     messages = [
-        {"role": "system", "content": system_prompt},  # 系统消息：角色设定 + 输出格式约束
-        {"role": "user", "content": user_prompt},      # 用户消息：具体出题素材
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": user_prompt},
     ]
     return messages

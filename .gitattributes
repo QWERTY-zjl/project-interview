@@ -1,0 +1,10 @@
+# git archive 打包软件包时排除的内容（内部资料不进评委作品包）
+# docs/ 只排除内部文档杂项，保留 docs/resumes/ 示例简历随包提供
+dailylogs/ export-ignore
+.trae/ export-ignore
+.vscode/ export-ignore
+docs/*.md export-ignore
+docs/*.jpg export-ignore
+docs/*.ipynb export-ignore
+tests/ export-ignore
+make_package.ps1 export-ignore

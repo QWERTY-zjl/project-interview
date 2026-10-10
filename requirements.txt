@@ -1,14 +1,21 @@
 # 基础依赖
 schedule==1.2.2
-openai==1.75.0
+openai==2.30.0
+dashscope==1.27.7
 pypdf==6.16.2
+python-docx==1.2.0
 Jinja2==3.1.6
-weasyprint==65.1
-Flask==3.1.0
-flask-cors==5.0.1
 FastAPI==0.110.0
+# 表单/文件上传路由（UploadFile）必需，缺了会在启动时报 multipart not installed
+python-multipart==0.0.9
+# 系统状态监控（进程/内存指标）
+psutil==7.1.3
+requests==2.32.5
 uvicorn==0.29.0
 python-dotenv==1.1.0
-torch==2.10.0
+# PostgreSQL 驱动（binary=自带 C 轮子免编译，pool=连接池）
+psycopg[binary,pool]==3.3.6
 alibabacloud-facebody20191230>=4.0.8
 alibabacloud-tea-openapi>=0.3.8
+# torch 等本地模型依赖已随 MinerU 简历解析链路一并移除，如需本地模型请另行安装
+# 报告导出为排版 HTML（前端浏览器 Ctrl+P 存 PDF），无需 weasyprint/Pango 系统库

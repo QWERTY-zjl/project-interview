@@ -3,16 +3,20 @@
 """
 
 import logging
-from fastapi import Path, Body, Query, HTTPException
+import os  # init_alipay 里用了 os.getenv 读 BASE_URL，顶部不导入会在启用支付宝时报 NameError
+from fastapi import APIRouter, Path, Body, Query, HTTPException
 from fastapi.responses import JSONResponse
 
 logger = logging.getLogger(__name__)
 
-# 导入付费模块
+# 订单路由：本文件所有订单接口共用
+router = APIRouter(tags=["订单"])
+
+# 导入付费模块（包内路径，裸导入在 python -m 启动下找不到，见 auth_api.py 说明）
 PAYMENT_ENABLED = False
 try:
-    import payment_module
-    from alipay_module import AlipayManager, mock_payment, format_amount, generate_order_subject
+    from app import payment_module
+    from app.alipay_module import AlipayManager, mock_payment, format_amount, generate_order_subject
     PAYMENT_ENABLED = True
     logger.info("[INFO] 付费功能模块已加载")
 except ImportError as e:
@@ -48,17 +52,9 @@ def init_alipay():
 init_alipay()
 
 
+@router.post("/api/orders/create", summary="创建订单")
 async def api_create_order(user_id: int = Body(...), plan_id: int = Body(...)):
-    """
-    创建订单
-    
-    参数:
-        user_id: 用户ID
-        plan_id: 套餐ID
-    
-    返回:
-        创建结果
-    """
+    """创建订单"""
     if not PAYMENT_ENABLED:
         return JSONResponse(
             status_code=503,
@@ -85,16 +81,9 @@ async def api_create_order(user_id: int = Body(...), plan_id: int = Body(...)):
         )
 
 
-async def api_pay_order(order_no: str = Body(...)):
-    """
-    支付订单 - 创建支付宝支付
-    
-    参数:
-        order_no: 订单号
-    
-    返回:
-        支付结果
-    """
+@router.post("/api/orders/pay", summary="支付订单")
+async def api_pay_order(order_no: str = Body(..., embed=True)):
+    """支付订单，返回支付宝支付链接（未启用支付宝时走模拟支付）"""
     if not PAYMENT_ENABLED:
         return JSONResponse(
             status_code=503,
@@ -153,16 +142,9 @@ async def api_pay_order(order_no: str = Body(...)):
         )
 
 
+@router.get("/api/orders/{order_no}/status", summary="查询订单状态")
 async def api_check_order_status(order_no: str = Path(...)):
-    """
-    查询订单支付状态
-    
-    参数:
-        order_no: 订单号
-    
-    返回:
-        订单状态
-    """
+    """查询订单支付状态（未支付/已支付/已取消）"""
     if not PAYMENT_ENABLED:
         return JSONResponse(
             status_code=503,
@@ -191,17 +173,9 @@ async def api_check_order_status(order_no: str = Path(...)):
     )
 
 
+@router.get("/api/orders/user/{user_id}", summary="查询用户订单")
 async def api_get_user_orders(user_id: int = Path(...), limit: int = Query(10)):
-    """
-    获取用户订单列表
-    
-    参数:
-        user_id: 用户ID
-        limit: 限制数量
-    
-    返回:
-        订单列表
-    """
+    """查询用户订单列表"""
     if not PAYMENT_ENABLED:
         return JSONResponse(
             status_code=503,

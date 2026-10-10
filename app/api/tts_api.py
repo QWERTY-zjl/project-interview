@@ -3,12 +3,15 @@
 """
 
 import logging
-from fastapi import Body, HTTPException
+from fastapi import APIRouter, Body, File, HTTPException, UploadFile
 from fastapi.responses import JSONResponse
 
-from app.ai_services.speech_service import synthesize_speech
+from app.ai_services.speech_service import synthesize_speech, transcribe_audio
 
 logger = logging.getLogger(__name__)
+
+# 语音合成路由：本文件所有TTS接口共用
+router = APIRouter(tags=["语音合成"])
 
 # cosyvoice-v3-flash 支持的音色列表
 # 参考: https://help.aliyun.com/zh/model-studio/multimodal-timbre-list
@@ -46,13 +49,9 @@ INTERVIEWER_VOICES = {
 }
 
 
+@router.get("/api/tts/voices", summary="获取音色列表")
 async def get_tts_voices():
-    """
-    获取TTS音色列表
-    
-    返回:
-        音色列表
-    """
+    """获取可用面试官音色列表"""
     voices = []
     for key, config in INTERVIEWER_VOICES.items():
         voices.append({
@@ -66,16 +65,26 @@ async def get_tts_voices():
     )
 
 
+@router.post("/api/tts/transcribe", summary="音频转文字")
+async def transcribe_audio_api(file: UploadFile = File(...)):
+    """把面试录音（WAV）转写成文字，作为浏览器语音识别失败时的兜底链路"""
+    audio_bytes = await file.read()
+    if not audio_bytes:
+        raise HTTPException(status_code=400, detail="音频内容为空")
+
+    text, error = transcribe_audio(audio_bytes)
+    if error:
+        logger.warning(f"[ASR] 转写失败: {error}")
+        return JSONResponse(status_code=200, content={"status": "error", "message": error})
+
+    return JSONResponse(status_code=200, content={"status": "success", "text": text})
+
+
+@router.post("/api/tts/synthesize", summary="合成语音")
 async def synthesize_tts(text: str = Body(...), voice_type: str = Body("professional_male")):
-    """
-    语音合成
-    
-    参数:
-        text: 要合成的文本
-        voice_type: 语音类型
-    
-    返回:
-        合成的语音数据
+    """合成语音并返回 base64 音频（voice_type 默认 professional_male）
+
+    模型免费额度不足时返回 use_browser_tts=True，提示前端改用浏览器合成。
     """
     if not text:
         raise HTTPException(status_code=400, detail="文本不能为空")
@@ -85,7 +94,6 @@ async def synthesize_tts(text: str = Body(...), voice_type: str = Body("professi
     if error:
         # 检查是否是免费额度用完的错误
         if "AllocationQuota.FreeTierOnly" in error or "free tier" in error.lower():
-            # 免费额度用完，告诉前端使用浏览器内置语音合成
             return JSONResponse(
                 status_code=200,
                 content={
@@ -95,7 +103,6 @@ async def synthesize_tts(text: str = Body(...), voice_type: str = Body("professi
                 }
             )
         else:
-            # 其他错误，返回错误信息
             raise HTTPException(status_code=500, detail=error)
     
     if audio_data:
@@ -107,7 +114,8 @@ async def synthesize_tts(text: str = Body(...), voice_type: str = Body("professi
             content={
                 "status": "success",
                 "audio": audio_base64,
-                "format": "mp3"
+                # synthesize_speech 实际产出 WAV（RIFF 文件头）
+                "format": "wav"
             }
         )
     else:
