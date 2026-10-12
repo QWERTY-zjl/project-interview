@@ -26,12 +26,13 @@ def get_default_questions():
     return [default_q.copy() for _ in range(5)]
 
 
-def build_interview_prompt(candidate: dict, position: dict, resume_analysis: str = "") -> list:
+def build_interview_prompt(candidate: dict, position: dict, resume_analysis: str = "", kb_hint: str = "") -> list:
     """
     构建 OpenAI 格式（messages 列表）的提示词，用于生成面试问题
 
     candidate/position 来自开始面试表单与用户所选岗位；resume_analysis 为
-    简历分析结论（可选，作为出题侧重点，不传时默认空串）。
+    简历分析结论（可选，作为出题侧重点，不传时默认空串）；kb_hint 为知识库
+    检索出的岗位高频考点文本块（可选，RAG 注入：无知识库/零命中时为空串）。
     返回固定两条消息的 messages 列表：system（角色设定 + JSON 输出格式约定）+
     user（本次出题素材：候选人/岗位/简历分析）。
     """
@@ -64,6 +65,16 @@ def build_interview_prompt(candidate: dict, position: dict, resume_analysis: str
         f"4. 不要出与简历和岗位都无关的泛泛的概念题。"
         # ↑ 明确数量要求（5个），与 question_service.validate_questions 的 valid[:5] 上限一致
     )
+
+    # 知识库考点注入（RAG 之 Augmented）：kb_hint 非空说明检索命中了该岗位考点，
+    # 追加为第 5 条出题要求——模型优先在「简历技能 × 知识库考点」的交集上出题；
+    # kb_hint 为空串（无知识库/零命中/检索降级）时整段跳过，prompt 与原来完全一致
+    if kb_hint:
+        user_prompt += (
+            f"\n5. 以下是该岗位整理的真实高频考点（来自开源面试知识库），"
+            f"请优先围绕候选人技能栈与这些考点的交集出题；"
+            f"不要照抄原题，可变换问法与考察角度：\n{kb_hint}"
+        )
 
     messages = [
         {"role": "system", "content": system_prompt},

@@ -10,7 +10,7 @@
 - **模拟面试流程**：登录后上传简历、生成面试问题、在线作答到评估报告的完整闭环
 - **表情识别（可选）**：面试页手动开启摄像头后，定期抓拍画面调用视觉模型分析情绪，聚合进面试报告（默认关闭）
 - **多样化面试官音色**：提供多种面试官音色可选，题目自动预生成语音
-- **智能语音合成**：集成阿里云百炼 Qwen-TTS 大模型，支持语音预生成，提升用户体验
+- **智能语音合成**：集成阿里云百炼 CosyVoice 语音大模型（cosyvoice-v3-flash），支持语音预生成，提升用户体验
 - **支付功能**：支持套餐购买和增值服务，集成支付宝支付（默认关闭，可通过配置开启）
 - **用户认证**：用户注册登录，登录后签发服务端会话 token（Bearer 认证），配额随用户记录管理
 
@@ -31,7 +31,7 @@
 
 1. 面试官音色在**进入面试页后选择**，可通过朗读开关旁的设置随时切换（`/api/interview/{token}/set_voice`）
 2. 出题内容由「简历分析结果 + 目标岗位」驱动，音色只影响朗读发音，不影响题目内容与评估结论
-3. 实际合成走 Qwen-TTS，音色映射为：专业男 → Ethan，专业女 → Cherry，其余类型回落到默认音色 Cherry（详见下方「语音合成功能」）
+3. 实际合成走 CosyVoice（cosyvoice-v3-flash），六种音色一一映射到 cosyvoice 音色 ID（专业男 → longanzhi_v3 等，详见下方「语音合成功能」）
 
 ## 系统架构
 
@@ -40,8 +40,8 @@
 - **前端**：使用Vue.js 3和Bootstrap 5构建的响应式Web界面（Vue/axios 均为本地文件，不依赖 CDN）
 - **数据库**：使用 PostgreSQL 16 进行数据存储（Docker 容器部署，psycopg3 连接池）；保留 SQLite 回退开关——`.env` 不配置 `DATABASE_URL` 时自动回退单文件 SQLite 模式
 - **AI模型**：集成阿里云百炼大语言模型（OpenAI 兼容接口），出题/报告/答题提示统一使用 `LLM_MODEL`（默认 qwen-flash），表情识别使用 `VISION_MODEL`（默认 qwen3-vl-flash）
-- **语音处理**：支持Web录音，语音识别使用 `ASR_MODEL`（默认 paraformer-v2）
-- **语音合成**：集成阿里云百炼 Qwen-TTS 大模型（`TTS_MODEL`，默认 qwen-tts），支持语音预生成
+- **语音处理**：支持Web录音，语音识别使用 `ASR_MODEL`（默认 paraformer-realtime-v2）
+- **语音合成**：集成阿里云百炼 CosyVoice 大模型（`TTS_MODEL`，默认 cosyvoice-v3-flash），支持语音预生成
 - **支付系统**：支持支付宝支付与模拟支付，提供套餐购买（`PAYMENT_ENABLED` 默认关闭）
 
 ## 项目结构
@@ -51,6 +51,7 @@ project-interview/
 ├── app/                                  # 主应用目录
 │   ├── ai_services/                      # 智能体服务层
 │   │   ├── expression_service.py         # 表情分析服务
+│   │   ├── knowledge_service.py          # 岗位知识库检索服务（load_kb 加载 + search_kb 关键词检索，RAG 注入出题）
 │   │   ├── prompt.py                     # 面试提示词模板
 │   │   ├── question_service.py           # 面试问题生成服务（LLM_MODEL，与报告同模型）
 │   │   ├── report_service.py             # 面试报告生成服务（LLM_MODEL，与出题同模型）
@@ -72,8 +73,9 @@ project-interview/
 │   │   └── config.py                     # 配置文件（AI 模型/端点等全部集中于此，支持 .env 覆盖）
 │   ├── db/                               # 数据库模块
 │   │   ├── db.py                         # 数据库连接管理
-│   │   ├── db_pool.py                    # 数据库连接池（双轨：PG 用 psycopg_pool，SQLite 回退旧逻辑）
+│   │   ├── db_pool.py                    # 数据库连接池（双轨：PG 用 psycopg_pool；SQLite 回退，含 SQL 方言适配层）
 │   │   └── create_personal_interview_system_db.py # 建表脚本（权威来源：个人版7表+支付表）
+│   ├── knowledge/                        # 岗位面试知识库（JSON 考点条目，随代码进 git；python_backend.json 为首批 20 条）
 │   ├── static/                           # 静态前端文件
 │   │   ├── admin.html                    # 工作台界面（登录后上传简历、查看面试记录）
 │   │   ├── interview.html                # 候选人面试界面
@@ -104,6 +106,10 @@ project-interview/
 ├── .dockerignore                         # Docker构建排除名单（防止venv/.env/数据库进镜像）
 ├── docker/                               # Docker部署全家桶（Dockerfile、docker-compose.yml、nginx配置与SSL证书）
 ├── start_personal_server.bat             # Windows启动脚本（个人版）
+├── setup.bat                             # 环境自检与依赖安装脚本（比赛交付用，纯 ASCII 输出）
+├── make_package.ps1                      # 打包脚本：git archive 生成绿色交付 zip（.env 密钥注入 + 便携 Python 注入）
+├── 安装运行说明.txt                       # 评委使用指南（解压后先读我）
+├── 技术方案-AI面试模拟系统.md             # 比赛技术方案文档
 ├── requirements.txt                      # Python依赖包列表
 ├── .gitignore                           # Git忽略文件
 └── README.md                             # 项目说明文档
@@ -279,8 +285,8 @@ DASHSCOPE_API_KEY=你的百炼API密钥
 # 以下为可选配置，不写则使用 config.py 中的默认值
 # LLM_MODEL=qwen-flash          # 出题/报告/提示 共用文本模型
 # VISION_MODEL=qwen3-vl-flash   # 表情识别视觉模型
-# TTS_MODEL=qwen-tts            # 语音合成模型
-# ASR_MODEL=paraformer-v2       # 语音识别模型
+# TTS_MODEL=cosyvoice-v3-flash  # 语音合成模型
+# ASR_MODEL=paraformer-realtime-v2 # 语音识别模型
 ```
 
 > 本项目使用阿里云百炼大模型，需要申请API Key: <https://dashscope.console.aliyun.com/>
@@ -324,7 +330,7 @@ cd docker
 docker compose up -d --build
 ```
 
-说明：构建上下文为仓库根目录（compose 中 `context: ..`），Dockerfile 会安装 Pango 系统库以支持 WeasyPrint 生成 PDF 报告；nginx 反向代理到 app 容器的 10009 端口。`.dockerignore` 已排除 venv、.env、数据库文件等，不会被打进镜像。
+说明：构建上下文为仓库根目录（compose 中 `context: ..`），nginx 反向代理到 app 容器的 10009 端口。报告导出走前端浏览器打印（Ctrl+P 存 PDF），无需服务端 PDF 库。`.dockerignore` 已排除 venv、.env、数据库文件等，不会被打进镜像。
 
 ***
 
@@ -499,24 +505,27 @@ app\venv\Scripts\python.exe -m app.main
 
 ## 语音合成功能
 
-系统集成阿里云百炼 Qwen-TTS 大模型（`TTS_MODEL`，默认 qwen-tts）进行语音合成，支持以下功能：
+系统集成阿里云百炼 CosyVoice 语音大模型（`TTS_MODEL`，默认 cosyvoice-v3-flash）进行语音合成，支持以下功能：
 
 ### 音色说明
 
-Qwen-TTS 仅支持英文别名音色（不认 zh-CN-* 风格音色）。系统维护「面试官音色类型 → Qwen-TTS 音色」的映射表，未命中映射时回落到默认音色：
+CosyVoice 仅支持音色 ID（long* 系列，不认 zh-CN-*Neural 风格音色）。系统维护「面试官音色类型 → CosyVoice 音色 ID」的映射表，未命中映射时回落到默认音色：
 
-| 音色ID   | 性别 | 说明                       |
-| -------- | ---- | -------------------------- |
-| Ethan    | 男   | 专业男面试官的实际发音音色 |
-| Cherry   | 女   | 默认音色（专业女面试官等回落到此） |
-| Chelsie  | 女   | 温柔女声                   |
+| 音色类型            | CosyVoice 音色ID | 说明                       |
+| ------------------- | ---------------- | -------------------------- |
+| professional_male   | longanzhi_v3     | 专业男面试官的实际发音音色 |
+| professional_female | longanya_v3      | 专业女面试官的实际发音音色 |
+| friendly_male       | longanyang       | 亲和男声                   |
+| friendly_female     | longanhuan       | 亲和女声                   |
+| strict_male         | longanshuo_v3    | 严谨男声                   |
+| strict_female       | longfeifei_v3    | 严谨女声                   |
 
-> 音色映射关系定义在 `app/ai_services/speech_service.py` 的 `VOICE_MAP`，默认音色由 `DEFAULT_TTS_VOICE` 配置。
+> 音色映射关系定义在 `app/ai_services/speech_service.py` 的 `VOICE_MAP`（与 `tts_api.py` 的 `INTERVIEWER_VOICES` 对齐），默认音色由 `DEFAULT_TTS_VOICE`（longanzhi_v3）配置。
 
 ### 调用方式
 
-1. **请求端点**：Qwen-TTS 走 DashScope 原生 multimodal-generation 端点（不是旧版 /audio/tts）
-2. **返回形式**：非流式调用返回的是 24 小时有效的音频下载地址，服务端会二次下载二进制后返回给调用方
+1. **请求端点**：CosyVoice 走 DashScope 原生 SpeechSynthesizer HTTP API（`/api/v1/services/audio/tts/SpeechSynthesizer`），请求体指定音色 ID 与 wav / 24000Hz 输出格式
+2. **返回形式**：通常直接返回音频二进制流；部分情况返回 JSON（内含 OSS 临时下载地址），服务端会二次下载后返回给调用方
 3. **降级机制**：模型额度不足或调用失败时，接口返回 `use_browser_tts=True` 提示前端改用浏览器内置语音合成
 
 ### 语音预生成
@@ -566,7 +575,7 @@ Qwen-TTS 仅支持英文别名音色（不认 zh-CN-* 风格音色）。系统�
 | 语音识别    | 阿里云百炼 paraformer-realtime-v2（ASR_MODEL，dashscope SDK） |
 | 支付系统    | 支付宝SDK                               |
 | 数据库     | PostgreSQL 16（Docker 容器部署，psycopg3 连接池；SQLite 回退） |
-| PDF生成   | WeasyPrint                           |
+| 报告导出   | 前端浏览器打印排版（Ctrl+P 存 PDF）  |
 | PDF解析   | pypdf（提取纯文本）                     |
 | HTTP客户端 | OpenAI SDK / httpx / requests        |
 

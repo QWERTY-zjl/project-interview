@@ -8,7 +8,8 @@
 【一条面试问题的完整旅程】（帮助理解各函数如何配合）
     interview_api.py（收到"开始面试"请求）
         └→ generate_questions()          本模块主入口，串起整个流程
-            ├→ build_interview_prompt()  prompt.py：把候选人/岗位信息拼成提示词
+            ├→ load_kb()/search_kb()     knowledge_service.py：检索岗位知识库考点
+            ├→ build_interview_prompt()  prompt.py：把候选人/岗位/考点拼成提示词
             ├→ call_llm_api()            本模块：把提示词发给 qwen-flash，拿回 JSON
             │    ├→ _get_client()           首次调用时创建客户端（懒加载单例）
             │    └→ _parse_json_content()   解析模型返回的 JSON（含剥围栏兜底）
@@ -33,6 +34,9 @@ from app.ai_services.speech_service import synthesize_speech
 # 每个问题预生成语音存库，面试播放时直接读库，候选人不用干等实时合成
 
 from app.ai_services.prompt import build_interview_prompt, get_default_questions
+
+from app.ai_services.knowledge_service import load_kb, search_kb, build_kb_hint
+# 岗位知识库检索（RAG 之 R）：纯标准库模块，加载失败内部已静默降级为空列表
 
 
 logger = logging.getLogger(__name__)
@@ -230,9 +234,37 @@ def generate_questions(interview_id, candidate, position, interview, latest_tech
     logger.info("[Question] 开始生成面试问题")
 
     try:
+        # 0. 知识库检索（RAG 流程：检索 → 注入 → 生成）
+        #    岗位维度加载考点条目，用「岗位名 + 简历文本」作为查询串，
+        #    取关键词命中最多的前 3 条考点拼成文本块，随 prompt 一起发给模型。
+        kb_hint = ""
+        try:
+            position_name = position.get('name', '') if isinstance(position, dict) else ''
+            # ↑ position 理论上总是 dict，isinstance 只是兜底防传错类型
+            entries = load_kb(position_name)
+            if entries:
+                # 查询串 = 岗位名 + 简历原文 + 简历分析结论：
+                # 简历里提到的技能词（如"多线程""Redis"）会命中对应考点关键词
+                query_text = f"{position_name} {resume_md or ''} {latest_tech_info or ''}"
+                hits = search_kb(entries, query_text)
+                if not hits:
+                    # 零命中回退：个人版常没有简历，查询串只剩岗位名，
+                    # 关键词匹配不上任何考点；此时取知识库前 3 条通用高频考点，
+                    # 保证「后端开发面试」演示时知识库一定生效
+                    hits = entries[:3]
+                    logger.info("[KB] 关键词零命中，回退为通用高频考点前3条")
+                kb_hint = build_kb_hint(hits)
+                logger.info(f"[KB] 检索到 {len(hits)} 条考点注入出题 prompt")
+        except Exception as kb_err:
+            # 知识库是增强项不是必需项：任何异常都静默降级为空串，
+            # 出题智能体按原逻辑自由出题，主流程永不因知识库阻断
+            # （与追问智能体「决策失败默认放行」同一思路）
+            logger.warning(f"[KB] 知识库检索失败（已降级为自由出题）: {kb_err}")
+
         # 1. 构建 prompt 并调用大模型
-        messages = build_interview_prompt(candidate, position, latest_tech_info or "")
-        # ↑ None 时兜底成空串，避免 prompt 里出现字面 "None"
+        messages = build_interview_prompt(candidate, position, latest_tech_info or "", kb_hint)
+        # ↑ None 时兜底成空串，避免 prompt 里出现字面 "None"；
+        #   kb_hint 为空串时 prompt 模块会自动跳过注入段，行为与从前一致
         if resume_md:
             # messages[-1] 是最后一条消息（即 user 消息）：素材本就归属 user 消息；
             # 且经验上模型对提示词开头/结尾内容的利用率最高（Lost in the Middle 的 U 形曲线），
@@ -269,11 +301,15 @@ def generate_questions(interview_id, candidate, position, interview, latest_tech
                 cursor.execute('SELECT user_id FROM interviews WHERE id = %s', (interview_id,))
                 owner = cursor.fetchone()
                 if owner and owner['user_id']:
-                    # 扣 1 次但不下限到负数：GREATEST(配额-1, 0)——配额为 0 时不再变负
+                    # 扣 1 次但不下限到负数：AND interview_quota > 0 保证配额为 0 的行
+                    # 根本不会被更新（WHERE 不匹配 = 不扣），效果等价于 GREATEST(配额-1, 0)。
+                    # 【为什么不用 GREATEST】那是 PostgreSQL/MySQL 的函数，SQLite 没有
+                    # （报 no such function: GREATEST）；而本项目是 PG 主用 + SQLite 回退
+                    # 双方言，「WHERE 守卫」是两边都支持的标准写法，一处修改双方言通吃。
                     cursor.execute('''
                         UPDATE users
-                        SET interview_quota = GREATEST(interview_quota - 1, 0)
-                        WHERE id = %s
+                        SET interview_quota = interview_quota - 1
+                        WHERE id = %s AND interview_quota > 0
                     ''', (owner['user_id'],))
                     logger.info(f"[Question] 已扣减用户 {owner['user_id']} 的面试配额")
             except Exception as quota_err:

@@ -1,0 +1,322 @@
+[
+  {
+    "id": "py-001",
+    "position": "python_backend",
+    "topic": "GIL 全局解释器锁",
+    "keywords": ["python", "gil", "并发", "多线程"],
+    "difficulty": "medium",
+    "core_question": "什么是 GIL？它对 Python 多线程程序有什么影响？如何绕开它的限制？",
+    "answer_points": [
+      "GIL 是 CPython 解释器的全局锁，保证同一时刻只有一个线程执行 Python 字节码",
+      "CPU 密集型任务多线程无法利用多核并行加速，甚至因锁竞争更慢",
+      "IO 密集型任务影响较小：线程等待 IO 时会释放 GIL",
+      "绕开方式：multiprocessing 多进程、C 扩展库（如 numpy 计算时释放 GIL）"
+    ],
+    "followup_hint": "回答未提到多进程/协程等替代方案，或说不出 IO 密集与 CPU 密集差异时追问",
+    "source": "interview_python + Python 官方文档 GIL FAQ"
+  },
+  {
+    "id": "py-002",
+    "position": "python_backend",
+    "topic": "装饰器",
+    "keywords": ["python", "装饰器", "闭包", "语法糖"],
+    "difficulty": "medium",
+    "core_question": "什么是装饰器？它的实现原理是什么？带参数的装饰器怎么写？",
+    "answer_points": [
+      "装饰器本质是一个接收函数并返回新函数的高阶函数",
+      "@ 写法是语法糖，等价于 func = decorator(func)",
+      "实现依赖闭包：内层函数引用外层函数作用域里的变量",
+      "带参数的装饰器需要再包一层「装饰器工厂」，共三层嵌套",
+      "用 functools.wraps 保留原函数的 __name__ 等元信息"
+    ],
+    "followup_hint": "说不清 @ 语法糖的等价形式，或不知道 functools.wraps 的作用时追问",
+    "source": "Python 官方文档 functools + interview_python"
+  },
+  {
+    "id": "py-003",
+    "position": "python_backend",
+    "topic": "生成器与迭代器",
+    "keywords": ["python", "生成器", "迭代器", "yield"],
+    "difficulty": "easy",
+    "core_question": "迭代器和生成器的区别是什么？生成器为什么省内存？",
+    "answer_points": [
+      "迭代器是实现了 __iter__ 和 __next__ 协议的对象",
+      "生成器是迭代器的便捷写法：含 yield 的函数或生成器表达式",
+      "生成器惰性求值：每次 next() 才计算下一个值，不把全部数据装进内存",
+      "处理大文件、无限序列时省内存；yield 会暂停函数并保存现场，下次从暂停处继续"
+    ],
+    "followup_hint": "说不清惰性求值，或举不出省内存的实际场景时追问",
+    "source": "Python 官方文档 + hello-algo"
+  },
+  {
+    "id": "py-004",
+    "position": "python_backend",
+    "topic": "内存管理与垃圾回收",
+    "keywords": ["python", "垃圾回收", "内存管理", "引用计数"],
+    "difficulty": "medium",
+    "core_question": "Python 的垃圾回收机制是怎样的？",
+    "answer_points": [
+      "主要靠引用计数：对象引用数归 0 立即回收",
+      "引用计数解决不了循环引用，辅以「标记-清除」处理环状引用",
+      "还有「分代回收」：0/1/2 三代，新对象在 0 代，活过一次回收升一代，越老扫描越少",
+      "gc 模块可手动调整阈值与触发回收"
+    ],
+    "followup_hint": "只答引用计数而不提循环引用怎么处理时追问",
+    "source": "Python 官方文档 gc 模块 + interview_python"
+  },
+  {
+    "id": "py-005",
+    "position": "python_backend",
+    "topic": "深拷贝与浅拷贝",
+    "keywords": ["python", "深拷贝", "浅拷贝", "copy"],
+    "difficulty": "easy",
+    "core_question": "浅拷贝和深拷贝的区别是什么？哪些场景容易踩坑？",
+    "answer_points": [
+      "浅拷贝（copy.copy）只复制最外层容器，内部嵌套对象仍是共享引用",
+      "深拷贝（copy.deepcopy）递归复制所有层级，修改互不影响",
+      "b = a 不是拷贝，只是同一对象的另一个名字",
+      "典型坑：嵌套列表乘法复制 [[0]*3]*2、可变对象作函数默认参数"
+    ],
+    "followup_hint": "举不出可变默认参数或嵌套列表共享引用的实际坑时追问",
+    "source": "Python 官方文档 copy 模块"
+  },
+  {
+    "id": "py-006",
+    "position": "python_backend",
+    "topic": "多线程、多进程与协程选型",
+    "keywords": ["python", "并发", "多线程", "多进程", "协程", "asyncio"],
+    "difficulty": "medium",
+    "core_question": "多线程、多进程、协程分别适合什么场景？如何选型？",
+    "answer_points": [
+      "多线程适合 IO 密集：等待网络/磁盘时会释放 GIL",
+      "多进程适合 CPU 密集：每个进程有独立解释器和 GIL，可真并行",
+      "协程适合高并发 IO：单线程内切换，开销最小，用 async/await 编写",
+      "线程/协程的创建与切换开销远小于进程；进程隔离性好但通信成本高（队列/管道）"
+    ],
+    "followup_hint": "三种场景对应关系答反，或没听过 asyncio 时追问",
+    "source": "Python 官方文档 + 牛客网面经"
+  },
+  {
+    "id": "py-007",
+    "position": "python_backend",
+    "topic": "线程安全与锁",
+    "keywords": ["python", "线程安全", "锁", "竞态条件"],
+    "difficulty": "medium",
+    "core_question": "什么是线程安全？Python 里有哪些常用的锁？",
+    "answer_points": [
+      "线程安全：多线程同时读写共享数据时结果仍然正确",
+      "竞态条件：读取-修改-写入三步之间被其他线程插入导致结果错乱",
+      "threading.Lock 互斥锁保护临界区，推荐 with lock: 自动获取释放",
+      "RLock 可重入锁、Semaphore 信号量限并发数；注意多把锁交叉申请会造成死锁"
+    ],
+    "followup_hint": "说不清竞态条件的成因，或完全没考虑过死锁时追问",
+    "source": "Python 官方文档 threading + 牛客网面经"
+  },
+  {
+    "id": "py-008",
+    "position": "python_backend",
+    "topic": "list 与 dict 底层实现",
+    "keywords": ["python", "list", "dict", "哈希表", "动态数组"],
+    "difficulty": "medium",
+    "core_question": "Python 的 list 和 dict 底层是怎么实现的？为什么 dict 查询快？",
+    "answer_points": [
+      "list 底层是动态数组：连续内存、空间不足时按比例扩容，索引访问 O(1)，头部插入 O(n)",
+      "dict 底层是哈希表：键必须可哈希，平均 O(1) 查询，哈希冲突用开放寻址解决",
+      "Python 3.7 起 dict 保持插入顺序（紧凑内存布局的副产品）",
+      "tuple 可哈希所以能当 dict 的键，list 不可哈希不能当键"
+    ],
+    "followup_hint": "不知道 dict 为什么要求键可哈希，或说不出 list 与 tuple 的差异时追问",
+    "source": "Python 官方文档 + CPython 源码说明"
+  },
+  {
+    "id": "py-009",
+    "position": "python_backend",
+    "topic": "上下文管理器与 with 语句",
+    "keywords": ["python", "with", "上下文管理器", "资源释放"],
+    "difficulty": "easy",
+    "core_question": "with 语句的原理是什么？如何自定义一个上下文管理器？",
+    "answer_points": [
+      "with 用于「必须成对出现」的操作：打开/关闭文件、加锁/解锁、连接/归还",
+      "对象需实现 __enter__（进入时调用，返回值给 as 变量）和 __exit__（退出时调用）",
+      "无论块内是否抛异常，__exit__ 都会执行，保证资源必被释放",
+      "也可用 contextlib.contextmanager 装饰器 + yield 简化实现"
+    ],
+    "followup_hint": "说不清异常时 __exit__ 是否执行，或不会 contextlib 写法时追问",
+    "source": "Python 官方文档 contextlib"
+  },
+  {
+    "id": "py-010",
+    "position": "python_backend",
+    "topic": "Flask 请求上下文与应用上下文",
+    "keywords": ["flask", "上下文", "request", "线程隔离"],
+    "difficulty": "medium",
+    "core_question": "Flask 的 request 为什么是全局变量却线程安全？应用上下文和请求上下文是什么？",
+    "answer_points": [
+      "request、current_app 是代理对象（LocalProxy），背后是按线程/协程隔离的 Local 存储",
+      "每个请求进来 Flask 推入对应上下文，request 才有值，请求结束弹出",
+      "线程 A 的 request 与线程 B 互不可见，所以「全局引用」却线程安全",
+      "在上下文之外访问 request 会报 working outside of application context"
+    ],
+    "followup_hint": "说不清代理对象或线程隔离机制时追问",
+    "source": "Flask 官方文档"
+  },
+  {
+    "id": "py-011",
+    "position": "python_backend",
+    "topic": "Flask 蓝图与应用工厂",
+    "keywords": ["flask", "蓝图", "blueprint", "模块化"],
+    "difficulty": "easy",
+    "core_question": "Flask 蓝图（Blueprint）解决什么问题？怎么使用？",
+    "answer_points": [
+      "蓝图把路由按业务模块拆分，避免所有路由堆在一个 app.py 里",
+      "Blueprint 可统一设置 url_prefix，在应用工厂里 register_blueprint 注册",
+      "配合 create_app 工厂模式便于多环境配置和单元测试",
+      "本项目 app/api 下每个 *_api.py 就是一个蓝图"
+    ],
+    "followup_hint": "说不清蓝图与直接 app.route 的区别，或没用过 url_prefix 时追问",
+    "source": "Flask 官方文档 + 项目实践"
+  },
+  {
+    "id": "py-012",
+    "position": "python_backend",
+    "topic": "WSGI 与生产部署",
+    "keywords": ["wsgi", "gunicorn", "uwsgi", "flask", "部署"],
+    "difficulty": "medium",
+    "core_question": "Flask 自带的开发服务器为什么不能用于生产？WSGI 是什么？",
+    "answer_points": [
+      "WSGI 是 Python Web 应用与服务器之间的通用接口规范（PEP 3333）",
+      "Flask 内置服务器是单进程开发用的，无并发能力和安全加固",
+      "生产用 Gunicorn/uWSGI 跑 Flask 应用，前面再配 Nginx 反向代理",
+      "Nginx 负责：静态文件、负载均衡、HTTPS 终止、缓冲慢客户端"
+    ],
+    "followup_hint": "答不出 Nginx 在整条链路中的作用时追问",
+    "source": "Flask 官方文档部署章节 + 小林coding"
+  },
+  {
+    "id": "py-013",
+    "position": "python_backend",
+    "topic": "RESTful API 设计",
+    "keywords": ["restful", "api设计", "http", "接口"],
+    "difficulty": "easy",
+    "core_question": "什么是 RESTful API？设计时有哪些惯例？",
+    "answer_points": [
+      "URL 表示资源（名词复数），HTTP 方法表达动作：GET 查 / POST 增 / PUT 改 / DELETE 删",
+      "状态码语义化：200 成功、201 已创建、400 参数错、401 未认证、403 无权限、404 不存在、500 服务器错",
+      "过滤与分页用查询参数：?page=2&size=10",
+      "接口无状态：每次请求带齐凭证，服务端不依赖上一次请求的记忆"
+    ],
+    "followup_hint": "URL 里堆动词（如 /getUser）或状态码乱用时追问",
+    "source": "MDN HTTP 文档 + 牛客网面经"
+  },
+  {
+    "id": "py-014",
+    "position": "python_backend",
+    "topic": "TCP 三次握手与四次挥手",
+    "keywords": ["tcp", "三次握手", "四次挥手", "网络"],
+    "difficulty": "medium",
+    "core_question": "TCP 为什么需要三次握手？四次挥手后为什么要等 TIME_WAIT？",
+    "answer_points": [
+      "三次握手：SYN → SYN+ACK → ACK，双方确认彼此的收发能力都正常",
+      "两次不够：服务端无法确认「自己发的包客户端能收到」",
+      "四次挥手是因为 TCP 全双工，两个方向要分别关闭",
+      "主动关闭方进 TIME_WAIT 等 2MSL：保证最后的 ACK 可重传、旧报文在网络中自然消亡"
+    ],
+    "followup_hint": "说不清「为什么不能两次握手」或 TIME_WAIT 的作用时追问",
+    "source": "小林coding《图解网络》"
+  },
+  {
+    "id": "py-015",
+    "position": "python_backend",
+    "topic": "MySQL 索引原理与失效场景",
+    "keywords": ["mysql", "索引", "b+树", "慢查询"],
+    "difficulty": "medium",
+    "core_question": "MySQL 索引的底层结构是什么？哪些写法会导致索引失效？",
+    "answer_points": [
+      "InnoDB 用 B+ 树：非叶子节点只存键、叶子节点存数据并用链表串联，树矮则磁盘 IO 少",
+      "主键索引叶子存整行（聚簇索引）；二级索引叶子存主键值，命中后需回表",
+      "失效场景：索引列上用函数/运算、隐式类型转换、前导模糊 LIKE '%x'、OR 混合无索引列",
+      "用 EXPLAIN 查看执行计划验证索引是否生效"
+    ],
+    "followup_hint": "不知道回表概念，或举不出索引失效的例子时追问",
+    "source": "小林coding《图解MySQL》+ MySQL 官方文档"
+  },
+  {
+    "id": "py-016",
+    "position": "python_backend",
+    "topic": "事务 ACID 与隔离级别",
+    "keywords": ["mysql", "事务", "acid", "隔离级别"],
+    "difficulty": "medium",
+    "core_question": "事务的 ACID 是什么？并发事务会带来哪些问题？",
+    "answer_points": [
+      "原子性：要么全部成功要么全部回滚；持久性：提交后落盘不丢",
+      "隔离性：并发事务互不干扰；一致性：数据完整性约束不被破坏",
+      "并发问题：脏读（读到未提交）、不可重复读（两次读值不同）、幻读（两次读行数不同）",
+      "MySQL 默认 REPEATABLE READ，InnoDB 用 MVCC + 间隙锁基本防住幻读"
+    ],
+    "followup_hint": "脏读/不可重复读/幻读三者区分不清时追问",
+    "source": "小林coding《图解MySQL》"
+  },
+  {
+    "id": "py-017",
+    "position": "python_backend",
+    "topic": "缓存穿透、击穿与雪崩",
+    "keywords": ["redis", "缓存", "缓存穿透", "缓存击穿", "缓存雪崩"],
+    "difficulty": "medium",
+    "core_question": "缓存穿透、击穿、雪崩分别是什么？分别怎么应对？",
+    "answer_points": [
+      "穿透：查根本不存在的数据，缓存永远不命中直打数据库——缓存空值 / 布隆过滤器拦截",
+      "击穿：某个热点 key 过期瞬间大量请求直打数据库——互斥锁重建 / 热点 key 不设过期",
+      "雪崩：大批 key 同时过期或 Redis 宕机——过期时间加随机抖动、集群高可用、限流降级兜底"
+    ],
+    "followup_hint": "三者概念混淆，或只答出一个应对策略时追问",
+    "source": "小林coding + Redis 官方文档"
+  },
+  {
+    "id": "py-018",
+    "position": "python_backend",
+    "topic": "Redis 常用数据类型与应用",
+    "keywords": ["redis", "数据类型", "string", "hash", "zset"],
+    "difficulty": "easy",
+    "core_question": "Redis 有哪些常用数据类型？分别适合什么场景？",
+    "answer_points": [
+      "String：缓存对象 JSON、计数器（INCR）",
+      "Hash：对象字段级读写（如购物车）；List：消息队列、最新列表",
+      "Set：去重、共同关注（交集运算）；ZSet：排行榜（按分数排序）",
+      "选择依据是读写粒度和操作语义，而不是「能存进去就行」"
+    ],
+    "followup_hint": "只知道 String，或说不出 ZSet 做排行榜的用法时追问",
+    "source": "Redis 官方文档"
+  },
+  {
+    "id": "py-019",
+    "position": "python_backend",
+    "topic": "Session 与 Token 鉴权",
+    "keywords": ["鉴权", "token", "jwt", "session", "安全"],
+    "difficulty": "hard",
+    "core_question": "Session 和 Token（JWT）鉴权的区别是什么？各自的优缺点？",
+    "answer_points": [
+      "Session：状态存服务端，浏览器只带 cookie 里的 session_id——服务端有状态，集群需共享存储",
+      "JWT：用户信息签名后放进 token，服务端无状态，天然适合分布式",
+      "JWT 的硬伤：签发后无法主动作废（只能等过期或维护黑名单），payload 明文可见不能放敏感信息",
+      "本项目用「随机 token 存库反查主键」——同为服务端有状态方案，简单可靠"
+    ],
+    "followup_hint": "不知道 JWT 无法主动失效这一硬伤时追问",
+    "source": "MDN + RFC 7519 + 项目实践"
+  },
+  {
+    "id": "py-020",
+    "position": "python_backend",
+    "topic": "SQL 注入与参数化查询",
+    "keywords": ["sql注入", "安全", "参数化查询", "web安全"],
+    "difficulty": "hard",
+    "core_question": "什么是 SQL 注入？为什么参数化查询能防住它？",
+    "answer_points": [
+      "SQL 注入：用户输入被拼进 SQL 文本后改变了原语句语义（如 ' OR '1'='1）",
+      "危害：绕过登录、拖库、删表",
+      "参数化查询把 SQL 结构与数据分离：占位符处的值只作为数据传给驱动，不参与语法解析",
+      "本项目统一 %s 占位符由数据库驱动转义；补充手段：最小权限账号、输入白名单校验"
+    ],
+    "followup_hint": "说不清「为什么拼接会被注入而参数化不会」的原理时追问",
+    "source": "OWASP SQL Injection Prevention Cheat Sheet + 项目实践"
+  }
+]
