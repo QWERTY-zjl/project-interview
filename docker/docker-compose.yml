@@ -30,7 +30,7 @@ services:
   # 该文件不入 git。首次启动自动建库 interview_system 和用户 zsmian，
   # 数据落在 named volume pg_data 里（容器删除重建数据不丢）
   postgres:
-    image: postgres:16
+    image: pgvector/pgvector:pg16   # 官方 postgres:16 + 预编译 pgvector 扩展（向量检索）；数据卷/环境变量与 postgres:16 完全兼容
     environment:
       POSTGRES_DB: interview_system            # 启动时自动创建的数据库
       POSTGRES_USER: zsmian                    # 自动创建的超级用户

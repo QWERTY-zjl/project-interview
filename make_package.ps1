@@ -1,4 +1,4 @@
-﻿# 打包绿色软件包：把 git 已跟踪的代码打成 zip（评委解压即用）
+﻿﻿﻿﻿﻿﻿﻿﻿# 打包绿色软件包：把 git 已跟踪的代码打成 zip（评委解压即用）
 # 用法：先提交所有改动，再在仓库根目录执行  powershell -File make_package.ps1
 $ErrorActionPreference = "Stop"
 Set-Location $PSScriptRoot

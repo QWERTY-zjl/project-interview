@@ -237,7 +237,10 @@ JSON格式示例:
         q_idx = qe.get('id') or idx
         if isinstance(q_idx, int) and 1 <= q_idx <= len(questions):
             q = questions[q_idx - 1]
-            qe.setdefault('question', q.get('question', ''))
+            # 追问标注：question_type='followup' 的题在题目原文前加【追问】前缀，
+            # 报告详情页一眼区分"主问题"与"面试官的深挖追问"
+            q_prefix = '【追问】' if q.get('question_type') == 'followup' else ''
+            qe.setdefault('question', q_prefix + q.get('question', ''))
             qe.setdefault('score_standard', q.get('score_standard', ''))
             qe.setdefault('answer', q.get('answer_text', ''))
 

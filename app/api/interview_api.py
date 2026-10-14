@@ -29,7 +29,8 @@ import logging
 # ——那是一个存进数据库的 JSON 字符串，要还原成字典才能取字段
 import json
 import time
-
+from app.ai_services.followup_service import decide_followup
+from app.ai_services.speech_service import synthesize_speech
 from fastapi import APIRouter, Path, Query, Body, HTTPException, Request
 # JSONResponse：手工指定状态码 + JSON 内容（项目主流返回写法）
 from fastapi.responses import JSONResponse
@@ -138,8 +139,10 @@ async def get_next_question(token: str = Path(...), current_id: int = Query(0)):
         conn = get_db()
 
         # 用对外 token 换出内部 id：后续所有查询都用面试内部的 id 关联，
-        # token 只在"入口"这一步用来定位面试
-        interview = conn.execute('SELECT id FROM interviews WHERE token = %s', (token,)).fetchone()
+        # token 只在"入口"这一步用来定位面试。
+        # 顺带带出 question_count（追问插入后会自增），随下一题响应返回，
+        # 前端用它同步进度条分母
+        interview = conn.execute('SELECT id, question_count FROM interviews WHERE token = %s', (token,)).fetchone()
 
         if not interview:
             return_db(conn)
@@ -148,52 +151,40 @@ async def get_next_question(token: str = Path(...), current_id: int = Query(0)):
         # 获取下一个问题（包含预生成的语音）
         # question as text：数据库列名叫 question，返回给前端时键名改成
         # text——前端统一读 text 字段
-        next_question = None
-        # 两分支查同一张表，只差 WHERE 条件：
-        #   current_id == 0 → 优先取第一道"未答"的题（断点续答）
-        #   否则 → WHERE id > current_id 再取最小 id（下一题）
-        if current_id == 0:
-            # 【断点续答】current_id=0 有两种来路：首次开考（一题未答）和中途
-            # 退出后重新进入（可能已答过几题）。answer_text IS NULL 即"没答过"
-            # （submit_text_answer 校验过非空才写入，答过必非 NULL）：
-            # 首次开考时第一道未答题就是第一题（行为不变），续面时从断点继续，
-            # 不会把答过的题再问一遍
-            next_question = conn.execute('''
-                SELECT id, question as text, question_audio, voice_type
-                FROM interview_questions
-                WHERE interview_id = %s AND answer_text IS NULL
-                ORDER BY id ASC
-                LIMIT 1
-            ''', (interview['id'],)).fetchone()
+        # 【追问优先】下一题 = 未答追问里 id 最小的；没有未答追问时，
+        # 才取未答主问题里 id 最小的。实现靠排序技巧：(question_type='followup')
+        # 是一个布尔表达式，SQLite 里算出 1/0，DESC 让追问（1）整体排前。
+        # 为什么不能按 id 顺序取：追问是主问题答完后才插入的，id 全场最大，
+        # 按 id 取会让追问沉到队尾——后端刚插入追问、前端却拿到下一道主问题，
+        # 出现"前端显示的题和追问不一样"的不同步
+        # answer_text IS NULL 即"没答过"（submit_text_answer 校验过非空才写入，
+        # 答过必非 NULL），一条查询天然覆盖首次开考、断点续答、顺序推进三种场景，
+        # 刚答完的题不会被重复返回；current_id 参数仅为兼容前端请求保留
+        next_question = conn.execute('''
+            SELECT id, question as text, question_audio, voice_type, question_type
+            FROM interview_questions
+            WHERE interview_id = %s AND answer_text IS NULL
+            ORDER BY (question_type = 'followup') DESC, id ASC
+            LIMIT 1
+        ''', (interview['id'],)).fetchone()
 
-            # 一道未答题都查不到 = 全部已答（比如答完最后一题、报告还没生成完
-            # 就关闭页面的"孤儿场"）→ 返回 id=0 完成信号，前端据此走
-            # "面试完成 → 生成报告"收尾流程，而不是把第一题再问一遍
-            if not next_question:
-                return_db(conn)
-                return JSONResponse(
-                    status_code=200,
-                    content={"id": 0, "text": "面试已完成"}
-                )
-        else:
-            next_question = conn.execute('''
-                SELECT id, question as text, question_audio, voice_type
-                FROM interview_questions
-                WHERE interview_id = %s AND id > %s
-                ORDER BY id ASC
-                LIMIT 1
-            ''', (interview['id'], current_id)).fetchone()
-
-        return_db(conn)
-
-        # 约定 id=0 是"面试完成"信号，前端靠它收尾
+        # 一道未答题都查不到 = 全部已答（比如答完最后一题、报告还没生成完
+        # 就关闭页面的"孤儿场"）→ 返回 id=0 完成信号，前端据此走
+        # "面试完成 → 生成报告"收尾流程，而不是把第一题再问一遍
         if not next_question:
+            return_db(conn)
             return JSONResponse(
                 status_code=200,
                 content={"id": 0, "text": "面试已完成"}
             )
 
+        return_db(conn)
+
         result = dict(next_question)
+
+        # 带上最新题数：触发追问后 question_count 已自增，前端拿它同步
+        # 进度条分母，避免沿用开考时的旧值把面试提前判定为"已结束"
+        result['question_count'] = interview['question_count'] or 0
 
         # 有预生成的语音则转 base64：question_audio 是二进制（bytes），JSON 只能装文本；
         # base64 编码成纯文本，前端解码后交给 <audio> 播放
@@ -229,7 +220,7 @@ async def submit_text_answer(token: str = Path(...), question_id: int = Body(...
     try:
         conn = get_db()
         # token 换内部 id，同时起到鉴权作用：token 查不到 = 没资格操作任何面试 → 404
-        interview = conn.execute('SELECT id FROM interviews WHERE token = %s', (token,)).fetchone()
+        interview = conn.execute('SELECT id, voice_type FROM interviews WHERE token = %s', (token,)).fetchone()
 
         if not interview:
             return_db(conn)
@@ -250,18 +241,50 @@ async def submit_text_answer(token: str = Path(...), question_id: int = Body(...
             SET answer_text = %s, answered_at = %s
             WHERE id = %s AND interview_id = %s
         ''', (answer_text, answered_time, question_id, interview['id']))
-
+        # 提交
+        conn.commit()  
+        try:
+            decision = decide_followup(conn,interview['id'],question_id,answer_text)
+        except Exception as e:
+            logger.error(f"[followup] 决策智能体异常，默认放行: {e}")
+            decision = None
+        
+        if decision:
+            try:
+                audio_data,_=synthesize_speech(decision["question"],
+                                               interview['voice_type'])
+                cur = conn.cursor()
+                cur.execute('''
+                    INSERT INTO interview_questions
+                    (interview_id, question, score_standard, 
+                    question_type, question_audio, voice_type)
+                    VALUES (%s, %s, %s, 'followup', %s, %s)
+                ''', (interview['id'], decision["question"],decision["score_standard"],
+                       audio_data, interview['voice_type']))
+                cur.execute(
+                        '''UPDATE interviews
+                        SET question_count = question_count + 1 
+                        WHERE id = %s''',
+                        (interview['id'],)
+                    )
+                conn.commit()
+                logger.info(f"[Followup] 面试{interview['id']} 插入追问: {decision['question'][:30]}")
+            except Exception as e:
+                conn.rollback()
+                logger.error(f"[Followup] 追问入库失败（放行兜底）: {e}")
         # 立刻查下一题一并返回——前端交一次答案就能直接展示下一题，省一次请求
+        # 【追问优先】与 get_next_question 同语义：刚插入的追问 id 全场最大，
+        # 若按 id 顺序取会沉到队尾，前端就会显示下一道主问题而"丢"了追问。
+        # 先取未答追问里 id 最小的（answer_text IS NULL：刚答的题已写答案，
+        # 不会被再次返回），没有未答追问时才回到主问题队列
         next_question = conn.execute('''
             SELECT id, question as text, question_type
             FROM interview_questions
-            WHERE interview_id = %s AND id > %s
-            ORDER BY id ASC
+            WHERE interview_id = %s AND answer_text IS NULL
+            ORDER BY (question_type = 'followup') DESC, id ASC
             LIMIT 1
-        ''', (interview['id'], question_id)).fetchone()
+        ''', (interview['id'],)).fetchone()
 
-        # 提交事务：上面的 UPDATE 到此才真正落盘；不 commit 连接归还后改动会丢
-        conn.commit()
 
         if not next_question:
             # 已是最后一题 → 统计是否全部答完（total=总题数，answered=已答题数）
@@ -643,7 +666,7 @@ async def get_interview_detail(token: str = Path(...)):
         # 题目列表：一场面试对多道题（一对多），按 id 正序 = 出题顺序。
         # answer_text：考生交答案时写入，未答的题为 NULL——前端显示"未回答"
         question_rows = conn.execute('''
-            SELECT id, question, score_standard, answer_text
+            SELECT id, question, score_standard, answer_text, question_type
             FROM interview_questions
             WHERE interview_id = %s
             ORDER BY id ASC

@@ -1,0 +1,322 @@
+[
+  {
+    "id": "da-001",
+    "position": "data_analysis",
+    "topic": "GROUP BY 聚合与 HAVING 过滤",
+    "keywords": ["sql", "group by", "having", "聚合"],
+    "difficulty": "easy",
+    "core_question": "WHERE 和 HAVING 有什么区别？GROUP BY 使用时有哪些常见坑？",
+    "answer_points": [
+      "WHERE 在分组前过滤行，不能使用聚合函数；HAVING 在分组后过滤组，可以对 COUNT/SUM 等聚合结果过滤",
+      "SELECT 中出现的非聚合列必须全部出现在 GROUP BY 子句里，否则报错或结果不确定",
+      "COUNT(*) 统计行数（含 NULL），COUNT(列名) 不统计该列为 NULL 的行——统计口径题里常考",
+      "执行顺序：FROM → WHERE → GROUP BY → HAVING → SELECT → ORDER BY → LIMIT"
+    ],
+    "followup_hint": "说不出 WHERE 与 HAVING 的执行时机差异，或分不清 COUNT(*) 与 COUNT(列) 时追问",
+    "source": "51CTO 165 道大厂 SQL 面试题统计 + SQL 标准文档"
+  },
+  {
+    "id": "da-002",
+    "position": "data_analysis",
+    "topic": "JOIN 连接类型与 ON/WHERE 差异",
+    "keywords": ["sql", "join", "left join", "关联查询"],
+    "difficulty": "medium",
+    "core_question": "INNER JOIN、LEFT JOIN、FULL JOIN 的区别是什么？左连接的过滤条件写在 ON 和 WHERE 里结果为什么不同？",
+    "answer_points": [
+      "INNER JOIN 只保留两表都能匹配的行；LEFT JOIN 保留左表全部行，右表无匹配则补 NULL；FULL JOIN 两表都保留（MySQL 不支持，需 LEFT JOIN UNION RIGHT JOIN 模拟）",
+      "左连接时条件写在 ON：先对右表过滤再连接，左表行仍保留（不匹配补 NULL）",
+      "左连接时条件写在 WHERE：连接完成后再过滤，不满足条件的行（含右表为 NULL 的行）被剔除，效果退化为 INNER JOIN",
+      "分析场景注意：维表关联要确认事实表是否有孤儿记录（关联不上），避免数据变少"
+    ],
+    "followup_hint": "说不出 ON 与 WHERE 导致左连接退化为内连接的机制时追问",
+    "source": "51CTO 165 道大厂 SQL 面试题统计"
+  },
+  {
+    "id": "da-003",
+    "position": "data_analysis",
+    "topic": "窗口函数：ROW_NUMBER / RANK / DENSE_RANK",
+    "keywords": ["sql", "窗口函数", "row_number", "rank", "分组排名"],
+    "difficulty": "medium",
+    "core_question": "ROW_NUMBER、RANK、DENSE_RANK 有什么区别？如何查出每个类别下销售额最高的前 N 名？",
+    "answer_points": [
+      "三者都按 ORDER BY 排名，区别在并列时的处理：ROW_NUMBER 强制连续唯一编号，RANK 并列同名次且跳号，DENSE_RANK 并列同名次但不跳号",
+      "语法：ROW_NUMBER() OVER (PARTITION BY 分类列 ORDER BY 销售额 DESC) AS rn",
+      "每组 Top N 套路：先窗口函数编号，外层 WHERE rn <= N",
+      "窗口函数在 SELECT 之后执行，不能直接写在 WHERE 里，必须用子查询或 CTE 包一层"
+    ],
+    "followup_hint": "混淆三种排名的并列处理，或不知道窗口函数不能直接进 WHERE 时追问",
+    "source": "51CTO 165 道大厂 SQL 面试题统计（窗口函数被考 45 次）"
+  },
+  {
+    "id": "da-004",
+    "position": "data_analysis",
+    "topic": "LAG/LEAD 与同比环比计算",
+    "keywords": ["sql", "窗口函数", "lag", "环比", "留存"],
+    "difficulty": "hard",
+    "core_question": "如何用窗口函数计算每月销售额的环比增长率？LAG 函数的参数是什么含义？",
+    "answer_points": [
+      "LAG(列, 偏移量, 默认值) OVER (ORDER BY 月份) 取当前行前 N 行的值，LEAD 取后 N 行——连续登录、留存、环比类问题的基础",
+      "环比 =（本月值 - 上月值）/ 上月值，上月值用 LAG 取；同比用 DATE_ADD/DATE_TRUNC 对齐去年同月",
+      "分母为 0 或 NULL 时注意用 NULLIF 防除零，首月无上月值需处理默认值",
+      "连续登录问题套路：按用户分组对日期排序，用 LAG 比较「当前日期 = 上一行日期 + 1」再分组计数"
+    ],
+    "followup_hint": "说不出 LAG 三个参数含义，或连续登录题没有思路时追问",
+    "source": "51CTO 165 道大厂 SQL 面试题统计 + SkillsetMaster 数据分析面试题库"
+  },
+  {
+    "id": "da-005",
+    "position": "data_analysis",
+    "topic": "去重取最新一条记录",
+    "keywords": ["sql", "去重", "row_number", "最新记录"],
+    "difficulty": "medium",
+    "core_question": "一张订单表有用户多次下单记录，如何取出每个用户最新的一笔订单？",
+    "answer_points": [
+      "标准做法：ROW_NUMBER() OVER (PARTITION BY user_id ORDER BY created_at DESC) 编号，外层取 rn = 1",
+      "PostgreSQL 可用 DISTINCT ON (user_id) 配合 ORDER BY 简化",
+      "常见错误：GROUP BY user_id 后直接 SELECT，非聚合列（订单号、金额）与 MAX(created_at) 不在同一行，数据错位",
+      "扩展：要保留每个用户最新 3 条时把条件改成 rn <= 3，思路完全一致"
+    ],
+    "followup_hint": "只会 GROUP BY + MAX 的错位写法，或说不出错位原因时追问",
+    "source": "51CTO 165 道大厂 SQL 面试题统计"
+  },
+  {
+    "id": "da-006",
+    "position": "data_analysis",
+    "topic": "核心指标定义：DAU、留存率、转化率、GMV",
+    "keywords": ["指标", "dau", "留存率", "转化率", "gmv"],
+    "difficulty": "easy",
+    "core_question": "DAU、次日留存率、转化率分别怎么定义和计算？定义指标时要注意什么？",
+    "answer_points": [
+      "DAU = 当日打开/使用过产品的去重用户数，前提是先定义「活跃」标准（打开即可？还是要产生关键行为）",
+      "次日留存率 = 当日新增用户中第二天再次活跃的人数 ÷ 当日新增用户数；扩展有 7 日/30 日留存",
+      "转化率 = 完成目标行为的人数 ÷ 进入流程的人数（如下单转化率 = 下单人数 ÷ 访问人数），分子分母必须同一人群同一时间窗口",
+      "GMV = 成交总额，要明确是否含退款、取消订单；核心原则：口径先行——先回答怎么定义，再谈怎么算"
+    ],
+    "followup_hint": "直接套公式但说不出口径定义的重要性，或分子分母时间窗口不一致时追问",
+    "source": "DataInterview Stripe 数据分析面试指南 + 各厂数据分析面经"
+  },
+  {
+    "id": "da-007",
+    "position": "data_analysis",
+    "topic": "漏斗分析",
+    "keywords": ["漏斗", "转化", "流失", "分析"],
+    "difficulty": "medium",
+    "core_question": "什么是漏斗分析？怎么做漏斗？分析时有哪些注意事项？",
+    "answer_points": [
+      "漏斗分析把用户完成目标的过程拆成有序步骤（浏览→加购→下单→支付），统计每步的人数与转化率",
+      "两个口径：步骤转化率（上一步到下一步）与整体转化率（首步到末步），用于定位流失最严重的环节",
+      "注意：同一用户去重；步骤要有时间窗口约束（如 24 小时内完成才算转化），否则不同会话的乱序行为会虚增转化",
+      "产出：不只给数字，要给出流失环节的可能原因（加载慢、步骤多、价格敏感）与改进假设"
+    ],
+    "followup_hint": "说不出时间窗口约束的必要性，或只算整体转化不会定位流失环节时追问",
+    "source": "DataInterview 数据分析面试指南"
+  },
+  {
+    "id": "da-008",
+    "position": "data_analysis",
+    "topic": "用户分群与 RFM 模型",
+    "keywords": ["rfm", "用户分群", "精细化运营"],
+    "difficulty": "medium",
+    "core_question": "RFM 模型的三个维度是什么？如何用 RFM 做用户分层？",
+    "answer_points": [
+      "R（Recency）最近一次消费距今天数，F（Frequency）消费频次，M（Monetary）消费金额",
+      "做法：每个维度按业务阈值打分（如高/低两档），组合成 8 类用户：重要价值（双高）、重要挽留（R 低其他高）、一般发展等",
+      "应用：对不同分层采取差异化运营——价值用户做权益维护，流失预警用户做召回（Push/优惠券）",
+      "扩展：分群阈值不能拍脑袋，可用分位数切分；RFM 只适合有复购场景（电商/零售），低频业务慎用"
+    ],
+    "followup_hint": "说不出三个维度含义，或讲不出分层后如何差异化运营时追问",
+    "source": "各厂数据分析面经 + 精细化运营通用方法论"
+  },
+  {
+    "id": "da-009",
+    "position": "data_analysis",
+    "topic": "A/B 测试流程与常见陷阱",
+    "keywords": ["ab测试", "实验", "随机分流", "显著性"],
+    "difficulty": "hard",
+    "core_question": "完整的 A/B 测试流程是怎样的？有哪些常见的坑？",
+    "answer_points": [
+      "流程：明确假设与核心指标 → 计算最小样本量（由显著性水平 α、功效 1-β、预期提升幅度决定）→ 随机分流 → 运行完整周期 → 显著性检验 → 决策上线",
+      "分流必须随机且互斥，用户维度的 ID 哈希分流，避免同一用户同时进两组",
+      "常见坑：中途偷看结果提前下结论（多重检验问题）、运行时间不足覆盖完整行为周期（如工作日/周末差异）、新奇效应导致短期指标虚高",
+      "除了核心指标还要看护栏指标（如性能、投诉率），防止核心指标涨但体验变差"
+    ],
+    "followup_hint": "说不出样本量计算的意义，或不知道多重检验/新奇效应时追问",
+    "source": "DataInterview Stripe 数据分析面试指南 + SkillsetMaster 题库"
+  },
+  {
+    "id": "da-010",
+    "position": "data_analysis",
+    "topic": "假设检验与 p 值",
+    "keywords": ["假设检验", "p值", "显著性", "统计"],
+    "difficulty": "hard",
+    "core_question": "什么是假设检验？p 值是什么含义？p < 0.05 代表什么？",
+    "answer_points": [
+      "假设检验先设原假设 H0（通常为「无差异」）和备择假设 H1，在 H0 成立的前提下计算当前观测结果出现的概率",
+      "p 值 = H0 成立时，观测到当前或更极端结果的概率；p < 显著性水平 α（通常 0.05）则拒绝 H0",
+      "正确理解：p < 0.05 不是「H0 为真的概率小于 5%」，也不同于「差异很大」——统计显著与业务显著要分开看",
+      "两类错误：I 类错误（误报，把没差异判成有差异，概率 α）、II 类错误（漏报，概率 β），功效 1-β 是能真检出差异的概率"
+    ],
+    "followup_hint": "把 p 值解释成「H0 为真的概率」，或说不出两类错误区别时追问",
+    "source": "统计学基础教材 + SkillsetMaster 数据分析面试题库"
+  },
+  {
+    "id": "da-011",
+    "position": "data_analysis",
+    "topic": "描述统计与异常值识别",
+    "keywords": ["均值", "中位数", "方差", "异常值", "箱线图"],
+    "difficulty": "easy",
+    "core_question": "均值和中位数该怎么选？如何识别和处理异常值？",
+    "answer_points": [
+      "均值受极端值影响大，中位数更稳健：收入、房价等右偏分布优先用中位数描述「典型水平」",
+      "方差/标准差衡量离散程度；偏度描述分布不对称方向",
+      "异常值识别：3σ 原则（正态假设下超出均值 ±3 倍标准差）、IQR 法（超出 Q1-1.5IQR 或 Q3+1.5IQR）、箱线图可视化",
+      "处理要谨慎：先判断是错误数据（删除/修正）还是真实极端值（保留并单独分析，如大促 GMV）；盲目删除会丢信息"
+    ],
+    "followup_hint": "只会删异常值不判断来源，或说不出中位数适用场景时追问",
+    "source": "统计学基础教材"
+  },
+  {
+    "id": "da-012",
+    "position": "data_analysis",
+    "topic": "相关不等于因果",
+    "keywords": ["相关", "因果", "混淆变量", "ab测试"],
+    "difficulty": "medium",
+    "core_question": "两个指标高度相关就能说一个是另一个的原因吗？怎么确认因果关系？",
+    "answer_points": [
+      "相关只说明两个变量共同变化，相关系数只度量线性关系（非线性相关可能相关系数接近 0）",
+      "相关背后可能是：混淆变量同时驱动两者（冰淇淋销量与溺水人数都受气温驱动）、反向因果、纯巧合",
+      "确认因果的金标准是 A/B 随机对照实验（随机化排除混淆因素）；无法做实验时用因果推断方法（双重差分 DID、断点回归、工具变量）",
+      "答题框架：先问有没有可能做实验，再退而求其次做准实验分析，最后才谨慎表述「强相关，待验证因果」"
+    ],
+    "followup_hint": "直接把相关说成因果，或举不出混淆变量的例子时追问",
+    "source": "统计学基础 + 各厂数据分析面经"
+  },
+  {
+    "id": "da-013",
+    "position": "data_analysis",
+    "topic": "辛普森悖论",
+    "keywords": ["辛普森悖论", "分层分析", "混淆变量"],
+    "difficulty": "hard",
+    "core_question": "什么是辛普森悖论？它对数据分析有什么启示？",
+    "answer_points": [
+      "辛普森悖论：分组统计时 A 组占优，汇总统计后结论反转为 B 组占优",
+      "产生原因：各组样本量分布严重不均 + 混淆变量存在（比如新版本把流量更多分给了高价值老用户，整体数据反而好看）",
+      "经典案例：某广告分组点击率都更高，但整体点击率更低，因为分组间流量占比不同",
+      "启示：A/B 分流必须保证各维度分布均匀；分析要先分层再看汇总，警惕「平均数陷阱」"
+    ],
+    "followup_hint": "只背定义说不出产生条件，或讲不出对 A/B 分流的启示时追问",
+    "source": "统计学基础 + 各厂数据分析面经"
+  },
+  {
+    "id": "da-014",
+    "position": "data_analysis",
+    "topic": "指标异动分析方法论",
+    "keywords": ["异动分析", "维度拆解", "归因"],
+    "difficulty": "hard",
+    "core_question": "DAU 突然下降了 10%，你怎么分析定位原因？",
+    "answer_points": [
+      "第一步：确认数据真实性——埋点是否故障、统计口径是否变化、上游数据管道是否延迟，排除「假异动」",
+      "第二步：定位时间点——与上周同期对比还是与昨日对比（看周内周期性），下降是突变还是缓降",
+      "第三步：多维度拆解——按渠道/端（iOS/Android）/新老用户/地区/版本拆分，找到掉量最多的组；贡献度 = 该组变化占总变化的比例",
+      "第四步：归因——内部因素（发版故障、活动结束、Push 改版）、外部因素（竞品、政策、季节性）；给出结论与建议而非只报数字"
+    ],
+    "followup_hint": "上来就猜原因没有拆解框架，或漏掉「先确认数据真实性」这一步时追问",
+    "source": "各厂数据分析面经通用方法论"
+  },
+  {
+    "id": "da-015",
+    "position": "data_analysis",
+    "topic": "缺失值处理与数据清洗",
+    "keywords": ["缺失值", "数据清洗", "预处理"],
+    "difficulty": "easy",
+    "core_question": "数据中存在缺失值有哪些处理方式？怎么选择？",
+    "answer_points": [
+      "先看缺失机制与比例：某列缺失超过一半且不重要可整列丢弃；缺失完全随机时处理方式影响较小",
+      "删除：整行删除（缺失占比小且随机时）；填充：数值列用均值/中位数（有偏分布用中位数），类别列用众数或「未知」类别",
+      "进阶：用前后值填充（时序数据 ffill）、按分组填充（同渠道均值）、模型预测填充（KNN/回归）",
+      "另一种思路：把「是否缺失」本身作为特征（缺失往往有业务含义，如不填收入 = 收入偏低）；原则：保留原始数据副本，清洗逻辑可复现"
+    ],
+    "followup_hint": "只知道删除/填均值，或说不出缺失模式影响处理方式选择时追问",
+    "source": "SkillsetMaster 数据分析面试题库 + pandas 官方文档"
+  },
+  {
+    "id": "da-016",
+    "position": "data_analysis",
+    "topic": "pandas 常用操作",
+    "keywords": ["python", "pandas", "groupby", "merge"],
+    "difficulty": "medium",
+    "core_question": "pandas 里如何实现 SQL 的 JOIN 和 GROUP BY？loc 和 iloc 有什么区别？",
+    "answer_points": [
+      "merge(df1, df2, on='key', how='left') 对应 SQL JOIN，how 取 inner/left/right/outer",
+      "groupby('分类列').agg({'金额': ['sum', 'mean'], '用户': 'nunique'}) 实现多列多聚合，reset_index() 恢复成普通表",
+      "透视：pivot_table(index=行, columns=列, values=值, aggfunc=sum) 生成宽表",
+      "loc 按标签索引（含端点），iloc 按位置整数索引（不含端点）；性能原则：优先用向量化操作，避免 iterrows/apply 逐行循环"
+    ],
+    "followup_hint": "loc/iloc 混淆，或写不出多列聚合的写法时追问",
+    "source": "pandas 官方文档 + SkillsetMaster 数据分析面试题库"
+  },
+  {
+    "id": "da-017",
+    "position": "data_analysis",
+    "topic": "抽样方法与样本偏差",
+    "keywords": ["抽样", "样本偏差", "幸存者偏差"],
+    "difficulty": "medium",
+    "core_question": "常见的抽样方法有哪些？什么是幸存者偏差？",
+    "answer_points": [
+      "简单随机抽样：每人等概率入选；分层抽样：先按关键特征分层再在层内随机，保证小群体有代表；系统抽样：每隔 N 个取一个；整群抽样：以群为单位抽取",
+      "样本要有代表性，样本量与总体大小关系不大，与方差和置信度要求相关",
+      "幸存者偏差：只统计「活下来」的样本导致结论偏乐观——二战飞机弹孔案例：应加固没有弹孔的部位（被击中的飞机坠毁了没飞回来）",
+      "分析中的隐性偏差：线上问卷只有填的人、流失用户不在数据库里、好评率只统计了评价用户"
+    ],
+    "followup_hint": "说不出幸存者偏差案例含义，或分析题中忽视样本代表性时追问",
+    "source": "统计学基础教材"
+  },
+  {
+    "id": "da-018",
+    "position": "data_analysis",
+    "topic": "如何评估一次运营活动的效果",
+    "keywords": ["活动评估", "对照组", "roi", "增量"],
+    "difficulty": "medium",
+    "core_question": "老板问你上周促销活动效果怎么样，你怎么评估？",
+    "answer_points": [
+      "评估要对比「增量」而不是绝对值：没有活动的情况下数据本来也会波动，要看活动带来的额外提升",
+      "对照方式优先级：A/B 实验（活动组 vs 自然流对照组）> 双重差分（活动前后差异 × 有无活动人群差异）> 纯前后对比（最弱，受大盘/季节干扰）",
+      "指标体系：核心指标（活动目标，如 GMV/新客数）+ 过程指标（参与率、核销率）+ 护栏指标（毛利、客诉、退货率防「虚假繁荣」）",
+      "结论要算 ROI = 增量收益 ÷ 活动成本，并区分短期拉动与长期留存（拉来的新客 30 日留存如何）"
+    ],
+    "followup_hint": "只看大盘涨跌就下结论，或说不出对照组/增量的概念时追问",
+    "source": "DataInterview 数据分析面试指南 + 各厂面经"
+  },
+  {
+    "id": "da-019",
+    "position": "data_analysis",
+    "topic": "指标口径不一致问题",
+    "keywords": ["数据治理", "指标口径", "数仓分层", "指标字典"],
+    "difficulty": "hard",
+    "core_question": "两个部门报的 DAU 对不上，你怎么排查和解决？",
+    "answer_points": [
+      "先排查技术差异：统计时间（自然日 vs T+1）、去重维度（设备号 vs 账号）、数据来源（埋点 vs 服务端日志）、时间范围边界",
+      "多数「对不上」是口径不同：一个算打开 DAU 一个算活跃 DAU，一个含小程序一个只有 App——先对齐定义再对数",
+      "长期解法：建指标字典（统一定义、口径、负责人）、数仓分层规范（ODS 原始层/DWD 明细层/DWS 汇总层/ADS 应用层），同源计算避免多处硬编码",
+      "沟通姿态：不是谁对谁错，而是推动统一口径的责任机制；临时出两套数据时注明口径差异"
+    ],
+    "followup_hint": "只想到查数据没意识到口径差异是主因，或说不出数仓分层概念时追问",
+    "source": "数据仓库通用方法论 + 各厂数据分析面经"
+  },
+  {
+    "id": "da-020",
+    "position": "data_analysis",
+    "topic": "可视化图表选型",
+    "keywords": ["可视化", "图表", "数据呈现"],
+    "difficulty": "easy",
+    "core_question": "展示趋势、对比、构成、分布分别选什么图表？做可视化有哪些原则？",
+    "answer_points": [
+      "趋势随时间变化 → 折线图；类别间对比 → 柱状图；构成占比 → 饼图/环形图（类别不超过 5 个）或堆叠柱；分布 → 直方图/箱线图；两变量关系 → 散点图",
+      "数据地图展示地理分布；热力图展示二维密度（如周几 × 时段活跃度）",
+      "原则：一图一观点，标题直接写结论（「新客转化率环比提升 15%」而非「转化率图表」）",
+      "避免误导：Y 轴从非零开始放大差异、3D 饼图变形、双轴图比例失衡；汇报时图表服务于结论，先说结论再放图"
+    ],
+    "followup_hint": "图表选型与场景错配，或说不出一图一观点原则时追问",
+    "source": "数据可视化通用方法论 + 各厂面经"
+  }
+]

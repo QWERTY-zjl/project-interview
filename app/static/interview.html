@@ -519,6 +519,18 @@
             color: var(--accent-primary);
         }
 
+        /* 追问徽标：橙色系与蓝色"第 X 题"区分，仅追问题显示 */
+        .followup-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.35rem 0.85rem;
+            background: rgba(255, 149, 0, 0.12);
+            border-radius: var(--radius-full);
+            font-size: var(--text-xs);
+            font-weight: var(--fw-medium);
+            color: var(--warning, #ff9500);
+        }
+
         .question-text {
             font-family: var(--font-display);
             font-size: var(--text-xl);
@@ -1324,6 +1336,11 @@
                         <span class="question-number">
                             第 {{ currentQuestionIndex + 1 }} 题
                         </span>
+                        <!-- 追问徽标：后端题目接口带 question_type，'followup' 即面试官的深挖追问 -->
+                        <span
+                            v-if="currentQuestion && currentQuestion.question_type === 'followup'"
+                            class="followup-badge"
+                        >追问</span>
                     </div>
 
                     <div class="question-text">
@@ -1727,6 +1744,9 @@
                         const q = response.data;
                         if (q && q.id && q.id !== 0) {
                             currentQuestion.value = q;
+                            // 同步进度条分母：触发追问后后端 question_count 已自增，
+                            // 沿用开考时的旧值会导致进度条算错、面试提前判定结束
+                            totalQuestions.value = q.question_count || totalQuestions.value;
 
                             // 朗读开启时：出题阶段已预生成语音 → 直接播放（快、零额外成本）；
                             // 播放失败自动降级浏览器合成；没有预生成音频才走实时 TTS 合成
@@ -2110,15 +2130,12 @@
                             recordingTime.value = 0;
                             currentQuestionIndex.value++;
 
-                            if (currentQuestionIndex.value >= totalQuestions.value) {
-                                isFinished.value = true;
-                                interviewStatus.value = 3;
-                                loading.value = false;
-                                generateInterviewEvaluation();
-                            } else {
-                                await fetchQuestion();
-                                loading.value = false;
-                            }
+                            // 是否结束交给后端判定：fetchQuestion 收到 id=0 完成信号
+                            // 才进入完成态生成报告。不能用本地 totalQuestions 判断——
+                            // 触发追问后实际题数会超过开考时的缓存值，本地判断会
+                            // 提前结束、把未答的追问直接漏掉
+                            await fetchQuestion();
+                            loading.value = false;
                         } else {
                             Swal.fire('提交失败', response.data.message || '提交答案失败，请重试', 'error');
                             loading.value = false;

@@ -318,5 +318,298 @@
     ],
     "followup_hint": "说不清「为什么拼接会被注入而参数化不会」的原理时追问",
     "source": "OWASP SQL Injection Prevention Cheat Sheet + 项目实践"
+  },
+  {
+    "id": "py-021",
+    "position": "python_backend",
+    "topic": "HTTP 状态码与 GET/POST 语义",
+    "keywords": ["http", "状态码", "get", "post", "幂等"],
+    "difficulty": "easy",
+    "core_question": "常用 HTTP 状态码有哪些？GET 和 POST 的语义区别是什么？什么是幂等性？",
+    "answer_points": [
+      "2xx 成功（200 OK、201 Created）、3xx 重定向（301 永久/302 临时/304 缓存协商）、4xx 客户端错（400 参数错、401 未登录、403 无权限、404 不存在、429 限流）、5xx 服务端错（500 异常、502 网关错、504 网关超时）",
+      "GET 获取资源：参数在 URL、可被缓存收藏、幂等；POST 提交数据：参数在请求体、不缓存、不幂等",
+      "幂等性 = 同一请求执行一次和多次效果相同：GET/PUT/DELETE 幂等，POST 不幂等——重复点击下单会重复创建订单",
+      "401 与 403 的区别：401 是没登录（未认证），403 是登录了但没权限（未授权）"
+    ],
+    "followup_hint": "401/403 混淆，或说不出幂等性含义及其与 POST 的关系时追问",
+    "source": "MDN HTTP 状态码 + RFC 9110"
+  },
+  {
+    "id": "py-022",
+    "position": "python_backend",
+    "topic": "HTTPS 与 TLS 握手",
+    "keywords": ["https", "tls", "证书", "加密"],
+    "difficulty": "hard",
+    "core_question": "HTTPS 是如何保证安全的？TLS 握手大致过程是怎样的？",
+    "answer_points": [
+      "HTTPS = HTTP + TLS，解决三个问题：加密（防窃听）、完整性（防篡改）、身份认证（防冒充）",
+      "混合加密：非对称加密（RSA/ECDHE）只在握手阶段安全地交换密钥材料，之后用协商出的对称会话密钥加密通信——非对称慢但无需预共享密钥，对称快",
+      "握手简化流程：客户端发随机数和支持的套件 → 服务端返回随机数和证书 → 客户端验证证书、生成预主密钥用公钥加密发出 → 双方用三个随机数算出会话密钥",
+      "证书由 CA 签发，浏览器内置 CA 根证书逐级验证证书链，绑定域名防中间人；抓包工具能看明文是因为本机安装并信任了它的根证书"
+    ],
+    "followup_hint": "说不出为什么用混合加密，或不知道证书链验证的作用时追问",
+    "source": "小林 coding《图解网络》+ MDN HTTPS"
+  },
+  {
+    "id": "py-023",
+    "position": "python_backend",
+    "topic": "从输入 URL 到页面展示的全过程",
+    "keywords": ["网络", "dns", "tcp", "http", "渲染"],
+    "difficulty": "hard",
+    "core_question": "在浏览器输入网址回车后，到页面显示出来，中间发生了什么？",
+    "answer_points": [
+      "DNS 解析：浏览器缓存 → 系统缓存 → 本地 DNS 服务器递归查询，把域名变成 IP",
+      "建立连接：TCP 三次握手（HTTPS 再加 TLS 握手）；可能复用 keep-alive 长连接跳过这一步",
+      "发送 HTTP 请求 → 服务端处理（负载均衡 → 应用 → 数据库）→ 返回响应（HTML/JSON/静态资源）",
+      "浏览器渲染：解析 HTML 建 DOM 树、CSS 建 CSSOM、合成渲染树、布局、绘制；页面里的其他资源再走各自的请求",
+      "这是一道串联题：答的时候主动把 DNS/TCP/HTTP/缓存/渲染串成时间线，考官会顺着任一环节深挖"
+    ],
+    "followup_hint": "环节残缺（漏 DNS 或漏渲染），或任一环节展开就答不上时追问",
+    "source": "小林 coding《图解网络》"
+  },
+  {
+    "id": "py-024",
+    "position": "python_backend",
+    "topic": "OSI 七层与 TCP/IP 四层模型",
+    "keywords": ["网络", "osi", "tcp/ip", "分层"],
+    "difficulty": "easy",
+    "core_question": "OSI 七层和 TCP/IP 四层分别怎么划分？每层的代表协议是什么？",
+    "answer_points": [
+      "OSI 七层：物理、数据链路、网络、传输、会话、表示、应用；实际工程用 TCP/IP 四层：网络接口层、网络层、传输层、应用层",
+      "网络层（IP）负责主机到主机的路由寻址；传输层（TCP/UDP）负责端口到端口的可靠/高效传输",
+      "应用层协议：HTTP/HTTPS、DNS、FTP、SMTP、WebSocket；TCP 面向连接可靠字节流，UDP 无连接不保证送达（视频、DNS、游戏用）",
+      "分层的意义：每层只关心本层职责、通过接口向上提供服务，改动一层不影响其他层（如 HTTP/2 不用改 TCP 协议本身）"
+    ],
+    "followup_hint": "层与协议对不上号（把 IP 说成传输层），或说不出 TCP/UDP 差异时追问",
+    "source": "小林 coding《图解网络》"
+  },
+  {
+    "id": "py-025",
+    "position": "python_backend",
+    "topic": "死锁的产生条件与避免",
+    "keywords": ["操作系统", "死锁", "锁"],
+    "difficulty": "medium",
+    "core_question": "什么是死锁？产生的四个必要条件是什么？怎么避免？",
+    "answer_points": [
+      "死锁：一组进程互相持有对方需要的资源且都不释放，永久阻塞",
+      "四个必要条件：互斥、持有并等待、不可剥夺、循环等待——缺一不可，破坏任意一个即可避免",
+      "实践手段：按固定顺序加锁（破坏循环等待，最常用）、加锁带超时（破坏不可剥夺）、一次性申请所有资源（破坏持有等待）",
+      "Python 中：threading.Lock(timeout=) 加超时；排查：进程 D 状态、py-spy dump 线程栈看互相等待"
+    ],
+    "followup_hint": "背不全四个条件，或说不出「按序加锁为什么有效」时追问",
+    "source": "操作系统教材 + 小林 coding《图解系统》"
+  },
+  {
+    "id": "py-026",
+    "position": "python_backend",
+    "topic": "IO 多路复用：select/poll/epoll",
+    "keywords": ["io多路复用", "epoll", "select", "异步"],
+    "difficulty": "hard",
+    "core_question": "什么是 IO 多路复用？select、poll、epoll 有什么区别？",
+    "answer_points": [
+      "IO 多路复用：单个线程同时监听多个 socket，谁就绪就处理谁——高并发服务（nginx、Redis、asyncio 事件循环）的底层基础",
+      "select：fd 数量上限 1024，每次调用把整个 fd 集合从用户态拷到内核并线性遍历，连接多时开销大",
+      "poll：用数组去掉了 1024 限制，但仍要全量拷贝和遍历",
+      "epoll：内核维护红黑树管理 fd，就绪的 fd 挂到就绪链表，调用只返回就绪的（事件回调机制），复杂度 O(1)，支持边缘/水平触发",
+      "Python 对应：selectors 模块自动选最优实现；asyncio 就是基于 epoll/kqueue 的事件循环"
+    ],
+    "followup_hint": "说不出 select 全量拷贝遍历的性能瓶颈，或不知道 epoll 为什么高效时追问",
+    "source": "小林 coding《图解网络》+ Python selectors 官方文档"
+  },
+  {
+    "id": "py-027",
+    "position": "python_backend",
+    "topic": "慢查询定位与 EXPLAIN 分析",
+    "keywords": ["mysql", "explain", "慢查询", "sql优化"],
+    "difficulty": "hard",
+    "core_question": "一条 SQL 执行很慢，你怎么定位和优化？EXPLAIN 重点看哪些字段？",
+    "answer_points": [
+      "定位：开启慢查询日志（long_query_time 阈值）捞慢 SQL，或监控平台（如 pg_stat_statements/云监控）找高耗时语句",
+      "EXPLAIN 关键字段：type（访问类型，ALL=全表扫描要警惕，至少 range，理想 ref/eq_ref/const）、key（实际用到的索引，NULL 说明没走上索引）、rows（预估扫描行数）",
+      "Extra 警告信号：Using filesort（额外排序）、Using temporary（临时表）都说明需要优化索引或 SQL 写法",
+      "优化手段：为 WHERE/ORDER BY 字段建合适索引、覆盖索引避免回表、深分页用延迟关联（先查 id 再回表）、大事务拆小",
+      "注意索引区分度：性别这种低区分度列建索引意义不大，优化器可能弃用"
+    ],
+    "followup_hint": "不知道 EXPLAIN 的 type/rows 含义，或只说「加索引」说不出依据时追问",
+    "source": "小林 coding《图解 MySQL》+ MySQL 官方文档 EXPLAIN"
+  },
+  {
+    "id": "py-028",
+    "position": "python_backend",
+    "topic": "MySQL 日志体系：redo/undo/binlog",
+    "keywords": ["mysql", "redo log", "undo log", "binlog", "两阶段提交"],
+    "difficulty": "hard",
+    "core_question": "MySQL 的 redo log、undo log、binlog 分别是干什么的？为什么需要两阶段提交？",
+    "answer_points": [
+      "redo log：InnoDB 引擎层日志，物理日志记录「某页做了什么修改」，先写日志再刷盘（WAL），保证崩溃恢复不丢已提交数据（持久性）",
+      "undo log：记录逻辑反向操作，用于事务回滚（原子性）和 MVCC 版本链",
+      "binlog：Server 层日志，逻辑日志（语句/行格式），用于主从复制和数据恢复，所有引擎都有",
+      "两阶段提交：redo log prepare → 写 binlog → redo log commit；保证两份日志一致，否则崩溃恢复时主从数据不一致（多写或少写）"
+    ],
+    "followup_hint": "混淆 redo 与 binlog 的职责（引擎层 vs Server 层），或说不出两阶段提交解决什么时追问",
+    "source": "小林 coding《图解 MySQL》"
+  },
+  {
+    "id": "py-029",
+    "position": "python_backend",
+    "topic": "MySQL 主从复制与读写分离",
+    "keywords": ["mysql", "主从复制", "读写分离", "高可用"],
+    "difficulty": "medium",
+    "core_question": "MySQL 主从复制的原理是什么？主从延迟怎么应对？",
+    "answer_points": [
+      "原理：主库写 binlog → 从库 IO 线程拉取写入本地 relay log → 从库 SQL 线程重放 relay log，最终一致",
+      "用途：读写分离（写主读从，分摊读压力）、故障切换、备份不锁主库",
+      "主从延迟原因：从库单线程重放跟不上、大事务、从库机器差、网络",
+      "应对：写后立即读走主库（会话级绑定）、半同步复制、监控 Seconds_Behind_Master 告警；业务上接受最终一致（如改完资料刷新页短暂看到旧值）"
+    ],
+    "followup_hint": "说不出复制三步流程，或被问「写完马上读会不会读到旧数据」没思路时追问",
+    "source": "小林 coding《图解 MySQL》+ MySQL 官方文档复制章节"
+  },
+  {
+    "id": "py-030",
+    "position": "python_backend",
+    "topic": "Redis 持久化：RDB 与 AOF",
+    "keywords": ["redis", "持久化", "rdb", "aof"],
+    "difficulty": "medium",
+    "core_question": "Redis 的 RDB 和 AOF 两种持久化方式有什么区别？生产上怎么选？",
+    "answer_points": [
+      "RDB：定时把内存数据整体快照成二进制文件（bgsave fork 子进程执行），文件小恢复快，但两次快照之间的数据宕机会丢",
+      "AOF：追加记录每条写命令，文件可读、丢失窗口小（everysec 每秒刷盘最多丢 1 秒），但文件大、恢复慢；文件过大时 AOF 重写压缩",
+      "fork 的写时复制（COW）：主进程继续处理写请求，子进程基于快照时刻的内存页做持久化，写操作复制新页不污染快照",
+      "生产推荐 4.0+ 混合持久化：RDB 做基础 + 增量 AOF，兼顾恢复速度和数据安全"
+    ],
+    "followup_hint": "说不出两者丢失数据窗口的差异，或不知道混合持久化时追问",
+    "source": "小林 coding《图解 Redis》+ Redis 官方文档持久化"
+  },
+  {
+    "id": "py-031",
+    "position": "python_backend",
+    "topic": "Redis 过期删除与内存淘汰",
+    "keywords": ["redis", "过期策略", "内存淘汰", "lru"],
+    "difficulty": "medium",
+    "core_question": "Redis 怎么删除过期 key？内存满了怎么办？",
+    "answer_points": [
+      "过期删除是惰性 + 定期组合：访问时检查过期才删（惰性，省 CPU 但冷 key 占内存）；定期随机抽样删除（主动，控制内存）",
+      "内存满时按 maxmemory-policy 淘汰：noeviction（默认，写报错）、allkeys-lru（全键 LRU，最常用）、volatile-lru（只淘汰带过期时间的）、allkeys-lfu（按访问频率）等",
+      "Redis 的 LRU 是近似 LRU：随机抽样若干 key 淘汰其中最久未用的，省维护全链表开销；LFU 用计数器近似频率",
+      "设置 key 时养成带 TTL 的习惯，长期不设过期的缓存最终都会走到内存淘汰这一步"
+    ],
+    "followup_hint": "把过期删除和内存淘汰混为一谈，或说不出 noeviction 默认行为时追问",
+    "source": "小林 coding《图解 Redis》+ Redis 官方文档"
+  },
+  {
+    "id": "py-032",
+    "position": "python_backend",
+    "topic": "Redis 分布式锁",
+    "keywords": ["redis", "分布式锁", "setnx", "redlock"],
+    "difficulty": "hard",
+    "core_question": "怎么用 Redis 实现分布式锁？有哪些坑？",
+    "answer_points": [
+      "基本实现：SET key unique_value NX EX 30——NX 保证互斥、EX 防死锁、值放唯一标识（UUID）证明锁是自己的",
+      "释放锁必须 Lua 脚本原子执行「判断值是自己的再删」：否则 A 执行慢锁过期被 B 拿走，A 误删了 B 的锁",
+      "坑一：业务没执行完锁先过期——看门狗机制续期（如 Redisson）；坑二：主从切换锁丢失（主挂了锁没同步到从）——RedLock 多节点方案或接受小概率风险改用 ZooKeeper/etcd",
+      "选型提示：单实例Redis锁满足绝大多数业务（重复提交防护、任务调度）；强一致要求的场景不要硬用 Redis 锁"
+    ],
+    "followup_hint": "不知道 SETNX 要带过期时间和唯一值，或说不出为什么要 Lua 原子删除时追问",
+    "source": "小林 coding《图解 Redis》+ Redis 官方文档 SET NX"
+  },
+  {
+    "id": "py-033",
+    "position": "python_backend",
+    "topic": "消息队列的作用与权衡",
+    "keywords": ["消息队列", "mq", "削峰", "解耦", "rabbitmq", "kafka"],
+    "difficulty": "medium",
+    "core_question": "为什么要用消息队列？它带来什么问题？",
+    "answer_points": [
+      "三大作用：异步（下单后发短信/积分不再同步等待，响应时间变短）、解耦（订单系统发消息，多个下游各自订阅，加消费者不动上游）、削峰（秒杀请求先进队列，消费端按能力处理，保护数据库）",
+      "代价与问题：系统复杂度上升；可用性依赖 MQ 集群；一致性问题——消息丢失（生产者/ broker /消费者三段都可能丢，分别用确认机制+持久化+手动 ACK 解决）、重复消费（消费者幂等，如唯一键/去重表）",
+      "常见选型：RabbitMQ（功能全、延迟低）、Kafka（高吞吐、日志流）、Redis Stream（轻量场景）",
+      "答题意识：先说业务里真实存在的痛点（如本项目提醒通知），再谈引入，避免「为了用而用」"
+    ],
+    "followup_hint": "只会背三大作用，说不出消息丢失/重复消费怎么处理时追问",
+    "source": "JavaGuide 消息队列章节 + 小林 coding"
+  },
+  {
+    "id": "py-034",
+    "position": "python_backend",
+    "topic": "Docker 容器与虚拟机的区别",
+    "keywords": ["docker", "容器", "虚拟机", "namespace", "cgroup"],
+    "difficulty": "medium",
+    "core_question": "容器和虚拟机有什么本质区别？Docker 为什么启动快？",
+    "answer_points": [
+      "虚拟机：Hypervisor 虚拟出完整硬件，每个 VM 装完整 Guest OS，隔离强但重（GB 级、分钟级启动）",
+      "容器：共享宿主机内核的进程级隔离——Namespace 隔离视图（pid/net/mnt 等让容器以为独占系统），Cgroup 限制 CPU/内存用量",
+      "所以容器镜像只有应用+依赖（MB 级）、秒级启动（本质是启动一个受控进程）；隔离性弱于 VM（内核共享，逃逸风险相对高）",
+      "镜像分层与 Dockerfile：每条指令一层，层可缓存复用，构建顺序影响构建速度；本项目 docker-compose 里 postgres 就是容器化部署"
+    ],
+    "followup_hint": "说不出「共享内核」这个本质差异，或不知道 Namespace/Cgroup 分工时追问",
+    "source": "Docker 官方文档 + 小林 coding"
+  },
+  {
+    "id": "py-035",
+    "position": "python_backend",
+    "topic": "Linux 常用排查命令与思路",
+    "keywords": ["linux", "排查", "top", "日志", "端口"],
+    "difficulty": "medium",
+    "core_question": "线上服务接口突然变慢或报错，你在 Linux 上怎么排查？",
+    "answer_points": [
+      "先确认进程活着：ps aux | grep 应用名、systemctl status；服务挂了先看退出日志",
+      "资源四板斧：top（CPU/内存，看进程和 load）、df -h（磁盘满是最常见事故）、free（内存）、iostat（IO）",
+      "网络排查：curl -v 直接测接口、ss -tlnp | grep 端口（端口是否监听）、ping/telnet 测连通性",
+      "日志排查：tail -f app.log 实时跟踪、grep 'ERROR' app.log | tail -100 捞最近错误、less 分页大文件",
+      "思路总结：进程 → 资源 → 网络 → 日志，由外向内缩小范围，别一上来就改代码"
+    ],
+    "followup_hint": "命令会背但说不出排查顺序，或磁盘满、端口占用这类高频场景没预案时追问",
+    "source": "Linux man 手册 + 后端运维通用实践"
+  },
+  {
+    "id": "py-036",
+    "position": "python_backend",
+    "topic": "设计模式：单例与工厂",
+    "keywords": ["设计模式", "单例", "工厂", "面向对象"],
+    "difficulty": "medium",
+    "core_question": "说说单例模式和工厂模式的用途，Python 里单例怎么实现？",
+    "answer_points": [
+      "单例：一个类全局只有一个实例——数据库连接池、配置对象、日志器，避免重复建连接/重复加载",
+      "Python 实现单例：模块级实例（Python 模块天然单例，最常用）、装饰器包一层（用字典按类缓存实例）、__new__ 重写、元类；多线程下注意加锁或用模块级懒加载",
+      "工厂：把「new 哪个类」集中到工厂函数/类，调用方只报类型不关心构造细节——如本项目按岗位出题时的服务选择",
+      "原则意识：设计模式服务于可维护性，不为了模式而模式；说出「项目里哪里实际用过」比背 UML 加分"
+    ],
+    "followup_hint": "只背概念举不出应用场景，或不知道 Python 模块天然单例时追问",
+    "source": "《设计模式》GoF + Python 官方文档 __new__"
+  },
+  {
+    "id": "py-037",
+    "position": "python_backend",
+    "topic": "接口幂等性设计",
+    "keywords": ["幂等", "重复提交", "分布式", "接口设计"],
+    "difficulty": "hard",
+    "core_question": "用户重复点击提交，怎么保证接口不会重复创建订单？",
+    "answer_points": [
+      "幂等：同一操作执行一次与多次效果相同；触发场景：按钮连点、网络重试、MQ 重复消费",
+      "前端辅助：按钮点击后置灰/loading，但这只是体验优化，接口层必须自己兜底",
+      "核心方案：唯一业务 ID + 数据库唯一索引（插入重复直接冲突报错，最简单可靠）；提交前生成 token 服务端一次性校验删除；状态机校验（已支付订单拒绝再次支付）",
+      "分布式场景：Redis SET NX 用订单号做锁（短时间防重）；数据库乐观锁（version 字段）做更新类幂等",
+      "答题结构：先说防不住的原因在哪一层，再按「唯一索引兜底 + token/锁防重 + 状态机」分层给方案"
+    ],
+    "followup_hint": "只说前端置灰，或不知道唯一索引是兜底首选时追问",
+    "source": "JavaGuide + 后端接口设计通用实践"
+  },
+  {
+    "id": "py-038",
+    "position": "python_backend",
+    "topic": "Git 协作工作流：merge 与 rebase",
+    "keywords": ["git", "分支", "merge", "rebase", "协作"],
+    "difficulty": "easy",
+    "core_question": "merge 和 rebase 有什么区别？团队开发一般怎么协作？",
+    "answer_points": [
+      "merge：把目标分支的改动合进来，产生一个合并提交，历史是真实的时间线；rebase：把本分支提交摘下来「搬到」目标分支末尾重放，历史线性整洁但改写了提交",
+      "铁律：已推送到共享分支的提交不要 rebase（别人基于旧历史开发会冲突混乱）；本地未推送的分支可以用 rebase 整理",
+      "常见协作流：feature 分支开发 → rebase/merge 到最新 main → 提 PR → 评审后合并；冲突解决是逐个文件对比保留双方改动",
+      "常用命令：git pull --rebase 更新、git stash 暂存未完成改动、git log --oneline --graph 看分支拓扑、git reset/revert 撤销（revert 生成反向提交适合已推送）"
+    ],
+    "followup_hint": "说不出「共享分支不能 rebase」的原因，或 reset/revert 区分不开时追问",
+    "source": "Pro Git 官方书籍 + GitHub Flow 文档"
   }
 ]

@@ -25,6 +25,10 @@ DASHSCOPE_BASE_URL = os.getenv("DASHSCOPE_BASE_URL", "https://dashscope.aliyuncs
 # 出题用的文本模型
 LLM_MODEL = os.getenv("LLM_MODEL", "qwen-flash")
 
+# 文本向量化模型（知识库向量检索：把文字变成一串数字，用于算语义相似度；
+# 与 LLM 同走 DASHSCOPE_BASE_URL 兼容端点、同用一个 API key）
+EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "text-embedding-v3")
+
 # 视觉理解模型（表情识别：分析摄像头抓拍画面里的情绪，需支持图像输入）
 VISION_MODEL = os.getenv("VISION_MODEL", "qwen3.8-flash")
 

@@ -1,0 +1,341 @@
+[
+  {
+    "id": "fe-001",
+    "position": "frontend",
+    "topic": "CSS 盒模型与 box-sizing",
+    "keywords": ["css", "盒模型", "box-sizing", "布局"],
+    "difficulty": "easy",
+    "core_question": "什么是 CSS 盒模型？content-box 和 border-box 有什么区别？",
+    "answer_points": [
+      "盒模型由 content、padding、border、margin 四部分组成",
+      "content-box（标准盒模型）：width 只包含内容区，实际占宽 = width + padding + border",
+      "border-box（怪异盒模型）：width 包含内容、内边距和边框，改 padding 不会撑大元素",
+      "实际开发常用 * { box-sizing: border-box } 统一盒模型，方便按设计稿定宽布局"
+    ],
+    "followup_hint": "说不出两种盒模型的宽度计算差异，或举不出 border-box 的使用场景时追问",
+    "source": "MDN box-sizing + 博客园 200 道前端高频面试题清单"
+  },
+  {
+    "id": "fe-002",
+    "position": "frontend",
+    "topic": "Flex 弹性布局",
+    "keywords": ["css", "flex", "弹性布局", "布局"],
+    "difficulty": "easy",
+    "core_question": "Flex 布局的核心属性有哪些？如何用 Flex 实现水平垂直居中？flex:1 代表什么？",
+    "answer_points": [
+      "容器属性：display:flex 后，justify-content 控制主轴对齐，align-items 控制交叉轴对齐，flex-wrap 控制换行",
+      "水平垂直居中：justify-content: center + align-items: center，最常用的三行方案",
+      "flex:1 是 flex-grow:1、flex-shrink:1、flex-basis:0% 的缩写，表示均分剩余空间",
+      "flex-direction 切换主轴方向后，justify 和 align 的作用轴会互换，这是常见理解坑"
+    ],
+    "followup_hint": "说不出 flex:1 三个子属性的含义，或分不清主轴交叉轴时追问",
+    "source": "MDN Flexbox + 掘金 2026 前端面试题集"
+  },
+  {
+    "id": "fe-003",
+    "position": "frontend",
+    "topic": "BFC 块级格式化上下文",
+    "keywords": ["css", "bfc", "清除浮动", "布局"],
+    "difficulty": "medium",
+    "core_question": "什么是 BFC？如何触发 BFC？它解决了哪些实际问题？",
+    "answer_points": [
+      "BFC 是一块独立的渲染区域，内部布局不影响外部元素",
+      "触发方式：根元素、float 非 none、position 为 absolute/fixed、overflow 非 visible、display:flow-root/flex/inline-block",
+      "解决问题一：清除浮动——父元素触发 BFC 后高度包含浮动子元素",
+      "解决问题二：阻止相邻元素 margin 合并；解决问题三：实现自适应两栏布局（浮动列 + BFC 主列不重叠）",
+      "display:flow-root 是无副作用的现代触发方式，推荐替代 overflow:hidden"
+    ],
+    "followup_hint": "只能背概念说不出 BFC 解决的实际问题，或不知道触发条件时追问",
+    "source": "MDN 块级格式化上下文 + 博客园 200 道前端高频面试题清单"
+  },
+  {
+    "id": "fe-004",
+    "position": "frontend",
+    "topic": "CSS 选择器优先级与层叠",
+    "keywords": ["css", "选择器", "优先级", "层叠"],
+    "difficulty": "easy",
+    "core_question": "CSS 样式冲突时如何决定最终生效的是哪条规则？",
+    "answer_points": [
+      "优先级从高到低：!important > 内联样式 > id 选择器 > class/伪类/属性选择器 > 标签/伪元素选择器",
+      "权重可叠加比较：id 数多者胜，再比 class 数，最后比标签数",
+      "相同优先级时按源码顺序，后声明的覆盖先声明的（层叠规则）",
+      "继承来的样式没有优先级概念，任何直接指定的规则都会覆盖继承值"
+    ],
+    "followup_hint": "权重叠加计算错误，或不知道 !important 被内联 !important 覆盖的细节时追问",
+    "source": "MDN 层叠与继承"
+  },
+  {
+    "id": "fe-005",
+    "position": "frontend",
+    "topic": "元素水平垂直居中的多种方案",
+    "keywords": ["css", "居中", "布局"],
+    "difficulty": "easy",
+    "core_question": "让一个元素在父容器中水平垂直居中有哪几种实现方式？",
+    "answer_points": [
+      "Flex：父元素 display:flex + justify-content:center + align-items:center，首选方案",
+      "Grid：父元素 display:grid + place-items:center，最简洁",
+      "绝对定位：子元素 position:absolute + top/left 50% + transform:translate(-50%,-50%)，兼容性好且不要求定宽高",
+      "绝对定位 + margin:auto：四个方向都为 0，要求子元素有确定宽高",
+      "行内文本可用 text-align:center + line-height 等于高度实现"
+    ],
+    "followup_hint": "只知道一种方案，或说不清 transform 方案为什么不需要定宽高时追问",
+    "source": "MDN + 博客园 200 道前端高频面试题清单"
+  },
+  {
+    "id": "fe-006",
+    "position": "frontend",
+    "topic": "JS 数据类型与类型判断",
+    "keywords": ["javascript", "数据类型", "typeof", "instanceof"],
+    "difficulty": "easy",
+    "core_question": "JS 有哪些数据类型？如何准确判断一个变量的类型？",
+    "answer_points": [
+      "7 种原始类型：Number、String、Boolean、Null、Undefined、Symbol、BigInt；1 种引用类型：Object",
+      "typeof 能区分原始类型，但 typeof null 返回 'object'（历史遗留 bug），typeof 函数返回 'function'",
+      "引用类型用 instanceof 判断（沿原型链检查），但跨 iframe 会失效",
+      "最准确的通用方法：Object.prototype.toString.call(x)，数组推荐 Array.isArray()"
+    ],
+    "followup_hint": "说不出 typeof null 的坑，或不知道 instanceof 的原型链原理时追问",
+    "source": "MDN JavaScript 数据类型 + 掘金 2026 前端面试题集"
+  },
+  {
+    "id": "fe-007",
+    "position": "frontend",
+    "topic": "深拷贝与浅拷贝",
+    "keywords": ["javascript", "深拷贝", "浅拷贝", "引用"],
+    "difficulty": "medium",
+    "core_question": "浅拷贝和深拷贝的区别是什么？分别有哪些实现方式？",
+    "answer_points": [
+      "浅拷贝只复制第一层属性，嵌套的引用类型仍共享同一对象；深拷贝递归复制所有层级，完全独立",
+      "浅拷贝实现：Object.assign()、展开运算符 {...obj}、Array.prototype.slice()",
+      "JSON.parse(JSON.stringify(obj)) 是简易深拷贝，但会丢失 function、undefined、Symbol，无法处理循环引用，Date 会变成字符串",
+      "现代方案：structuredClone()（原生支持循环引用）；手写实现需处理循环引用（WeakMap 缓存已拷贝对象）"
+    ],
+    "followup_hint": "说不出 JSON 方案的局限，或不知道循环引用怎么处理时追问",
+    "source": "MDN structuredClone + 掘金 2026 前端面试题集"
+  },
+  {
+    "id": "fe-008",
+    "position": "frontend",
+    "topic": "闭包",
+    "keywords": ["javascript", "闭包", "作用域", "内存泄漏"],
+    "difficulty": "medium",
+    "core_question": "什么是闭包？它有哪些典型应用场景？会带来什么问题？",
+    "answer_points": [
+      "闭包 = 函数 + 其定义时所在的词法作用域，内层函数可以持续访问外层函数的变量",
+      "典型应用：私有变量（计数器）、防抖节流、柯里化、once 只执行一次的函数、循环中保存索引",
+      "问题：被闭包引用的变量无法被垃圾回收，滥用可能导致内存泄漏",
+      "内存泄漏典型场景：闭包引用了大对象/DOM 节点且生命周期很长，解决方式是在不需要时置 null"
+    ],
+    "followup_hint": "只能背定义举不出应用场景，或说不清闭包与内存泄漏的关系时追问",
+    "source": "MDN 闭包 + CSDN 各公司前端面试题总结"
+  },
+  {
+    "id": "fe-009",
+    "position": "frontend",
+    "topic": "原型与原型链",
+    "keywords": ["javascript", "原型", "原型链", "继承"],
+    "difficulty": "medium",
+    "core_question": "什么是原型链？属性查找的规则是什么？instanceof 的原理是什么？",
+    "answer_points": [
+      "每个对象都有 __proto__ 指向其构造函数的 prototype，prototype 本身也是对象，也有 __proto__，层层相连构成原型链",
+      "访问属性时沿自身 → __proto__ → 上一级 prototype 逐层查找，直到 Object.prototype.__proto__ 为 null 停止",
+      "instanceof 的原理：检查右侧构造函数的 prototype 是否出现在左侧对象的原型链上",
+      "class 语法是原型继承的语法糖，extends/super 底层仍是原型链操作"
+    ],
+    "followup_hint": "分不清 __proto__ 和 prototype，或说不出属性查找规则时追问",
+    "source": "MDN 继承与原型链 + CSDN 各公司前端面试题总结"
+  },
+  {
+    "id": "fe-010",
+    "position": "frontend",
+    "topic": "this 指向与 call/apply/bind",
+    "keywords": ["javascript", "this", "call", "apply", "bind"],
+    "difficulty": "medium",
+    "core_question": "JS 中 this 的指向由什么决定？call、apply、bind 有什么区别？",
+    "answer_points": [
+      "this 由调用方式决定：默认绑定指向 window（严格模式 undefined），隐式绑定指向调用者对象，new 绑定指向新创建的对象",
+      "显式绑定：call 逐个传参立即执行，apply 传参数数组立即执行，bind 只绑定 this 返回新函数不立即执行",
+      "优先级：new > 显式绑定 > 隐式绑定 > 默认绑定",
+      "箭头函数没有自己的 this，沿词法作用域使用外层的 this，且不能被 call/bind 改变"
+    ],
+    "followup_hint": "说不出优先级顺序，或不知道箭头函数 this 规则时追问",
+    "source": "MDN this + CSDN 各公司前端面试题总结"
+  },
+  {
+    "id": "fe-011",
+    "position": "frontend",
+    "topic": "事件循环（宏任务与微任务）",
+    "keywords": ["javascript", "事件循环", "event loop", "宏任务", "微任务"],
+    "difficulty": "hard",
+    "core_question": "解释浏览器的事件循环机制。setTimeout 和 Promise.then 的回调谁先执行？",
+    "answer_points": [
+      "JS 单线程，同步任务在调用栈执行；异步任务回调进入任务队列等待",
+      "宏任务：整段 script、setTimeout/setInterval、IO、UI 渲染；微任务：Promise.then、queueMicrotask、MutationObserver",
+      "执行规则：每执行完一个宏任务，就清空整个微任务队列，再取下一个宏任务——所以微任务永远先于下一个宏任务",
+      "async/await 基于 Promise：await 之后的代码相当于放在 then 的微任务里",
+      "经典题：setTimeout(fn,0) 与 Promise.then 同存时，Promise 回调先执行"
+    ],
+    "followup_hint": "说不出「每个宏任务后清空微任务」规则，或给一段混合输出题答错顺序时追问",
+    "source": "MDN 事件循环 + 掘金 2026 前端面试题集"
+  },
+  {
+    "id": "fe-012",
+    "position": "frontend",
+    "topic": "Promise 与 async/await",
+    "keywords": ["javascript", "promise", "async", "await", "异步"],
+    "difficulty": "medium",
+    "core_question": "Promise 解决了什么问题？Promise.all、allSettled、race、any 有什么区别？",
+    "answer_points": [
+      "Promise 用链式调用解决回调地狱，状态一旦从 pending 变为 fulfilled/rejected 就不可再变",
+      "Promise.all：全部成功才成功，一个失败立即失败；allSettled：等全部结束，无论成败都返回结果",
+      "race：第一个完成（无论成败）决定结果；any：第一个成功的决定结果，全失败才失败",
+      "async/await 是 Promise 的语法糖：await 暂停等待结果，用 try/catch 捕获异常，代码写起来像同步"
+    ],
+    "followup_hint": "混淆 all 和 allSettled 的失败行为，或说不出 Promise 三状态不可逆时追问",
+    "source": "MDN Promise + CSDN 各公司前端面试题总结"
+  },
+  {
+    "id": "fe-013",
+    "position": "frontend",
+    "topic": "var、let、const 与作用域",
+    "keywords": ["javascript", "let", "const", "作用域", "变量提升"],
+    "difficulty": "easy",
+    "core_question": "var、let、const 有什么区别？什么是暂时性死区？",
+    "answer_points": [
+      "var：函数作用域、存在变量提升（声明前访问为 undefined）、可重复声明、会挂到 window 上",
+      "let/const：块级作用域、不提升到可访问（声明前访问报错）、不可重复声明",
+      "暂时性死区（TDZ）：从块开始到 let/const 声明语句之间的区域，访问即抛 ReferenceError",
+      "const 声明的引用不可重新赋值，但对象内容可以修改；需要不可变对象用 Object.freeze"
+    ],
+    "followup_hint": "说不清块级作用域在 if/for 中的表现，或不知道 TDZ 时追问",
+    "source": "MDN let/const + 掘金 2026 前端面试题集"
+  },
+  {
+    "id": "fe-014",
+    "position": "frontend",
+    "topic": "防抖与节流",
+    "keywords": ["javascript", "防抖", "节流", "性能优化"],
+    "difficulty": "medium",
+    "core_question": "防抖和节流的区别是什么？分别适合什么场景？怎么手写实现？",
+    "answer_points": [
+      "防抖（debounce）：事件停止触发 n 秒后才执行一次，期间再触发则重新计时——搜索框输入、resize 结束后计算",
+      "节流（throttle）：n 秒内最多执行一次，稀释触发频率——滚动加载、鼠标移动、按钮防重复点击",
+      "防抖实现：闭包保存定时器，每次触发 clearTimeout 后重新 setTimeout",
+      "节流实现：定时器版（到点执行）或时间戳版（立即执行），也可用 requestAnimationFrame"
+    ],
+    "followup_hint": "把两者场景说反，或写不出闭包保存定时器的核心逻辑时追问",
+    "source": "CSDN 各公司前端面试题总结 + lodash debounce/throttle 文档"
+  },
+  {
+    "id": "fe-015",
+    "position": "frontend",
+    "topic": "跨域与 CORS",
+    "keywords": ["跨域", "cors", "同源策略", "http"],
+    "difficulty": "medium",
+    "core_question": "什么是跨域？为什么会有跨域限制？CORS 的简单请求和预检请求有什么区别？",
+    "answer_points": [
+      "同源策略要求协议、域名、端口三者完全一致，否则即跨域；它是浏览器出于安全施加的限制，服务器之间调用没有跨域问题",
+      "解决：CORS（服务端设置 Access-Control-Allow-Origin 等响应头）、开发代理（vite/webpack proxy、nginx 反向代理）、JSONP（历史方案，只支持 GET）",
+      "简单请求：GET/POST/HEAD 且头部受限，直接发送；非简单请求（如带自定义头、Content-Type 为 JSON）先发 OPTIONS 预检请求询问服务器是否允许",
+      "带 cookie 的跨域请求需要前端 withCredentials + 服务端 Access-Control-Allow-Credentials:true，且 Allow-Origin 不能为 *"
+    ],
+    "followup_hint": "说不出预检请求触发条件，或不知道为什么服务器间调用没有跨域时追问",
+    "source": "MDN CORS + 博客园 200 道前端高频面试题清单"
+  },
+  {
+    "id": "fe-016",
+    "position": "frontend",
+    "topic": "HTTP 强缓存与协商缓存",
+    "keywords": ["http", "缓存", "cache-control", "etag", "304"],
+    "difficulty": "medium",
+    "core_question": "浏览器缓存的强缓存和协商缓存是怎么工作的？返回 200 还是 304？",
+    "answer_points": [
+      "强缓存：浏览器直接用本地副本不发请求，状态 200（from disk/memory cache）；由 Cache-Control: max-age 控制（优先级高于过期的 Expires 头）",
+      "no-cache 不是不缓存，而是每次用前先协商；no-store 才是彻底不缓存",
+      "协商缓存：强缓存过期后带上 If-None-Match（对应 ETag）/ If-Modified-Since（对应 Last-Modified）发请求，资源未变返回 304 且无响应体，变了返回 200 和新资源",
+      "ETag 优先级高于 Last-Modified（秒级修改检测不到的问题由 ETag 解决）；HTML 一般不缓存，带 hash 的静态资源可长缓存"
+    ],
+    "followup_hint": "分不清 200 from cache 和 304，或说不出 Cache-Control 与 Expires 优先级时追问",
+    "source": "MDN HTTP 缓存 + 博客园 200 道前端高频面试题清单"
+  },
+  {
+    "id": "fe-017",
+    "position": "frontend",
+    "topic": "浏览器渲染流程与重排重绘",
+    "keywords": ["浏览器", "渲染", "重排", "重绘", "性能优化"],
+    "difficulty": "hard",
+    "core_question": "浏览器从拿到 HTML 到显示页面经历哪些步骤？什么是重排和重绘？怎么减少？",
+    "answer_points": [
+      "渲染流程：解析 HTML 构建 DOM 树 → 解析 CSS 构建 CSSOM → 合成渲染树 → 布局（计算几何位置）→ 绘制（填充像素）→ 合成显示",
+      "JS 和 CSS 可能阻塞解析：script 默认阻塞 DOM 构建（可用 defer/async），CSSOM 未完成会阻塞渲染",
+      "重排（回流）：几何属性变化触发布局重算，代价大；重绘：仅外观变化（颜色等）重画但不重排；重排必然引发重绘",
+      "减少方式：批量修改 DOM（DocumentFragment）、避免逐条读写布局属性交替、用 transform/opacity 做动画（走合成层不触发重排）"
+    ],
+    "followup_hint": "说不出渲染五步骤顺序，或举不出减少重排的具体手段时追问",
+    "source": "MDN 渲染性能 + codinginterview.com 关键渲染路径"
+  },
+  {
+    "id": "fe-018",
+    "position": "frontend",
+    "topic": "Vue 响应式原理",
+    "keywords": ["vue", "响应式", "defineproperty", "proxy"],
+    "difficulty": "hard",
+    "core_question": "Vue2 和 Vue3 的响应式原理分别是什么？Vue3 为什么要改用 Proxy？",
+    "answer_points": [
+      "Vue2 用 Object.defineProperty 劫持已有属性的 getter/setter 实现依赖收集与更新触发",
+      "Vue2 缺陷：无法监听新增/删除属性和数组下标赋值，需要 $set/$delete 补救；初始化时递归遍历所有属性，开销大",
+      "Vue3 用 Proxy 代理整个对象，能拦截属性的增删、数组索引等 13 种操作，且惰性深层转换（访问到才转）性能更好",
+      "Vue3 体系：reactive 处理对象，ref 包装原始值（通过 .value 的 getter/setter 收集依赖）；track 收集依赖、trigger 触发更新"
+    ],
+    "followup_hint": "说不出 defineProperty 的具体缺陷，或不知道 ref 和 reactive 区别时追问",
+    "source": "Vue 官方文档 reactivity 深入 + 掘金 2026 前端面试题集"
+  },
+  {
+    "id": "fe-019",
+    "position": "frontend",
+    "topic": "Vue 组件通信方式",
+    "keywords": ["vue", "组件通信", "props", "pinia", "provide"],
+    "difficulty": "medium",
+    "core_question": "Vue 父子组件、跨层级组件、任意组件之间分别怎么通信？如何选型？",
+    "answer_points": [
+      "父子：props 向下传数据、$emit 向上传事件，v-model 本质是 props + emit 的语法糖",
+      "跨层级：provide/inject 由祖先注入后代，避免逐层透传（prop drilling）",
+      "全局状态：Pinia（Vue3 推荐）/Vuex 集中管理共享状态；小型项目可用 mitt 事件总线",
+      "其他：$refs 直接访问子组件实例、路由参数、localStorage 持久化共享；选型原则：层级浅用 props，深用 provide/inject，全局共享用 Pinia"
+    ],
+    "followup_hint": "只知道 props/emit，或说不出 provide/inject 和 Pinia 的适用差异时追问",
+    "source": "Vue 官方文档组件通信 + 掘金 2026 前端面试题集"
+  },
+  {
+    "id": "fe-020",
+    "position": "frontend",
+    "topic": "前端性能优化",
+    "keywords": ["性能优化", "懒加载", "cdn", "web vitals"],
+    "difficulty": "medium",
+    "core_question": "前端性能优化有哪些常用手段？如何度量优化效果？",
+    "answer_points": [
+      "加载优化：路由懒加载与组件按需引入、图片懒加载与压缩/WebP、CDN 静态资源、gzip/br 压缩、HTTP 缓存、树摇移减包体",
+      "渲染优化：防抖节流控制高频事件、长列表虚拟滚动、避免强制同步布局、动画用 transform/opacity",
+      "资源加载策略：关键 CSS 内联、script 加 defer/async、预加载 preload/prefetch",
+      "度量工具：Lighthouse、Core Web Vitals（LCP 最大内容绘制、CLS 累积布局偏移、INP 交互延迟），优化前后对比数据"
+    ],
+    "followup_hint": "只能罗列不能分类，或说不出 Core Web Vitals 任一指标含义时追问",
+    "source": "web.dev Core Web Vitals + 博客园 200 道前端高频面试题清单"
+  },
+  {
+    "id": "fe-021",
+    "position": "frontend",
+    "topic": "cookie、localStorage 与 sessionStorage",
+    "keywords": ["cookie", "localstorage", "sessionstorage", "存储", "token"],
+    "difficulty": "easy",
+    "core_question": "cookie、localStorage、sessionStorage 有什么区别？token 应该存哪里？",
+    "answer_points": [
+      "cookie：约 4KB，每次同源请求自动携带，可设过期时间，服务端可下发，配合 HttpOnly 可防 JS 读取（防 XSS 窃取）",
+      "localStorage：约 5MB，持久存储，不随请求发送，需手动读取；sessionStorage 会话级，标签页关闭即清空",
+      "token 存储：localStorage 使用方便但易受 XSS 攻击；cookie + HttpOnly 防 JS 读取但需处理 CSRF（SameSite 属性缓解）",
+      "实践：敏感凭证放 HttpOnly cookie 或使用短效 token + 刷新机制；非敏感的界面偏好可放 localStorage"
+    ],
+    "followup_hint": "说不出存储容量与是否自动携带的差异，或不知道 HttpOnly 的作用时追问",
+    "source": "MDN Web Storage API + 博客园 200 道前端高频面试题清单"
+  }
+]

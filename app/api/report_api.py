@@ -77,7 +77,7 @@ def generate_evaluation(token: str = Body(None, embed=True)):
 
         # 查问题+回答（score_standard 回传给大模型当评分依据）
         cursor.execute('''
-            SELECT question, score_standard, answer_text
+            SELECT question, score_standard, answer_text, question_type
             FROM interview_questions WHERE interview_id = %s ORDER BY id
         ''', (interview_id,))
         questions = [dict(r) for r in cursor.fetchall()]

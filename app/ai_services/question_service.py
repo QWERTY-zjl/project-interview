@@ -35,8 +35,9 @@ from app.ai_services.speech_service import synthesize_speech
 
 from app.ai_services.prompt import build_interview_prompt, get_default_questions
 
-from app.ai_services.knowledge_service import load_kb, search_kb, build_kb_hint
-# 岗位知识库检索（RAG 之 R）：纯标准库模块，加载失败内部已静默降级为空列表
+from app.ai_services.knowledge_service import load_kb, search_kb, build_kb_hint, embed_query, search_kb_vector
+# 岗位知识库检索（RAG 之 R）：pgvector 向量检索优先（PG 模式），
+# 向量不可用（SQLite 回退/向量化失败/表未建）自动降级为关键词检索
 
 
 logger = logging.getLogger(__name__)
@@ -235,8 +236,7 @@ def generate_questions(interview_id, candidate, position, interview, latest_tech
 
     try:
         # 0. 知识库检索（RAG 流程：检索 → 注入 → 生成）
-        #    岗位维度加载考点条目，用「岗位名 + 简历文本」作为查询串，
-        #    取关键词命中最多的前 3 条考点拼成文本块，随 prompt 一起发给模型。
+        #    岗位维度加载考点条目，用「岗位名 + 简历文本」作为查询串检索 top3。
         kb_hint = ""
         try:
             position_name = position.get('name', '') if isinstance(position, dict) else ''
@@ -244,17 +244,26 @@ def generate_questions(interview_id, candidate, position, interview, latest_tech
             entries = load_kb(position_name)
             if entries:
                 # 查询串 = 岗位名 + 简历原文 + 简历分析结论：
-                # 简历里提到的技能词（如"多线程""Redis"）会命中对应考点关键词
+                # 简历里提到的技能（如"多线程""Redis"）与考点语义/关键词都能对上
                 query_text = f"{position_name} {resume_md or ''} {latest_tech_info or ''}"
-                hits = search_kb(entries, query_text)
+
+                # 两级检索：pgvector 向量检索（PG 模式）→ 关键词检索（保底）。
+                # query_vec 为 None（未配 key/超时/配额用尽）或 SQLite 回退模式时，
+                # search_kb_vector 直接返回 None，自动走关键词，主流程无感切换
+                query_vec = embed_query(query_text)
+                hits = search_kb_vector(position_name, query_vec, entries)
+                mode = "pgvector 向量" if hits is not None else "关键词"
+                if hits is None:
+                    hits = search_kb(entries, query_text)
+
                 if not hits:
                     # 零命中回退：个人版常没有简历，查询串只剩岗位名，
-                    # 关键词匹配不上任何考点；此时取知识库前 3 条通用高频考点，
+                    # 匹配不上任何考点；此时取知识库前 3 条通用高频考点，
                     # 保证「后端开发面试」演示时知识库一定生效
                     hits = entries[:3]
-                    logger.info("[KB] 关键词零命中，回退为通用高频考点前3条")
+                    logger.info("[KB] 检索零命中，回退为通用高频考点前3条")
                 kb_hint = build_kb_hint(hits)
-                logger.info(f"[KB] 检索到 {len(hits)} 条考点注入出题 prompt")
+                logger.info(f"[KB] {mode}检索命中 {len(hits)} 条考点注入出题 prompt")
         except Exception as kb_err:
             # 知识库是增强项不是必需项：任何异常都静默降级为空串，
             # 出题智能体按原逻辑自由出题，主流程永不因知识库阻断

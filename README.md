@@ -39,7 +39,7 @@
 - **认证**：服务端会话 token——登录成功生成随机 token 存入 `users.auth_token`，前端凭 `Authorization: Bearer <token>` 请求头访问需要身份的接口，不信任前端传参
 - **前端**：使用Vue.js 3和Bootstrap 5构建的响应式Web界面（Vue/axios 均为本地文件，不依赖 CDN）
 - **数据库**：使用 PostgreSQL 16 进行数据存储（Docker 容器部署，psycopg3 连接池）；保留 SQLite 回退开关——`.env` 不配置 `DATABASE_URL` 时自动回退单文件 SQLite 模式
-- **AI模型**：集成阿里云百炼大语言模型（OpenAI 兼容接口），出题/报告/答题提示统一使用 `LLM_MODEL`（默认 qwen-flash），表情识别使用 `VISION_MODEL`（默认 qwen3-vl-flash）
+- **AI模型**：集成阿里云百炼大语言模型（OpenAI 兼容接口），出题/报告/答题提示统一使用 `LLM_MODEL`（默认 qwen-flash），表情识别使用 `VISION_MODEL`（默认 qwen3-vl-flash），知识库向量化检索使用 `EMBEDDING_MODEL`（默认 text-embedding-v3）
 - **语音处理**：支持Web录音，语音识别使用 `ASR_MODEL`（默认 paraformer-realtime-v2）
 - **语音合成**：集成阿里云百炼 CosyVoice 大模型（`TTS_MODEL`，默认 cosyvoice-v3-flash），支持语音预生成
 - **支付系统**：支持支付宝支付与模拟支付，提供套餐购买（`PAYMENT_ENABLED` 默认关闭）
@@ -51,7 +51,7 @@ project-interview/
 ├── app/                                  # 主应用目录
 │   ├── ai_services/                      # 智能体服务层
 │   │   ├── expression_service.py         # 表情分析服务
-│   │   ├── knowledge_service.py          # 岗位知识库检索服务（load_kb 加载 + search_kb 关键词检索，RAG 注入出题）
+│   │   ├── knowledge_service.py          # 岗位知识库检索服务（load_kb 加载 + pgvector 向量检索/关键词保底，RAG 注入出题）
 │   │   ├── prompt.py                     # 面试提示词模板
 │   │   ├── question_service.py           # 面试问题生成服务（LLM_MODEL，与报告同模型）
 │   │   ├── report_service.py             # 面试报告生成服务（LLM_MODEL，与出题同模型）
@@ -75,7 +75,8 @@ project-interview/
 │   │   ├── db.py                         # 数据库连接管理
 │   │   ├── db_pool.py                    # 数据库连接池（双轨：PG 用 psycopg_pool；SQLite 回退，含 SQL 方言适配层）
 │   │   └── create_personal_interview_system_db.py # 建表脚本（权威来源：个人版7表+支付表）
-│   ├── knowledge/                        # 岗位面试知识库（JSON 考点条目，随代码进 git；python_backend.json 为首批 20 条）
+│   ├── knowledge/                        # 岗位面试知识库（JSON 考点条目，随代码进 git；九领域共 175 条：python_backend 38 / frontend 21 / data_analysis 20 / product_manager 16 / medical 16 / mechanical 16 / finance 16 / chemistry 16 / biology 16）
+│   │   └── build_embeddings.py           # 向量化入库脚本：考点条目→text-embedding→PG kb_embeddings 表（新增/修改条目后用 --kb 指定文件名重跑）
 │   ├── static/                           # 静态前端文件
 │   │   ├── admin.html                    # 工作台界面（登录后上传简历、查看面试记录）
 │   │   ├── interview.html                # 候选人面试界面
@@ -284,6 +285,7 @@ pip install -r requirements.txt
 DASHSCOPE_API_KEY=你的百炼API密钥
 # 以下为可选配置，不写则使用 config.py 中的默认值
 # LLM_MODEL=qwen-flash          # 出题/报告/提示 共用文本模型
+# EMBEDDING_MODEL=text-embedding-v3 # 知识库向量化模型（pgvector 向量检索）
 # VISION_MODEL=qwen3-vl-flash   # 表情识别视觉模型
 # TTS_MODEL=cosyvoice-v3-flash  # 语音合成模型
 # ASR_MODEL=paraformer-realtime-v2 # 语音识别模型
@@ -331,6 +333,20 @@ docker compose up -d --build
 ```
 
 说明：构建上下文为仓库根目录（compose 中 `context: ..`），nginx 反向代理到 app 容器的 10009 端口。报告导出走前端浏览器打印（Ctrl+P 存 PDF），无需服务端 PDF 库。`.dockerignore` 已排除 venv、.env、数据库文件等，不会被打进镜像。
+
+**pgvector 迁移（2026-10 知识库向量检索）**：postgres 容器镜像已从 `postgres:16` 换为 `pgvector/pgvector:pg16`（内置 pgvector 扩展，数据卷/环境变量完全兼容，pg_data 卷里旧数据不丢）。已装过旧镜像的机器需要重新拉取并重建容器：
+
+```bash
+cd docker
+docker compose pull postgres
+docker compose up -d postgres
+```
+
+重建后跑一次知识库向量化入库脚本（需先在百炼开通 embedding 模型付费额度）：
+
+```bash
+app\venv\Scripts\python.exe app\knowledge\build_embeddings.py
+```
 
 ***
 
@@ -495,6 +511,8 @@ app\venv\Scripts\python.exe -m app.main
 | 数据库连接管理  | 管理数据库连接                            | app/db/db.py                            |
 | 数据库连接池   | 线程本地连接池（每线程一个连接）              | app/db/db\_pool.py                      |
 | 表情分析服务   | 调用视觉模型分析面试者表情（qwen3-vl-flash）   | app/ai\_services/expression\_service.py |
+| 知识库检索服务   | 岗位考点检索（pgvector 向量检索为主，SQLite 回退/向量化失败时自动降级关键词） | app/ai\_services/knowledge\_service.py |
+| 知识库向量化脚本 | 为考点条目生成向量写入 PG kb_embeddings 表（新增/修改条目后重跑一次） | app/knowledge/build\_embeddings.py      |
 | 面试问题生成服务 | 生成面试问题（LLM_MODEL，与报告同模型）    | app/ai\_services/question\_service.py   |
 | 面试提示词模板  | 简历为核心依据、岗位定方向的出题提示词         | app/ai\_services/prompt.py              |
 | 面试报告生成服务 | 生成面试报告（LLM_MODEL）              | app/ai\_services/report\_service.py     |
@@ -570,11 +588,11 @@ CosyVoice 仅支持音色 ID（long* 系列，不认 zh-CN-*Neural 风格音色�
 | Web框架   | FastAPI + uvicorn（2026-09 从 Flask 迁移） |
 | 前端框架    | Vue.js 3                             |
 | UI组件    | Bootstrap 5                          |
-| AI模型    | 阿里云百炼 qwen-flash（出题/报告/提示，统一走 LLM_MODEL）+ qwen3-vl-flash（表情识别，VISION_MODEL） |
+| AI模型    | 阿里云百炼 qwen-flash（出题/报告/提示，统一走 LLM_MODEL）+ qwen3-vl-flash（表情识别，VISION_MODEL）+ text-embedding-v3（知识库向量检索，EMBEDDING_MODEL） |
 | 语音合成    | 阿里云百炼 cosyvoice-v3-flash（TTS_MODEL）   |
 | 语音识别    | 阿里云百炼 paraformer-realtime-v2（ASR_MODEL，dashscope SDK） |
 | 支付系统    | 支付宝SDK                               |
-| 数据库     | PostgreSQL 16（Docker 容器部署，psycopg3 连接池；SQLite 回退） |
+| 数据库     | PostgreSQL 16（Docker 容器部署，镜像 pgvector/pgvector:pg16 内置 pgvector 向量扩展；psycopg3 连接池；SQLite 回退） |
 | 报告导出   | 前端浏览器打印排版（Ctrl+P 存 PDF）  |
 | PDF解析   | pypdf（提取纯文本）                     |
 | HTTP客户端 | OpenAI SDK / httpx / requests        |
